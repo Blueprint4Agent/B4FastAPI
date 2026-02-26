@@ -1,0 +1,86 @@
+{
+  "app": {
+    "loadingSession": "Loading session..."
+  },
+  "auth": {
+    "errors": {
+      "loginFallback": "Login failed. Please try again.",
+      "signupFallback": "Signup failed. Please check your input.",
+      "passwordMismatch": "Password confirmation does not match.",
+      "requiredEmail": "Email is required.",
+      "requiredName": "Name is required.",
+      "requiredPassword": "Password is required.",
+      "requiredConfirmPassword": "Please confirm your password.",
+      "invalidEmail": "Please enter a valid email address.",
+      "invalidPasswordPattern": "Password must be 8-24 chars and include uppercase, number, and symbol.",
+      "invalidCredentialsWithCount": "Incorrect credentials. {{count}} attempt(s) remaining.",
+      "accountLocked": "Too many failed attempts. Try again in {{seconds}} seconds."
+    }
+  },
+  "cards": {
+    "errorTitle": "Action required",
+    "warningTitle": "Warning"
+  },
+  "login": {
+    "title": "Login",
+    "subtitle": "Sign in to access the template dashboard.",
+    "fields": {
+      "email": "Email",
+      "password": "Password"
+    },
+    "rememberMe": "Remember me (refresh cookie)",
+    "submitIdle": "Sign in",
+    "submitBusy": "Signing in...",
+    "signupPrompt": "New here?",
+    "signupLink": "Create an account"
+  },
+  "signup": {
+    "title": "Sign up",
+    "subtitle": "Create a starter account for local development.",
+    "fields": {
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm password"
+    },
+    "submitIdle": "Create account",
+    "submitBusy": "Creating account...",
+    "loginPrompt": "Already have an account?",
+    "loginLink": "Back to login",
+    "validation": {
+      "email": "Email validation",
+      "password": "Password validation",
+      "confirm": "Password confirmation"
+    },
+    "rules": {
+      "email": {
+        "format": "Use a valid email format."
+      },
+      "password": {
+        "length": "8 to 24 characters.",
+        "upper": "Include at least one uppercase letter.",
+        "number": "Include at least one number.",
+        "symbol": "Include at least one symbol.",
+        "noSpace": "Do not use spaces."
+      },
+      "confirm": {
+        "match": "Password and confirmation must match."
+      }
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "You are authenticated. This is the template landing page.",
+    "labels": {
+      "userId": "User ID",
+      "name": "Name",
+      "email": "Email"
+    },
+    "logoutIdle": "Sign out",
+    "logoutBusy": "Signing out..."
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode"
+  }
+}

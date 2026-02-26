@@ -1,0 +1,385 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+:root {
+  --radius-pill: 999px;
+  --radius-panel: 2rem;
+  --radius-input: 1rem;
+  --bg: #f7f4ea;
+  --bg-grad-a: rgba(48, 117, 211, 0.18);
+  --bg-grad-b: rgba(196, 153, 54, 0.14);
+  --text: #132033;
+  --text-soft: #4a5a6b;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-border: rgba(19, 32, 51, 0.12);
+  --input-bg: rgba(255, 255, 255, 0.95);
+  --input-border: rgba(19, 32, 51, 0.22);
+  --accent: #0b4ea8;
+  --accent-hover: #063d86;
+  --shadow: 0 24px 50px rgba(22, 33, 48, 0.14);
+  --error-bg: rgba(210, 53, 53, 0.1);
+  --error-border: rgba(210, 53, 53, 0.35);
+  --error-text: #7f2020;
+  --warn-bg: rgba(199, 130, 21, 0.12);
+  --warn-border: rgba(199, 130, 21, 0.35);
+  --warn-text: #714600;
+  --button-bg: #101010;
+  --button-fg: #f7f7f7;
+  --button-border: #101010;
+}
+
+html[data-theme="dark"] {
+  --bg: #0f1521;
+  --bg-grad-a: rgba(31, 89, 201, 0.28);
+  --bg-grad-b: rgba(190, 142, 39, 0.2);
+  --text: #edf2ff;
+  --text-soft: #a4b3c7;
+  --panel: rgba(16, 24, 37, 0.85);
+  --panel-border: rgba(149, 172, 206, 0.22);
+  --input-bg: rgba(24, 36, 54, 0.9);
+  --input-border: rgba(148, 171, 205, 0.35);
+  --accent: #87b7ff;
+  --accent-hover: #9dc4ff;
+  --shadow: 0 22px 52px rgba(0, 0, 0, 0.42);
+  --error-bg: rgba(248, 97, 97, 0.14);
+  --error-border: rgba(248, 97, 97, 0.45);
+  --error-text: #ffc4c4;
+  --warn-bg: rgba(247, 178, 65, 0.14);
+  --warn-border: rgba(247, 178, 65, 0.45);
+  --warn-text: #ffdca5;
+  --button-bg: #f7f7f7;
+  --button-fg: #101216;
+  --button-border: #f7f7f7;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --bg: #0f1521;
+    --bg-grad-a: rgba(31, 89, 201, 0.28);
+    --bg-grad-b: rgba(190, 142, 39, 0.2);
+    --text: #edf2ff;
+    --text-soft: #a4b3c7;
+    --panel: rgba(16, 24, 37, 0.85);
+    --panel-border: rgba(149, 172, 206, 0.22);
+    --input-bg: rgba(24, 36, 54, 0.9);
+    --input-border: rgba(148, 171, 205, 0.35);
+    --accent: #87b7ff;
+    --accent-hover: #9dc4ff;
+    --shadow: 0 22px 52px rgba(0, 0, 0, 0.42);
+    --error-bg: rgba(248, 97, 97, 0.14);
+    --error-border: rgba(248, 97, 97, 0.45);
+    --error-text: #ffc4c4;
+    --warn-bg: rgba(247, 178, 65, 0.14);
+    --warn-border: rgba(247, 178, 65, 0.45);
+    --warn-text: #ffdca5;
+    --button-bg: #f7f7f7;
+    --button-fg: #101216;
+    --button-border: #f7f7f7;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Space Grotesk", sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 0.2rem;
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-pill);
+  padding: 0.6rem 0.95rem;
+  background: color-mix(in oklab, var(--panel) 92%, transparent 8%);
+  color: var(--text);
+  box-shadow: 0 10px 22px rgba(16, 24, 40, 0.15);
+}
+
+.panel {
+  width: min(32rem, 100%);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-panel);
+  background: var(--panel);
+  backdrop-filter: blur(12px);
+  padding: 2rem 1.65rem;
+  box-shadow: var(--shadow);
+  animation: rise 260ms ease-out;
+}
+
+.panel-card__top {
+  margin-bottom: 1rem;
+}
+
+.auth-panel-stack {
+  width: min(32rem, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+}
+
+.auth-panel-stack .panel {
+  width: 100%;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-mark img {
+  width: 4.25rem;
+  height: 4.25rem;
+  display: block;
+}
+
+.brand-mark--login img {
+  width: 4.6rem;
+  height: 4.6rem;
+}
+
+.panel h1 {
+  margin: 0 0 0.45rem;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.muted {
+  margin: 0.15rem 0 0.5rem;
+  color: var(--text-soft);
+}
+
+.form {
+  display: grid;
+  gap: 1.12rem;
+  margin-top: 1.4rem;
+}
+
+.form-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+input {
+  width: 100%;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-input);
+  padding: 0.82rem 0.95rem;
+  font: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+}
+
+input:focus {
+  outline: 2px solid color-mix(in oklab, var(--text) 24%, transparent);
+  border-color: color-mix(in oklab, var(--text) 34%, var(--input-border));
+}
+
+.checkbox {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.checkbox input {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 0.45rem;
+}
+
+.ui-button {
+  border: 1px solid var(--button-border);
+  border-radius: var(--radius-pill);
+  padding: 0.72rem 0.95rem;
+  font:
+    500 0.95rem/1 "IBM Plex Mono",
+    monospace;
+  color: var(--button-fg);
+  background: var(--button-bg);
+  cursor: pointer;
+  transition: transform 150ms ease;
+}
+
+.ui-button:hover {
+  transform: translateY(-2px);
+}
+
+.ui-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.status-card {
+  border-radius: 1.1rem;
+  border: 1px solid;
+  padding: 1.02rem 1rem;
+  display: grid;
+  gap: 0.36rem;
+}
+
+.status-card__title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.status-card__message {
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.status-card--error {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--error-text);
+}
+
+.status-card--warning {
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+  color: var(--warn-text);
+}
+
+.validation-card {
+  border: 1px solid;
+  border-radius: 1rem;
+  padding: 0.86rem 0.9rem;
+  display: grid;
+  gap: 0.55rem;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.validation-card--no {
+  border-color: color-mix(in oklab, #c53b3b 40%, transparent 60%);
+  background: color-mix(in oklab, #c53b3b 10%, var(--panel) 90%);
+}
+
+.validation-card--ok {
+  border-color: color-mix(in oklab, #168f48 40%, transparent 60%);
+  background: color-mix(in oklab, #168f48 12%, var(--panel) 88%);
+}
+
+.validation-card__title {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  font-weight: 700;
+}
+
+.validation-card__list {
+  display: grid;
+  gap: 0.44rem;
+}
+
+.validation-card__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.validation-card__mark {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.validation-card__icon {
+  width: 0.92rem;
+  height: 0.92rem;
+}
+
+.validation-card__mark--ok {
+  border: 1px solid color-mix(in oklab, #168f48 45%, transparent 55%);
+  background: color-mix(in oklab, #168f48 16%, transparent 84%);
+  color: color-mix(in oklab, #168f48 88%, var(--text) 12%);
+}
+
+.validation-card__mark--no {
+  border: 1px solid color-mix(in oklab, #c53b3b 42%, transparent 58%);
+  background: color-mix(in oklab, #c53b3b 12%, transparent 88%);
+  color: color-mix(in oklab, #c53b3b 88%, var(--text) 12%);
+}
+
+.validation-card__label {
+  color: var(--text-soft);
+}
+
+.meta {
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.82rem;
+}
+
+.key-value-card {
+  padding: 0.95rem 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklab, var(--panel-border) 92%, transparent 8%);
+  background: color-mix(in oklab, var(--panel) 95%, transparent 5%);
+}
+
+.meta dt {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+}
+
+.meta dd {
+  margin: 0.18rem 0 0;
+}
+
+.auth-footer {
+  margin-top: 1.35rem;
+}
+
+.text-link {
+  position: relative;
+  display: inline-block;
+  color: color-mix(in oklab, var(--text) 88%, var(--accent) 12%);
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+.text-link:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
