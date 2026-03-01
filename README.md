@@ -26,7 +26,7 @@ backend/
     main.py
 frontend/
   src/
-    api/         # HTTP client and auth API methods
+    api/         # OpenAPI-generated types + typed HTTP client
     hooks/       # auth/session bootstrap logic
     pages/       # login/signup/dashboard
 docker/
@@ -80,6 +80,22 @@ npm run dev
 - `frontend/.env`
   - `VITE_API_BASE_URL` should point to backend host
 
+## Frontend OpenAPI Contract
+
+- Source of truth: backend OpenAPI endpoint `http://localhost:8000/openapi.json`
+- Generated file: `frontend/src/api/generated/openapi.ts`
+- Primary command:
+  - `npm run generate:api`
+- Build behavior:
+  - `npm run build` runs `generate:api` first, then TypeScript/Vite build
+- Optional safe sync:
+  - `npm run generate:api:optional`
+  - If regeneration fails but a generated file already exists, the build can continue with the existing file
+
+Guideline:
+- Frontend API code should import contract types from `src/api/generated/openapi.ts`.
+- Avoid adding hand-written API contract types for endpoints already present in OpenAPI.
+
 ## API Endpoints
 
 - `POST /api/v1/auth/signup`
@@ -92,7 +108,7 @@ npm run dev
 
 ## Agent-Focused Entry Guide
 
-Read [`AGENT.md`](./AGENT.md) first.
+Read [`AGENTS.md`](./AGENTS.md) first.
 
 ## Frontend i18n
 

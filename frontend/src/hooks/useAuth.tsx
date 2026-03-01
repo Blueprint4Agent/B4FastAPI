@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import * as authApi from "../api/authApi";
-import type { User } from "../api/types";
+import type { User } from "../api/authApi";
 import { clearAccessToken, getAccessToken, setAccessToken } from "../store/session";
 
 type AuthContextValue = {

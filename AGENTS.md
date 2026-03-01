@@ -45,7 +45,21 @@ This document maps the fastest edit points for an agent.
 - File: `frontend/src/pages/*.tsx`
   - UI behavior and form validation UX
 
-## 6) Frontend design changes (component-first, required)
+## 6) Frontend API contract management (required)
+
+- Source of truth for frontend API schemas:
+  - `http://localhost:8000/openapi.json`
+- Generated output file:
+  - `frontend/src/api/generated/openapi.ts`
+- Required scripts:
+  - `npm run generate:api`
+  - `npm run build` (must run `generate:api` first)
+- Rules:
+  - Import API schema/types from `frontend/src/api/generated/openapi.ts`.
+  - Do not maintain duplicate hand-written API contract types for OpenAPI-backed endpoints.
+  - If endpoint contracts change, regenerate types before editing API call sites.
+
+## 7) Frontend design changes (component-first, required)
 
 - Always inspect and change UI in component units first.
 - Priority order:
@@ -59,7 +73,7 @@ This document maps the fastest edit points for an agent.
 - Keep style updates tied to component class names in `frontend/src/styles/app.css`.
 - Before finishing, confirm pages still compose from components and run `npm run build`.
 
-## 7) Minimum contracts to keep stable
+## 8) Minimum contracts to keep stable
 
 - API payload shape for auth errors:
 ```json
@@ -76,7 +90,7 @@ This document maps the fastest edit points for an agent.
   - `login_enabled`
   - `frontend_base_path`
 
-## 8) Commit message convention (required)
+## 9) Commit message convention (required)
 
 - Split commits by domain and feature:
   - Frontend commits: UI/components/pages/style/i18n changes
@@ -96,7 +110,7 @@ chore: fix auth form validation flow
 - align frontend and backend constraints
 ```
 
-## 9) Worklog convention (required)
+## 10) Worklog convention (required)
 
 - Do not use root `WORKLOG.md`.
 - Keep all logs in `worklog/`.

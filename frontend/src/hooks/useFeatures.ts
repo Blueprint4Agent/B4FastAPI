@@ -1,12 +1,9 @@
 import { useEffect, useState } from "react";
 
-import { getApiBase } from "../api/http";
+import { apiClient } from "../api/http";
+import type { paths } from "../api/generated/openapi";
 
-type AppConfig = {
-  login_enabled?: boolean;
-  api_base_path?: string;
-  frontend_base_path?: string;
-};
+type AppConfig = paths["/config"]["get"]["responses"][200]["content"]["application/json"];
 
 export function useAppConfig() {
   const [data, setData] = useState<AppConfig | null>(null);
@@ -15,10 +12,10 @@ export function useAppConfig() {
   useEffect(() => {
     const run = async () => {
       try {
-        const response = await fetch(`${getApiBase()}/config`, { credentials: "include" });
-        if (!response.ok) return;
-        const payload = (await response.json()) as AppConfig;
-        setData(payload);
+        const { data: payload, error } = await apiClient.GET("/config");
+        if (!error && payload) {
+          setData(payload);
+        }
       } finally {
         setLoading(false);
       }

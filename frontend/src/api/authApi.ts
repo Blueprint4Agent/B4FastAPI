@@ -1,34 +1,54 @@
-import { request } from "./http";
-import type { LoginPayload, RefreshPayload, User } from "./types";
+import { apiClient, getAuthHeader } from "./http";
+import type { components } from "./generated/openapi";
 
-export async function signup(input: { email: string; name: string; password: string }) {
-  return request<User>("/api/v1/auth/signup", {
-    method: "POST",
-    body: JSON.stringify(input)
-  });
+type SignupInput = components["schemas"]["SignupForm"];
+type LoginInput = components["schemas"]["LoginForm"];
+export type User = components["schemas"]["UserResponse"];
+export type LoginPayload = components["schemas"]["LoginResponse"];
+export type RefreshPayload = components["schemas"]["RefreshResponse"];
+
+export async function signup(input: SignupInput): Promise<User> {
+  const { data, error } = await apiClient.POST("/api/v1/auth/signup", { body: input });
+  if (error || !data) {
+    throw error;
+  }
+  return data;
 }
 
-export async function login(input: { email: string; password: string; remember_me: boolean }) {
-  return request<LoginPayload>("/api/v1/auth/login", {
-    method: "POST",
-    body: JSON.stringify(input)
-  });
+export async function login(input: LoginInput): Promise<LoginPayload> {
+  const { data, error } = await apiClient.POST("/api/v1/auth/login", { body: input });
+  if (error || !data) {
+    throw error;
+  }
+  return data;
 }
 
-export async function me() {
-  return request<User>("/api/v1/auth/me", { method: "GET", auth: true });
+export async function me(): Promise<User> {
+  const { data, error } = await apiClient.GET("/api/v1/auth/me", {
+    headers: getAuthHeader()
+  });
+  if (error || !data) {
+    throw error;
+  }
+  return data;
 }
 
-export async function refresh() {
-  return request<RefreshPayload>("/api/v1/auth/refresh", {
-    method: "POST",
-    body: JSON.stringify({})
+export async function refresh(): Promise<RefreshPayload> {
+  const { data, error } = await apiClient.POST("/api/v1/auth/refresh", {
+    body: {}
   });
+  if (error || !data) {
+    throw error;
+  }
+  return data;
 }
 
 export async function logout() {
-  return request<{ message: string }>("/api/v1/auth/logout", {
-    method: "POST",
-    auth: true
+  const { data, error } = await apiClient.POST("/api/v1/auth/logout", {
+    headers: getAuthHeader()
   });
+  if (error || !data) {
+    throw error;
+  }
+  return data;
 }
