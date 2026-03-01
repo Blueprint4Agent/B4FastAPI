@@ -9,10 +9,6 @@ Included baseline features:
 - JWT access token + Redis-backed refresh token rotation
 - Initial project setup support (`.env`, DB, Redis)
 
-Excluded from this template on purpose:
-- Knowledge/topic/api-key/admin/rag modules
-- MCP integration and non-auth business features
-
 ## Structure
 
 ```text
