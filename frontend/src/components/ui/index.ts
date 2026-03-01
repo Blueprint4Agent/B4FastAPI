@@ -4,5 +4,7 @@ export { FormCheckbox } from "./FormCheckbox";
 export { InputField } from "./InputField";
 export { KeyValueCard } from "./KeyValueCard";
 export { PanelCard } from "./PanelCard";
+export { ProfileDropdown } from "./ProfileDropdown";
+export { ThemeToggleButton } from "./ThemeToggleButton";
 export { ValidationCard } from "./ValidationCard";
 export type { ValidationRule } from "./ValidationCard";

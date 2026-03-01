@@ -79,6 +79,26 @@
     "logoutIdle": "Sign out",
     "logoutBusy": "Signing out..."
   },
+  "nav": {
+    "profileMenu": "Profile menu",
+    "settings": "Settings",
+    "logoutIdle": "Sign out",
+    "logoutBusy": "Signing out...",
+    "aria": {
+      "goDashboard": "Go to dashboard",
+      "openMenu": "Open profile menu"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences.",
+    "labels": {
+      "name": "Name",
+      "email": "Email",
+      "userId": "User ID"
+    },
+    "hint": "Profile actions are available from the top-right menu."
+  },
   "theme": {
     "light": "Light mode",
     "dark": "Dark mode"
