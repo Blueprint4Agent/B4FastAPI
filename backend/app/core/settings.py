@@ -40,6 +40,18 @@ class Settings(BaseModel):
     REDIS_PASSWORD: str | None = os.getenv("REDIS_PASSWORD")
     REDIS_URL: str | None = None
 
+    EMAIL_ENABLED: bool = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
+    EMAIL_FROM: str = os.getenv("EMAIL_FROM", "no-reply@example.com")
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", os.getenv("SMTP_USER", ""))
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USE_STARTTLS: bool = os.getenv("SMTP_USE_STARTTLS", "true").lower() == "true"
+    SMTP_USE_SSL: bool = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
+    SMTP_TIMEOUT_SECONDS: int = int(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
+    SMTP_VALIDATE_ON_STARTUP: bool = os.getenv("SMTP_VALIDATE_ON_STARTUP", "true").lower() == "true"
+    EMAIL_SIGNUP_SUBJECT: str = os.getenv("EMAIL_SIGNUP_SUBJECT", "Welcome to Blueprint4FastAPI")
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -68,6 +80,27 @@ class Settings(BaseModel):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    def get_smtp_validation_errors(self) -> list[str]:
+        if not self.EMAIL_ENABLED:
+            return []
+
+        errors: list[str] = []
+        if not self.SMTP_HOST.strip():
+            errors.append("SMTP_HOST is required when EMAIL_ENABLED=true.")
+        if self.SMTP_PORT <= 0:
+            errors.append("SMTP_PORT must be greater than 0.")
+        if not self.EMAIL_FROM.strip():
+            errors.append("EMAIL_FROM is required when EMAIL_ENABLED=true.")
+        if self.SMTP_USE_SSL and self.SMTP_USE_STARTTLS:
+            errors.append("SMTP_USE_SSL and SMTP_USE_STARTTLS cannot both be true.")
+
+        has_username = bool(self.SMTP_USERNAME.strip())
+        has_password = bool(self.SMTP_PASSWORD.strip())
+        if has_username != has_password:
+            errors.append("SMTP_USERNAME and SMTP_PASSWORD must be set together.")
+
+        return errors
 
 
 SETTINGS = Settings()

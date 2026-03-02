@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.database import dispose_db, init_db
+from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
 from app.routers.v1 import auth
@@ -14,6 +15,7 @@ from app.routers.v1 import auth
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    await MAIL_SERVICE.initialize()
     await init_db()
     try:
         yield

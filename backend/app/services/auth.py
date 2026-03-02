@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi import Request
 
 from app.core.error import AuthErrorCode, AuthException
+from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
 from app.models.user import (
@@ -27,11 +28,16 @@ from app.utils.token import (
 class AuthService:
     async def signup(self, form: SignupForm) -> UserResponse:
         try:
-            return await Users.create_signup_user(
+            user = await Users.create_signup_user(
                 email=form.email,
                 name=form.name,
                 password_hash=hash_password(form.password),
             )
+            await MAIL_SERVICE.send_signup_verification_email(
+                to_email=user.email,
+                user_name=user.name,
+            )
+            return user
         except UserDAOError as error:
             if error.code == "EMAIL_ALREADY_EXISTS":
                 raise AuthException(
