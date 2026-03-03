@@ -17,7 +17,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    is_verified: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
@@ -120,6 +120,53 @@ class RefreshResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class VerifyEmailForm(BaseModel):
+    token: str = Field(min_length=16, max_length=512)
+
+
+class VerifyEmailResponse(BaseModel):
+    message: str
+    user: UserResponse
+
+
+class ResendVerificationForm(BaseModel):
+    email: str = Field(pattern=EMAIL_PATTERN, max_length=255)
+
+
+class ResendVerificationResponse(BaseModel):
+    message: str
+
+
+class ForgotPasswordForm(BaseModel):
+    email: str = Field(pattern=EMAIL_PATTERN, max_length=255)
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+
+
+class ResetPasswordForm(BaseModel):
+    token: str = Field(min_length=16, max_length=512)
+    password: str = Field(min_length=8, max_length=24)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, value: str) -> str:
+        if not any(char.isupper() for char in value):
+            raise ValueError("Password must include at least one uppercase letter.")
+        if not any(char.isdigit() for char in value):
+            raise ValueError("Password must include at least one number.")
+        if not any(not char.isalnum() for char in value):
+            raise ValueError("Password must include at least one symbol.")
+        if any(char.isspace() for char in value):
+            raise ValueError("Password cannot contain spaces.")
+        return value
+
+
+class ResetPasswordResponse(BaseModel):
+    message: str
+
+
 class APIError(BaseModel):
     error: str
     message: str
@@ -153,7 +200,13 @@ class UserDAOError(Exception):
 
 
 class UserDAO:
-    async def create_signup_user(self, email: str, name: str, password_hash: str) -> UserResponse:
+    async def create_signup_user(
+        self,
+        email: str,
+        name: str,
+        password_hash: str,
+        is_verified: bool = False,
+    ) -> UserResponse:
         async with get_db() as db:
             exists_result = await db.execute(select(User.id).where(User.email == email).limit(1))
             if exists_result.first() is not None:
@@ -162,7 +215,7 @@ class UserDAO:
                     message="User with this email already exists.",
                 )
 
-            user = User(email=email, name=name, is_verified=True)
+            user = User(email=email, name=name, is_verified=is_verified)
             user.credential = Credential(password_hash=password_hash)
             user.auth_record = AuthRecord(provider="email", identifier=email)
             db.add(user)
@@ -246,6 +299,36 @@ class UserDAO:
             auth_record.last_login_ip = login_ip
             auth_record.last_login_user_agent = user_agent
             await db.commit()
+
+    async def mark_email_verified(self, user_id: int) -> UserResponse | None:
+        async with get_db() as db:
+            result = await db.execute(
+                select(User).where(User.id == user_id, User.is_active.is_(True))
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                return None
+
+            user.is_verified = True
+            await db.commit()
+            await db.refresh(user)
+            return UserResponse.model_validate(user)
+
+    async def update_password_hash(self, user_id: int, password_hash: str) -> bool:
+        async with get_db() as db:
+            result = await db.execute(
+                select(Credential)
+                .join(User, User.id == Credential.user_id)
+                .where(User.id == user_id, User.is_active.is_(True))
+            )
+            credential = result.scalar_one_or_none()
+            if credential is None:
+                return False
+
+            credential.password_hash = password_hash
+            credential.updated_at = datetime.now(UTC)
+            await db.commit()
+            return True
 
 
 Users = UserDAO()

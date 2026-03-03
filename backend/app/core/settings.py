@@ -15,6 +15,7 @@ class Settings(BaseModel):
     APP_NAME: str = os.getenv("APP_NAME", "Blueprint4FastAPI API")
     APP_ENV: str = os.getenv("APP_ENV", "local")
     APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
+    APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5173")
     SWAGGER_ENABLED: bool = os.getenv("SWAGGER_ENABLED", "true").lower() == "true"
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 
@@ -22,6 +23,12 @@ class Settings(BaseModel):
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv("EMAIL_VERIFICATION_TOKEN_EXPIRE_MINUTES", "60")
+    )
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "30")
+    )
     LOGIN_FAILED_LIMIT: int = int(os.getenv("LOGIN_FAILED_LIMIT", "5"))
     LOGIN_LOCKED_MINUTES: int = int(os.getenv("LOGIN_LOCKED_MINUTES", "5"))
 
@@ -50,7 +57,7 @@ class Settings(BaseModel):
     SMTP_USE_SSL: bool = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
     SMTP_TIMEOUT_SECONDS: int = int(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
     SMTP_VALIDATE_ON_STARTUP: bool = os.getenv("SMTP_VALIDATE_ON_STARTUP", "true").lower() == "true"
-    EMAIL_SIGNUP_SUBJECT: str = os.getenv("EMAIL_SIGNUP_SUBJECT", "Welcome to Blueprint4FastAPI")
+    EMAIL_BRAND_NAME: str = os.getenv("EMAIL_BRAND_NAME", "Blueprint4FastAPI")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

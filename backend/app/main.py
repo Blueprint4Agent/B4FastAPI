@@ -5,12 +5,20 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from app.core.database import dispose_db, init_db
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
 from app.routers.v1 import auth
+
+
+class AppConfigResponse(BaseModel):
+    api_base_path: str
+    login_enabled: bool
+    frontend_base_path: str
+    email_enabled: bool
 
 
 @asynccontextmanager
@@ -57,12 +65,13 @@ def create_app() -> FastAPI:
     async def ping():
         return {"status": "ok", "message": "pong"}
 
-    @app.get("/config")
+    @app.get("/config", response_model=AppConfigResponse)
     async def config():
         return {
             "api_base_path": "/api/v1",
             "login_enabled": True,
             "frontend_base_path": "",
+            "email_enabled": SETTINGS.EMAIL_ENABLED,
         }
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])

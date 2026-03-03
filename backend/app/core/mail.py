@@ -3,7 +3,9 @@ import logging
 import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
+from urllib.parse import urljoin
 
+from app.core.mail_templates import build_password_reset_email, build_verification_email
 from app.core.settings import SETTINGS, Settings
 
 # Use uvicorn's error logger so service logs are visible in standard server output.
@@ -119,18 +121,26 @@ class MailService:
         else:
             logger.info("SMTP startup verification skipped by configuration.")
 
-    async def send_signup_verification_email(self, *, to_email: str, user_name: str) -> None:
+    async def send_signup_verification_email(
+        self, *, to_email: str, user_name: str, link: str = ""
+    ) -> None:
         if not self._settings.EMAIL_ENABLED:
             return
+        resolved_link = self._resolve_link(path="/verify-email", link=link)
+        if not resolved_link:
+            logger.warning("Skip signup verification email. Missing APP_BASE_URL and link.")
+            return
 
+        content = build_verification_email(
+            name=user_name,
+            link=resolved_link,
+            app_name=self._settings.EMAIL_BRAND_NAME,
+        )
         message = MailMessage(
             to_email=to_email,
-            subject=self._settings.EMAIL_SIGNUP_SUBJECT,
-            text_body=(
-                f"Hello {user_name},\n\n"
-                "Please verify your email to activate your account.\n"
-                "If you did not sign up, you can ignore this message.\n"
-            ),
+            subject=content.subject,
+            text_body=content.text,
+            html_body=content.html,
         )
         logger.info("Attempting signup verification email delivery to %s.", to_email)
         try:
@@ -138,6 +148,46 @@ class MailService:
             logger.info("Signup verification email delivered to %s.", to_email)
         except Exception:
             logger.exception("Failed to send signup verification email to %s.", to_email)
+
+    async def send_password_reset_email(
+        self, *, to_email: str, user_name: str, link: str = ""
+    ) -> None:
+        if not self._settings.EMAIL_ENABLED:
+            return
+        resolved_link = self._resolve_link(path="/reset-password", link=link)
+        if not resolved_link:
+            logger.warning("Skip password reset email. Missing APP_BASE_URL and link.")
+            return
+
+        content = build_password_reset_email(
+            name=user_name,
+            link=resolved_link,
+            app_name=self._settings.EMAIL_BRAND_NAME,
+        )
+        message = MailMessage(
+            to_email=to_email,
+            subject=content.subject,
+            text_body=content.text,
+            html_body=content.html,
+        )
+        logger.info("Attempting password reset email delivery to %s.", to_email)
+        try:
+            await self._provider.send(message)
+            logger.info("Password reset email delivered to %s.", to_email)
+        except Exception:
+            logger.exception("Failed to send password reset email to %s.", to_email)
+
+    def _resolve_link(self, *, path: str, link: str) -> str:
+        explicit_link = link.strip()
+        if explicit_link:
+            return explicit_link
+
+        base_url = self._settings.APP_BASE_URL.strip()
+        if not base_url:
+            return ""
+
+        normalized_base = f"{base_url.rstrip('/')}/"
+        return urljoin(normalized_base, path.lstrip("/"))
 
 
 MAIL_SERVICE = MailService(SETTINGS)

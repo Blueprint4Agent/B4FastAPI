@@ -2,7 +2,21 @@ from fastapi import APIRouter, Body, Depends, Request, Response
 
 from app.core.error import AuthErrorCode, AuthException, service_exception_to_http
 from app.deps import get_current_user
-from app.models.user import LoginForm, LoginResponse, RefreshResponse, SignupForm, UserResponse
+from app.models.user import (
+    ForgotPasswordForm,
+    ForgotPasswordResponse,
+    LoginForm,
+    LoginResponse,
+    RefreshResponse,
+    ResendVerificationForm,
+    ResendVerificationResponse,
+    ResetPasswordForm,
+    ResetPasswordResponse,
+    SignupForm,
+    UserResponse,
+    VerifyEmailForm,
+    VerifyEmailResponse,
+)
 from app.services.auth import AuthService
 from app.utils.cookies import clear_refresh_cookies, get_refresh_cookie_value, set_refresh_cookies
 
@@ -103,3 +117,55 @@ async def refresh_token(
         user_id=int(user_id_value),
     )
     return token_payload
+
+
+@router.post("/verify-email", response_model=VerifyEmailResponse)
+async def verify_email(
+    form: VerifyEmailForm,
+    service: AuthService = Depends(AuthService),
+):
+    try:
+        user = await service.verify_email(form.token)
+        return VerifyEmailResponse(message="Email verified successfully.", user=user)
+    except AuthException as error:
+        _raise_http_error(error)
+
+
+@router.post("/resend-verification", response_model=ResendVerificationResponse)
+async def resend_verification_email(
+    form: ResendVerificationForm,
+    service: AuthService = Depends(AuthService),
+):
+    try:
+        await service.resend_verification_email(form.email)
+        return ResendVerificationResponse(
+            message="If an unverified account exists, a verification email has been sent.",
+        )
+    except AuthException as error:
+        _raise_http_error(error)
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    form: ForgotPasswordForm,
+    service: AuthService = Depends(AuthService),
+):
+    try:
+        await service.request_password_reset(form.email)
+        return ForgotPasswordResponse(
+            message="If the account exists, a password reset email has been sent.",
+        )
+    except AuthException as error:
+        _raise_http_error(error)
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    form: ResetPasswordForm,
+    service: AuthService = Depends(AuthService),
+):
+    try:
+        await service.reset_password(form.token, form.password)
+        return ResetPasswordResponse(message="Password reset completed successfully.")
+    except AuthException as error:
+        _raise_http_error(error)

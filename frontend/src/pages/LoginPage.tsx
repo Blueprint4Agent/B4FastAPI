@@ -1,11 +1,13 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
+import { resendVerificationEmail } from "../api/authApi";
 import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { BrandMark, Button, FormCheckbox, InputField, PanelCard } from "../components/ui";
 import { useAuthContext } from "../hooks/useAuth";
+import { useAppConfig } from "../hooks/useFeatures";
 import { isValidEmail, isValidPassword } from "../utils/validation";
 
 type APIError = {
@@ -29,24 +31,26 @@ function extractApiDetail(error: unknown): APIError["detail"] | null {
 export function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuthContext();
+  const { data: appConfig, loading: configLoading } = useAppConfig();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [showResendButton, setShowResendButton] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
-
-  const hasFeedback = useMemo(
-    () => Boolean(errorMessage || warningMessage),
-    [errorMessage, warningMessage]
-  );
+  const emailEnabled = appConfig?.email_enabled === true;
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
     setErrorMessage("");
     setWarningMessage("");
+    setShowResendButton(false);
+    setResendMessage("");
 
     if (!email.trim()) {
       setWarningMessage(t("auth.errors.requiredEmail"));
@@ -83,11 +87,28 @@ export function LoginPage() {
         );
       } else if (code === "ACCOUNT_LOCKED" && typeof details?.remaining_seconds === "number") {
         setWarningMessage(t("auth.errors.accountLocked", { seconds: details.remaining_seconds }));
+      } else if (code === "EMAIL_NOT_VERIFIED") {
+        setWarningMessage(t("auth.errors.emailNotVerified"));
+        setShowResendButton(true);
       } else {
         setErrorMessage(detail?.message || detail?.error || t("auth.errors.loginFallback"));
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const onResendVerification = async () => {
+    if (!email.trim() || resending) return;
+    setResending(true);
+    setResendMessage("");
+    try {
+      const payload = await resendVerificationEmail(email.trim());
+      setResendMessage(payload.message);
+    } catch {
+      setResendMessage(t("auth.errors.resendVerificationFallback"));
+    } finally {
+      setResending(false);
     }
   };
 
@@ -117,14 +138,23 @@ export function LoginPage() {
               onCheckedChange={setRememberMe}
               label={t("login.rememberMe")}
             />
-            {hasFeedback && warningMessage ? (
-              <WarningCard title={t("cards.warningTitle")} message={warningMessage} />
+            {warningMessage ? (
+              <WarningCard title={t("cards.warningTitle")} message={warningMessage}>
+                <div className="status-card__actions">
+                  {showResendButton ? (
+                    <Button type="button" loading={resending} onClick={onResendVerification}>
+                      {t("auth.actions.resendVerification")}
+                    </Button>
+                  ) : null}
+                  {resendMessage ? <p className="status-card__message">{resendMessage}</p> : null}
+                </div>
+              </WarningCard>
             ) : null}
-            {hasFeedback && errorMessage ? (
+            {errorMessage ? (
               <ErrorCard title={t("cards.errorTitle")} message={errorMessage} />
             ) : null}
-            <Button type="submit" disabled={submitting}>
-              {submitting ? t("login.submitBusy") : t("login.submitIdle")}
+            <Button type="submit" loading={submitting}>
+              {t("login.submitIdle")}
             </Button>
           </form>
           <p className="muted auth-footer">
@@ -133,6 +163,14 @@ export function LoginPage() {
               {t("login.signupLink")}
             </Link>
           </p>
+          {!configLoading && emailEnabled ? (
+            <p className="muted">
+              {t("login.forgotPasswordPrompt")}{" "}
+              <Link to="/forgot-password" className="text-link">
+                {t("login.forgotPasswordLink")}
+              </Link>
+            </p>
+          ) : null}
         </PanelCard>
       </div>
     </main>

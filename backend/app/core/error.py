@@ -45,6 +45,16 @@ class AuthErrorCode(Enum):
         "Account is temporarily locked.",
         status.HTTP_423_LOCKED,
     )
+    EMAIL_NOT_VERIFIED = ServiceErrorCode(
+        "EMAIL_NOT_VERIFIED",
+        "Email verification is required.",
+        status.HTTP_403_FORBIDDEN,
+    )
+    EMAIL_DISABLED = ServiceErrorCode(
+        "EMAIL_DISABLED",
+        "Email-based features are disabled.",
+        status.HTTP_403_FORBIDDEN,
+    )
     INVALID_TOKEN = ServiceErrorCode(
         "INVALID_TOKEN",
         "Invalid refresh token.",

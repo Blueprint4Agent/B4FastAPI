@@ -1,0 +1,23 @@
+# feat: add email-gated password reset flow
+
+- scope: cross-cutting
+- changed files:
+  - backend/app/routers/v1/auth.py
+  - backend/app/services/auth.py
+  - backend/app/utils/token.py
+  - backend/app/models/user.py
+  - backend/app/core/error.py
+  - backend/app/core/settings.py
+  - frontend/src/pages/ForgotPasswordPage.tsx
+  - frontend/src/pages/ForgotPasswordEmailSentPage.tsx
+  - frontend/src/pages/ResetPasswordPage.tsx
+  - frontend/src/pages/ResetPasswordSuccessPage.tsx
+  - frontend/src/pages/LoginPage.tsx
+  - frontend/src/App.tsx
+  - frontend/src/api/authApi.ts
+  - frontend/src/locales/en.json
+- reason and impact:
+  - Adds end-to-end password reset request/reset UI and API flow.
+  - Enforces EMAIL_ENABLED gating on both frontend and backend so reset is unavailable when disabled.
+  - Adds one-time password reset token lifecycle in Redis with overwrite behavior.
+  - Updates login entry point and routing so users can discover and complete reset flow safely.

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from urllib.parse import urlencode, urljoin
 
 from fastapi import Request
 
@@ -17,9 +18,15 @@ from app.models.user import (
 )
 from app.utils.security import hash_password, verify_password
 from app.utils.token import (
+    consume_email_verification_token,
+    consume_password_reset_token,
     create_access_token,
+    create_email_verification_token,
+    create_password_reset_token,
     create_refresh_token,
     delete_refresh_token,
+    store_email_verification_token,
+    store_password_reset_token,
     store_refresh_token,
     verify_refresh_token,
 )
@@ -32,11 +39,10 @@ class AuthService:
                 email=form.email,
                 name=form.name,
                 password_hash=hash_password(form.password),
+                is_verified=not SETTINGS.EMAIL_ENABLED,
             )
-            await MAIL_SERVICE.send_signup_verification_email(
-                to_email=user.email,
-                user_name=user.name,
-            )
+            if SETTINGS.EMAIL_ENABLED:
+                await self._send_verification_email(user.id, user.email, user.name)
             return user
         except UserDAOError as error:
             if error.code == "EMAIL_ALREADY_EXISTS":
@@ -70,6 +76,9 @@ class AuthService:
                 code=AuthErrorCode.INVALID_CREDENTIALS,
                 details={"remaining_attempts": remaining_attempts},
             )
+
+        if SETTINGS.EMAIL_ENABLED and not user.is_verified:
+            raise AuthException(code=AuthErrorCode.EMAIL_NOT_VERIFIED)
 
         await self._reset_login_fail_count(user_ip)
         await Users.update_login_metadata(
@@ -116,6 +125,56 @@ class AuthService:
             token_type="bearer",
         )
 
+    async def verify_email(self, token: str) -> UserResponse:
+        user_id = await consume_email_verification_token(token)
+        if user_id is None:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="Invalid or expired email verification token.",
+            )
+
+        user = await Users.mark_email_verified(user_id)
+        if user is None:
+            raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+        return user
+
+    async def resend_verification_email(self, email: str) -> None:
+        if not SETTINGS.EMAIL_ENABLED:
+            return
+        user = await Users.get_auth_user_by_email(email)
+        if user is None:
+            return
+        if user.is_verified:
+            return
+        await self._send_verification_email(user.id, user.email, user.name)
+
+    async def request_password_reset(self, email: str) -> None:
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+
+        user = await Users.get_auth_user_by_email(email)
+        if user is None:
+            return
+
+        await self._send_password_reset_email(user.id, user.email, user.name)
+
+    async def reset_password(self, token: str, password: str) -> None:
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+
+        user_id = await consume_password_reset_token(token)
+        if user_id is None:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="Invalid or expired password reset token.",
+            )
+
+        is_updated = await Users.update_password_hash(user_id, hash_password(password))
+        if not is_updated:
+            raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+
+        await delete_refresh_token(user_id)
+
     async def _check_login_limit(self, user_ip: str) -> None:
         redis = await RedisManager.get_client()
         key = f"login_fail:{user_ip}"
@@ -150,3 +209,33 @@ class AuthService:
     async def _reset_login_fail_count(self, user_ip: str) -> None:
         redis = await RedisManager.get_client()
         await redis.delete(f"login_fail:{user_ip}")
+
+    async def _send_verification_email(self, user_id: int, email: str, name: str) -> None:
+        verification_token = create_email_verification_token()
+        await store_email_verification_token(user_id, verification_token)
+
+        verify_path = "/verify-email"
+        verify_query = urlencode({"token": verification_token})
+        verify_link = urljoin(f"{SETTINGS.APP_BASE_URL.rstrip('/')}/", verify_path.lstrip("/"))
+        verify_link = f"{verify_link}?{verify_query}"
+
+        await MAIL_SERVICE.send_signup_verification_email(
+            to_email=email,
+            user_name=name,
+            link=verify_link,
+        )
+
+    async def _send_password_reset_email(self, user_id: int, email: str, name: str) -> None:
+        reset_token = create_password_reset_token()
+        await store_password_reset_token(user_id, reset_token)
+
+        reset_path = "/reset-password"
+        reset_query = urlencode({"token": reset_token})
+        reset_link = urljoin(f"{SETTINGS.APP_BASE_URL.rstrip('/')}/", reset_path.lstrip("/"))
+        reset_link = f"{reset_link}?{reset_query}"
+
+        await MAIL_SERVICE.send_password_reset_email(
+            to_email=email,
+            user_name=name,
+            link=reset_link,
+        )

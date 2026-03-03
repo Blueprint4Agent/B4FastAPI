@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 type StatusCardProps = {
   title: string;
   message: string;
-  tone: "error" | "warning";
+  tone: "error" | "warning" | "info";
   children?: ReactNode;
 };
 
@@ -28,6 +28,14 @@ export function ErrorCard({ title, message, children }: Omit<StatusCardProps, "t
 export function WarningCard({ title, message, children }: Omit<StatusCardProps, "tone">) {
   return (
     <StatusCard title={title} message={message} tone="warning">
+      {children}
+    </StatusCard>
+  );
+}
+
+export function InfoCard({ title, message, children }: Omit<StatusCardProps, "tone">) {
+  return (
+    <StatusCard title={title} message={message} tone="info">
       {children}
     </StatusCard>
   );

@@ -1,19 +1,13 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
+import { resetPassword } from "../api/authApi";
 import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
-import {
-  Button,
-  InputField,
-  PanelCard,
-  ValidationCard,
-  type ValidationRule
-} from "../components/ui";
-import { useAuthContext } from "../hooks/useAuth";
+import { Button, InputField, PanelCard, ValidationCard, type ValidationRule } from "../components/ui";
 import { useAppConfig } from "../hooks/useFeatures";
-import { isValidEmail, isValidPassword } from "../utils/validation";
+import { isValidPassword } from "../utils/validation";
 
 type APIError = {
   detail?: {
@@ -29,33 +23,24 @@ function extractApiDetail(error: unknown): APIError["detail"] | null {
   return detail;
 }
 
-export function SignupPage() {
+export function ResetPasswordPage() {
   const { t } = useTranslation();
-  const { signup } = useAuthContext();
-  const { data: appConfig, loading: configLoading } = useAppConfig();
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const { data: appConfig, loading: configLoading } = useAppConfig();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
-
+  const emailEnabled = appConfig?.email_enabled === true;
   const passwordMismatch = confirmPassword.length > 0 && confirmPassword !== password;
-  const hasFeedback = useMemo(
-    () => Boolean(errorMessage || warningMessage),
-    [errorMessage, warningMessage]
-  );
-  const emailRules = useMemo<ValidationRule[]>(
-    () => [
-      {
-        label: t("signup.rules.email.format"),
-        isValid: isValidEmail(email)
-      }
-    ],
-    [email, t]
-  );
+
+  const token = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get("token") || "").trim();
+  }, [location.search]);
+
   const passwordRules = useMemo<ValidationRule[]>(
     () => [
       {
@@ -81,6 +66,7 @@ export function SignupPage() {
     ],
     [password, t]
   );
+
   const confirmRules = useMemo<ValidationRule[]>(
     () => [
       {
@@ -90,7 +76,6 @@ export function SignupPage() {
     ],
     [confirmPassword.length, passwordMismatch, t]
   );
-  const emailEnabled = appConfig?.email_enabled === true;
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -99,23 +84,17 @@ export function SignupPage() {
     setWarningMessage("");
 
     if (configLoading) {
-      setWarningMessage(t("signup.configLoading"));
+      setWarningMessage(t("forgotPassword.configLoading"));
       setSubmitting(false);
       return;
     }
-
-    if (!name.trim()) {
-      setWarningMessage(t("auth.errors.requiredName"));
+    if (!emailEnabled) {
+      setWarningMessage(t("forgotPassword.disabled"));
       setSubmitting(false);
       return;
     }
-    if (!email.trim()) {
-      setWarningMessage(t("auth.errors.requiredEmail"));
-      setSubmitting(false);
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setWarningMessage(t("auth.errors.invalidEmail"));
+    if (!token) {
+      setErrorMessage(t("resetPassword.errors.missingToken"));
       setSubmitting(false);
       return;
     }
@@ -141,18 +120,15 @@ export function SignupPage() {
     }
 
     try {
-      await signup({ name, email, password });
-      if (emailEnabled) {
-        navigate("/signup/email-sent", {
-          replace: true,
-          state: { email: email.trim() }
-        });
-      } else {
-        navigate("/signup/email-sent", { replace: true });
-      }
+      await resetPassword(token, password);
+      navigate("/reset-password/success", { replace: true });
     } catch (nextError) {
       const detail = extractApiDetail(nextError);
-      setErrorMessage(detail?.message || detail?.error || t("auth.errors.signupFallback"));
+      if (detail?.error === "EMAIL_DISABLED") {
+        setWarningMessage(t("forgotPassword.disabled"));
+      } else {
+        setErrorMessage(detail?.message || detail?.error || t("resetPassword.errors.fallback"));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -161,27 +137,10 @@ export function SignupPage() {
   return (
     <main className="page">
       <ThemeToggle />
-      <PanelCard title={t("signup.title")} subtitle={t("signup.subtitle")}>
+      <PanelCard title={t("resetPassword.title")} subtitle={t("resetPassword.subtitle")}>
         <form onSubmit={onSubmit} className="form" noValidate>
           <InputField
-            label={t("signup.fields.name")}
-            type="text"
-            autoComplete="name"
-            minLength={2}
-            maxLength={50}
-            value={name}
-            onValueChange={setName}
-          />
-          <InputField
-            label={t("signup.fields.email")}
-            type="email"
-            autoComplete="email"
-            value={email}
-            onValueChange={setEmail}
-          />
-          <ValidationCard title={t("signup.validation.email")} rules={emailRules} />
-          <InputField
-            label={t("signup.fields.password")}
+            label={t("resetPassword.passwordLabel")}
             type="password"
             autoComplete="new-password"
             value={password}
@@ -189,27 +148,29 @@ export function SignupPage() {
           />
           <ValidationCard title={t("signup.validation.password")} rules={passwordRules} />
           <InputField
-            label={t("signup.fields.confirmPassword")}
+            label={t("resetPassword.confirmPasswordLabel")}
             type="password"
             autoComplete="new-password"
             value={confirmPassword}
             onValueChange={setConfirmPassword}
           />
           <ValidationCard title={t("signup.validation.confirm")} rules={confirmRules} />
-          {hasFeedback && warningMessage ? (
+          {warningMessage ? (
             <WarningCard title={t("cards.warningTitle")} message={warningMessage} />
           ) : null}
-          {hasFeedback && errorMessage ? (
-            <ErrorCard title={t("cards.errorTitle")} message={errorMessage} />
-          ) : null}
-          <Button type="submit" loading={submitting} disabled={passwordMismatch || configLoading}>
-            {t("signup.submitIdle")}
+          {errorMessage ? <ErrorCard title={t("cards.errorTitle")} message={errorMessage} /> : null}
+          <Button
+            type="submit"
+            loading={submitting}
+            disabled={configLoading || !emailEnabled || passwordMismatch}
+          >
+            {t("resetPassword.submitIdle")}
           </Button>
         </form>
         <p className="muted auth-footer">
-          {t("signup.loginPrompt")}{" "}
+          {t("resetPassword.loginPrompt")}{" "}
           <Link to="/login" className="text-link">
-            {t("signup.loginLink")}
+            {t("resetPassword.loginLink")}
           </Link>
         </p>
       </PanelCard>
