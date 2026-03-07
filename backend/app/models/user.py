@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, select
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 
@@ -30,8 +30,8 @@ class User(Base):
     credential = relationship(
         "Credential", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
-    auth_record = relationship(
-        "AuthRecord", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    auth_identities = relationship(
+        "AuthIdentity", back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -55,20 +55,22 @@ class Credential(Base):
     user = relationship("User", back_populates="credential")
 
 
-class AuthRecord(Base):
-    __tablename__ = "auth_records"
+class AuthIdentity(Base):
+    __tablename__ = "auth_identities"
+    __table_args__ = (
+        UniqueConstraint("provider", "identifier", name="uq_auth_identities_provider_identifier"),
+        UniqueConstraint("user_id", "provider", name="uq_auth_identities_user_provider"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False
-    )
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     provider: Mapped[str] = mapped_column(String(40), default="email", nullable=False)
     identifier: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_login_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
     last_login_user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
-    user = relationship("User", back_populates="auth_record")
+    user = relationship("User", back_populates="auth_identities")
 
 
 class SignupForm(BaseModel):
@@ -217,7 +219,7 @@ class UserDAO:
 
             user = User(email=email, name=name, is_verified=is_verified)
             user.credential = Credential(password_hash=password_hash)
-            user.auth_record = AuthRecord(provider="email", identifier=email)
+            user.auth_identities = [AuthIdentity(provider="email", identifier=email)]
             db.add(user)
 
             try:
@@ -232,12 +234,17 @@ class UserDAO:
 
             return UserResponse.model_validate(user)
 
-    async def get_auth_user_by_email(self, email: str) -> AuthUserDTO | None:
+    async def get_auth_user_by_identity(self, provider: str, identifier: str) -> AuthUserDTO | None:
         async with get_db() as db:
             result = await db.execute(
                 select(User)
-                .options(selectinload(User.credential), selectinload(User.auth_record))
-                .where(User.email == email, User.is_active.is_(True))
+                .join(AuthIdentity, AuthIdentity.user_id == User.id)
+                .options(selectinload(User.credential), selectinload(User.auth_identities))
+                .where(
+                    AuthIdentity.provider == provider,
+                    AuthIdentity.identifier == identifier,
+                    User.is_active.is_(True),
+                )
             )
             user = result.scalar_one_or_none()
 
@@ -254,11 +261,14 @@ class UserDAO:
             password_hash=user.credential.password_hash if user.credential else None,
         )
 
+    async def get_auth_user_by_email(self, email: str) -> AuthUserDTO | None:
+        return await self.get_auth_user_by_identity(provider="email", identifier=email)
+
     async def get_auth_user_by_id(self, user_id: int) -> AuthUserDTO | None:
         async with get_db() as db:
             result = await db.execute(
                 select(User)
-                .options(selectinload(User.credential))
+                .options(selectinload(User.credential), selectinload(User.auth_identities))
                 .where(User.id == user_id, User.is_active.is_(True))
             )
             user = result.scalar_one_or_none()
@@ -285,19 +295,27 @@ class UserDAO:
     async def update_login_metadata(
         self,
         user_id: int,
+        provider: str,
+        identifier: str,
         login_ip: str | None,
         user_agent: str | None,
         login_time: datetime,
     ) -> None:
         async with get_db() as db:
-            result = await db.execute(select(AuthRecord).where(AuthRecord.user_id == user_id))
-            auth_record = result.scalar_one_or_none()
-            if auth_record is None:
+            result = await db.execute(
+                select(AuthIdentity).where(
+                    AuthIdentity.user_id == user_id,
+                    AuthIdentity.provider == provider,
+                    AuthIdentity.identifier == identifier,
+                )
+            )
+            auth_identity = result.scalar_one_or_none()
+            if auth_identity is None:
                 return
 
-            auth_record.last_login_at = login_time
-            auth_record.last_login_ip = login_ip
-            auth_record.last_login_user_agent = user_agent
+            auth_identity.last_login_at = login_time
+            auth_identity.last_login_ip = login_ip
+            auth_identity.last_login_user_agent = user_agent
             await db.commit()
 
     async def mark_email_verified(self, user_id: int) -> UserResponse | None:

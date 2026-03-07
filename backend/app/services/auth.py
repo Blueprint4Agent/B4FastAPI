@@ -83,6 +83,8 @@ class AuthService:
         await self._reset_login_fail_count(user_ip)
         await Users.update_login_metadata(
             user_id=user.id,
+            provider="email",
+            identifier=user.email,
             login_ip=user_ip,
             user_agent=request.headers.get("user-agent"),
             login_time=datetime.now(UTC),
