@@ -1,3 +1,4 @@
+import json
 import secrets
 from datetime import UTC, datetime, timedelta
 
@@ -19,6 +20,10 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def create_refresh_session_id() -> str:
+    return secrets.token_urlsafe(24)
+
+
 def create_email_verification_token() -> str:
     return secrets.token_urlsafe(32)
 
@@ -27,13 +32,30 @@ def create_password_reset_token() -> str:
     return secrets.token_urlsafe(32)
 
 
-async def store_refresh_token(user_id: int, refresh_token: str) -> None:
+def _refresh_session_key(session_id: str) -> str:
+    return f"refresh_session:{session_id}"
+
+
+def _refresh_user_sessions_key(user_id: int) -> str:
+    return f"refresh_user_sessions:{user_id}"
+
+
+async def store_refresh_token(user_id: int, session_id: str, refresh_token: str) -> None:
     redis = await RedisManager.get_client()
-    await redis.setex(
-        f"refresh_token:{user_id}",
-        timedelta(days=SETTINGS.REFRESH_TOKEN_EXPIRE_DAYS),
-        refresh_token,
+    ttl = timedelta(days=SETTINGS.REFRESH_TOKEN_EXPIRE_DAYS)
+    session_payload = json.dumps(
+        {
+            "user_id": user_id,
+            "refresh_token": refresh_token,
+        }
     )
+    await redis.setex(
+        _refresh_session_key(session_id),
+        ttl,
+        session_payload,
+    )
+    await redis.sadd(_refresh_user_sessions_key(user_id), session_id)
+    await redis.expire(_refresh_user_sessions_key(user_id), ttl)
 
 
 async def store_email_verification_token(user_id: int, token: str) -> None:
@@ -62,10 +84,36 @@ async def store_password_reset_token(user_id: int, token: str) -> None:
     await redis.setex(user_token_key, ttl, token)
 
 
-async def verify_refresh_token(user_id: int, refresh_token: str) -> bool:
+async def verify_refresh_token(user_id: int, session_id: str, refresh_token: str) -> bool:
     redis = await RedisManager.get_client()
-    stored = await redis.get(f"refresh_token:{user_id}")
-    return stored == refresh_token
+    raw_session = await redis.get(_refresh_session_key(session_id))
+    if raw_session is None:
+        return False
+
+    try:
+        session_data = json.loads(raw_session)
+    except (TypeError, ValueError):
+        return False
+
+    return (
+        session_data.get("user_id") == user_id
+        and session_data.get("refresh_token") == refresh_token
+    )
+
+
+async def get_refresh_session_user_id(session_id: str) -> int | None:
+    redis = await RedisManager.get_client()
+    raw_session = await redis.get(_refresh_session_key(session_id))
+    if raw_session is None:
+        return None
+
+    try:
+        session_data = json.loads(raw_session)
+        user_id = int(session_data.get("user_id"))
+    except (TypeError, ValueError):
+        return None
+
+    return user_id
 
 
 async def consume_email_verification_token(token: str) -> int | None:
@@ -112,4 +160,8 @@ async def consume_password_reset_token(token: str) -> int | None:
 
 async def delete_refresh_token(user_id: int) -> None:
     redis = await RedisManager.get_client()
-    await redis.delete(f"refresh_token:{user_id}")
+    session_ids = await redis.smembers(_refresh_user_sessions_key(user_id))
+    if session_ids:
+        session_keys = [_refresh_session_key(session_id) for session_id in session_ids]
+        await redis.delete(*session_keys)
+    await redis.delete(_refresh_user_sessions_key(user_id))

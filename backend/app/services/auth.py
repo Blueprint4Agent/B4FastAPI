@@ -55,7 +55,9 @@ class AuthService:
                 message=error.message,
             ) from error
 
-    async def login(self, form: LoginForm, request: Request) -> LoginResponse:
+    async def login(
+        self, form: LoginForm, request: Request, refresh_session_id: str
+    ) -> LoginResponse:
         user_ip = request.headers.get("X-Forwarded-For") or (
             request.client.host if request.client else "unknown"
         )
@@ -96,7 +98,7 @@ class AuthService:
             expires_delta=timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
         refresh_token = create_refresh_token()
-        await store_refresh_token(user.id, refresh_token)
+        await store_refresh_token(user.id, refresh_session_id, refresh_token)
 
         return LoginResponse(
             access_token=access_token,
@@ -108,8 +110,13 @@ class AuthService:
     async def logout(self, user_id: int) -> None:
         await delete_refresh_token(user_id)
 
-    async def refresh_access_token(self, user_id: int, refresh_token: str) -> RefreshResponse:
-        is_valid = await verify_refresh_token(user_id, refresh_token)
+    async def refresh_access_token(
+        self,
+        user_id: int,
+        refresh_session_id: str,
+        refresh_token: str,
+    ) -> RefreshResponse:
+        is_valid = await verify_refresh_token(user_id, refresh_session_id, refresh_token)
         if not is_valid:
             raise AuthException(code=AuthErrorCode.INVALID_TOKEN)
 
@@ -119,7 +126,7 @@ class AuthService:
 
         access_token = create_access_token(subject=str(user.id), email=user.email)
         new_refresh_token = create_refresh_token()
-        await store_refresh_token(user.id, new_refresh_token)
+        await store_refresh_token(user.id, refresh_session_id, new_refresh_token)
 
         return RefreshResponse(
             access_token=access_token,

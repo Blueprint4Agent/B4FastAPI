@@ -19,6 +19,7 @@ from app.models.user import (
 )
 from app.services.auth import AuthService
 from app.utils.cookies import clear_refresh_cookies, get_refresh_cookie_value, set_refresh_cookies
+from app.utils.token import create_refresh_session_id, get_refresh_session_user_id
 
 router = APIRouter()
 
@@ -42,8 +43,9 @@ async def login(
     form: LoginForm,
     service: AuthService = Depends(AuthService),
 ):
+    refresh_session_id = create_refresh_session_id()
     try:
-        token_payload = await service.login(form, request)
+        token_payload = await service.login(form, request, refresh_session_id=refresh_session_id)
     except AuthException as error:
         _raise_http_error(error)
 
@@ -51,7 +53,7 @@ async def login(
         response=response,
         request=request,
         refresh_token=token_payload.refresh_token,
-        user_id=token_payload.user.id,
+        refresh_session_id=refresh_session_id,
         remember_me=form.remember_me,
     )
     return token_payload
@@ -79,24 +81,30 @@ async def refresh_token(
     response: Response,
     refresh_token: str | None = Body(default=None, embed=True),
     user_id: int | None = Body(default=None, embed=True),
+    session_id: str | None = Body(default=None, embed=True),
     service: AuthService = Depends(AuthService),
 ):
-    cookie_token, cookie_user_id = get_refresh_cookie_value(request)
+    cookie_token, cookie_session_id = get_refresh_cookie_value(request)
     refresh_token_value = refresh_token or cookie_token
-    user_id_value = user_id or cookie_user_id
+    session_id_value = session_id or cookie_session_id
+    user_id_value = user_id
 
-    if not refresh_token_value or not user_id_value:
+    if user_id_value is None and session_id_value:
+        user_id_value = await get_refresh_session_user_id(session_id_value)
+
+    if not refresh_token_value or not session_id_value or not user_id_value:
         clear_refresh_cookies(response)
         _raise_http_error(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
-                message="Refresh token and user_id are required.",
+                message="Refresh token and session_id are required.",
             )
         )
 
     try:
         token_payload = await service.refresh_access_token(
             user_id=int(user_id_value),
+            refresh_session_id=session_id_value,
             refresh_token=refresh_token_value,
         )
     except (AuthException, ValueError) as error:
@@ -114,7 +122,7 @@ async def refresh_token(
         response=response,
         request=request,
         refresh_token=token_payload.refresh_token,
-        user_id=int(user_id_value),
+        refresh_session_id=session_id_value,
     )
     return token_payload
 
