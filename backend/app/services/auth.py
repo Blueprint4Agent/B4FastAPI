@@ -92,13 +92,11 @@ class AuthService:
             login_time=datetime.now(UTC),
         )
 
-        access_token = create_access_token(
-            subject=str(user.id),
-            email=user.email,
-            expires_delta=timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES),
+        access_token, refresh_token = await self._issue_session_tokens(
+            user_id=user.id,
+            user_email=user.email,
+            refresh_session_id=refresh_session_id,
         )
-        refresh_token = create_refresh_token()
-        await store_refresh_token(user.id, refresh_session_id, refresh_token)
 
         return LoginResponse(
             access_token=access_token,
@@ -124,15 +122,32 @@ class AuthService:
         if user is None:
             raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
 
-        access_token = create_access_token(subject=str(user.id), email=user.email)
-        new_refresh_token = create_refresh_token()
-        await store_refresh_token(user.id, refresh_session_id, new_refresh_token)
+        access_token, new_refresh_token = await self._issue_session_tokens(
+            user_id=user.id,
+            user_email=user.email,
+            refresh_session_id=refresh_session_id,
+        )
 
         return RefreshResponse(
             access_token=access_token,
             refresh_token=new_refresh_token,
             token_type="bearer",
         )
+
+    async def _issue_session_tokens(
+        self,
+        user_id: int,
+        user_email: str,
+        refresh_session_id: str,
+    ) -> tuple[str, str]:
+        access_token = create_access_token(
+            subject=str(user_id),
+            email=user_email,
+            expires_delta=timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES),
+        )
+        refresh_token = create_refresh_token()
+        await store_refresh_token(user_id, refresh_session_id, refresh_token)
+        return access_token, refresh_token
 
     async def verify_email(self, token: str) -> UserResponse:
         user_id = await consume_email_verification_token(token)
