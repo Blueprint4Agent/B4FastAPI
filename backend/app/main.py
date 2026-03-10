@@ -19,6 +19,8 @@ class AppConfigResponse(BaseModel):
     login_enabled: bool
     frontend_base_path: str
     email_enabled: bool
+    oauth_enabled: bool
+    oauth_providers: list[str]
 
 
 @asynccontextmanager
@@ -72,6 +74,8 @@ def create_app() -> FastAPI:
             "login_enabled": True,
             "frontend_base_path": "",
             "email_enabled": SETTINGS.EMAIL_ENABLED,
+            "oauth_enabled": SETTINGS.OAUTH_ENABLED,
+            "oauth_providers": SETTINGS.oauth_provider_list if SETTINGS.OAUTH_ENABLED else [],
         }
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])

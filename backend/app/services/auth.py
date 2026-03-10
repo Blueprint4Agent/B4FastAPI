@@ -7,6 +7,7 @@ from app.core.error import AuthErrorCode, AuthException
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
+from app.models.oauth import OAuthProvider, OAuthProviderConfig, OAuthProviderPublicConfig
 from app.models.user import (
     LoginForm,
     LoginResponse,
@@ -33,6 +34,39 @@ from app.utils.token import (
 
 
 class AuthService:
+    def get_oauth_provider_configs(self) -> list[OAuthProviderConfig]:
+        if not SETTINGS.OAUTH_ENABLED:
+            return []
+
+        validation_errors = SETTINGS.get_oauth_validation_errors()
+        if validation_errors:
+            raise AuthException(
+                code=AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
+                details={"errors": validation_errors},
+            )
+
+        provider_configs = SETTINGS.get_oauth_provider_configs()
+        return [
+            OAuthProviderConfig(
+                provider=OAuthProvider(provider),
+                client_id=config["client_id"],
+                client_secret=config["client_secret"],
+                authorize_url=config["authorize_url"],
+                token_url=config["token_url"],
+                userinfo_url=config["userinfo_url"],
+            )
+            for provider, config in provider_configs.items()
+        ]
+
+    def get_oauth_provider_public_configs(self) -> list[OAuthProviderPublicConfig]:
+        return [
+            OAuthProviderPublicConfig(
+                provider=config.provider,
+                start_path=f"/api/v1/auth/oauth/{config.provider}/start",
+            )
+            for config in self.get_oauth_provider_configs()
+        ]
+
     async def signup(self, form: SignupForm) -> UserResponse:
         try:
             user = await Users.create_signup_user(

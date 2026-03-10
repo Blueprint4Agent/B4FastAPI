@@ -59,6 +59,33 @@ class Settings(BaseModel):
     SMTP_VALIDATE_ON_STARTUP: bool = os.getenv("SMTP_VALIDATE_ON_STARTUP", "true").lower() == "true"
     EMAIL_BRAND_NAME: str = os.getenv("EMAIL_BRAND_NAME", "Blueprint4FastAPI")
 
+    OAUTH_ENABLED: bool = os.getenv("OAUTH_ENABLED", "false").lower() == "true"
+    OAUTH_ALLOWED_PROVIDERS: str = os.getenv("OAUTH_ALLOWED_PROVIDERS", "google,github")
+
+    OAUTH_GOOGLE_CLIENT_ID: str = os.getenv("OAUTH_GOOGLE_CLIENT_ID", "")
+    OAUTH_GOOGLE_CLIENT_SECRET: str = os.getenv("OAUTH_GOOGLE_CLIENT_SECRET", "")
+    OAUTH_GOOGLE_AUTHORIZE_URL: str = os.getenv(
+        "OAUTH_GOOGLE_AUTHORIZE_URL", "https://accounts.google.com/o/oauth2/v2/auth"
+    )
+    OAUTH_GOOGLE_TOKEN_URL: str = os.getenv(
+        "OAUTH_GOOGLE_TOKEN_URL", "https://oauth2.googleapis.com/token"
+    )
+    OAUTH_GOOGLE_USERINFO_URL: str = os.getenv(
+        "OAUTH_GOOGLE_USERINFO_URL", "https://openidconnect.googleapis.com/v1/userinfo"
+    )
+
+    OAUTH_GITHUB_CLIENT_ID: str = os.getenv("OAUTH_GITHUB_CLIENT_ID", "")
+    OAUTH_GITHUB_CLIENT_SECRET: str = os.getenv("OAUTH_GITHUB_CLIENT_SECRET", "")
+    OAUTH_GITHUB_AUTHORIZE_URL: str = os.getenv(
+        "OAUTH_GITHUB_AUTHORIZE_URL", "https://github.com/login/oauth/authorize"
+    )
+    OAUTH_GITHUB_TOKEN_URL: str = os.getenv(
+        "OAUTH_GITHUB_TOKEN_URL", "https://github.com/login/oauth/access_token"
+    )
+    OAUTH_GITHUB_USERINFO_URL: str = os.getenv(
+        "OAUTH_GITHUB_USERINFO_URL", "https://api.github.com/user"
+    )
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -88,6 +115,33 @@ class Settings(BaseModel):
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
+    @property
+    def oauth_provider_list(self) -> list[str]:
+        allowed = [provider.strip().lower() for provider in self.OAUTH_ALLOWED_PROVIDERS.split(",")]
+        allowed = [provider for provider in allowed if provider]
+        supported = {"google", "github"}
+        return [provider for provider in allowed if provider in supported]
+
+    def get_oauth_provider_configs(self) -> dict[str, dict[str, str]]:
+        provider_configs: dict[str, dict[str, str]] = {}
+        if "google" in self.oauth_provider_list:
+            provider_configs["google"] = {
+                "client_id": self.OAUTH_GOOGLE_CLIENT_ID,
+                "client_secret": self.OAUTH_GOOGLE_CLIENT_SECRET,
+                "authorize_url": self.OAUTH_GOOGLE_AUTHORIZE_URL,
+                "token_url": self.OAUTH_GOOGLE_TOKEN_URL,
+                "userinfo_url": self.OAUTH_GOOGLE_USERINFO_URL,
+            }
+        if "github" in self.oauth_provider_list:
+            provider_configs["github"] = {
+                "client_id": self.OAUTH_GITHUB_CLIENT_ID,
+                "client_secret": self.OAUTH_GITHUB_CLIENT_SECRET,
+                "authorize_url": self.OAUTH_GITHUB_AUTHORIZE_URL,
+                "token_url": self.OAUTH_GITHUB_TOKEN_URL,
+                "userinfo_url": self.OAUTH_GITHUB_USERINFO_URL,
+            }
+        return provider_configs
+
     def get_smtp_validation_errors(self) -> list[str]:
         if not self.EMAIL_ENABLED:
             return []
@@ -106,6 +160,25 @@ class Settings(BaseModel):
         has_password = bool(self.SMTP_PASSWORD.strip())
         if has_username != has_password:
             errors.append("SMTP_USERNAME and SMTP_PASSWORD must be set together.")
+
+        return errors
+
+    def get_oauth_validation_errors(self) -> list[str]:
+        if not self.OAUTH_ENABLED:
+            return []
+
+        errors: list[str] = []
+        provider_configs = self.get_oauth_provider_configs()
+        if not provider_configs:
+            errors.append("At least one OAuth provider must be enabled when OAUTH_ENABLED=true.")
+
+        for provider, config in provider_configs.items():
+            if not config["client_id"].strip():
+                errors.append(f"{provider.upper()} client id is required when OAuth is enabled.")
+            if not config["client_secret"].strip():
+                errors.append(
+                    f"{provider.upper()} client secret is required when OAuth is enabled."
+                )
 
         return errors
 

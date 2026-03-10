@@ -65,6 +65,21 @@ class AuthErrorCode(Enum):
         "User not found.",
         status.HTTP_404_NOT_FOUND,
     )
+    OAUTH_PROVIDER_NOT_ENABLED = ServiceErrorCode(
+        "OAUTH_PROVIDER_NOT_ENABLED",
+        "The requested OAuth provider is not enabled.",
+        status.HTTP_400_BAD_REQUEST,
+    )
+    OAUTH_PROVIDER_CONFIG_INVALID = ServiceErrorCode(
+        "OAUTH_PROVIDER_CONFIG_INVALID",
+        "OAuth provider configuration is invalid.",
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+    OAUTH_IDENTITY_CONFLICT = ServiceErrorCode(
+        "OAUTH_IDENTITY_CONFLICT",
+        "OAuth identity is already linked to another user.",
+        status.HTTP_409_CONFLICT,
+    )
 
     @property
     def code(self) -> ServiceErrorCode:

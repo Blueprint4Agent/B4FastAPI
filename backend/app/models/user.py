@@ -234,6 +234,38 @@ class UserDAO:
 
             return UserResponse.model_validate(user)
 
+    async def create_oauth_user(
+        self,
+        email: str,
+        name: str,
+        provider: str,
+        identifier: str,
+        is_verified: bool = True,
+    ) -> UserResponse:
+        async with get_db() as db:
+            exists_result = await db.execute(select(User.id).where(User.email == email).limit(1))
+            if exists_result.first() is not None:
+                raise UserDAOError(
+                    code="EMAIL_ALREADY_EXISTS",
+                    message="User with this email already exists.",
+                )
+
+            user = User(email=email, name=name, is_verified=is_verified)
+            user.auth_identities = [AuthIdentity(provider=provider, identifier=identifier)]
+            db.add(user)
+
+            try:
+                await db.commit()
+                await db.refresh(user)
+            except IntegrityError as error:
+                await db.rollback()
+                raise UserDAOError(
+                    code="OAUTH_SIGNUP_FAILED",
+                    message="Failed to create OAuth user account.",
+                ) from error
+
+            return UserResponse.model_validate(user)
+
     async def get_auth_user_by_identity(self, provider: str, identifier: str) -> AuthUserDTO | None:
         async with get_db() as db:
             result = await db.execute(
@@ -264,6 +296,14 @@ class UserDAO:
     async def get_auth_user_by_email(self, email: str) -> AuthUserDTO | None:
         return await self.get_auth_user_by_identity(provider="email", identifier=email)
 
+    async def get_user_response_by_email(self, email: str) -> UserResponse | None:
+        async with get_db() as db:
+            result = await db.execute(select(User).where(User.email == email, User.is_active.is_(True)))
+            user = result.scalar_one_or_none()
+            if user is None:
+                return None
+            return UserResponse.model_validate(user)
+
     async def get_auth_user_by_id(self, user_id: int) -> AuthUserDTO | None:
         async with get_db() as db:
             result = await db.execute(
@@ -291,6 +331,23 @@ class UserDAO:
         if auth_user is None:
             return None
         return auth_user.as_user_response()
+
+    async def link_auth_identity(self, user_id: int, provider: str, identifier: str) -> None:
+        async with get_db() as db:
+            auth_identity = AuthIdentity(
+                user_id=user_id,
+                provider=provider,
+                identifier=identifier,
+            )
+            db.add(auth_identity)
+            try:
+                await db.commit()
+            except IntegrityError as error:
+                await db.rollback()
+                raise UserDAOError(
+                    code="OAUTH_IDENTITY_CONFLICT",
+                    message="OAuth identity is already linked.",
+                ) from error
 
     async def update_login_metadata(
         self,
