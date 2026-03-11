@@ -55,6 +55,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/oauth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Providers */
+        get: operations["oauth_providers_api_v1_auth_oauth_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/{provider}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Start */
+        get: operations["oauth_start_api_v1_auth_oauth__provider__start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Callback */
+        get: operations["oauth_callback_api_v1_auth_oauth__provider__callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -205,6 +256,10 @@ export interface components {
             frontend_base_path: string;
             /** Email Enabled */
             email_enabled: boolean;
+            /** Oauth Enabled */
+            oauth_enabled: boolean;
+            /** Oauth Providers */
+            oauth_providers: string[];
         };
         /** Body_refresh_token_api_v1_auth_refresh_post */
         Body_refresh_token_api_v1_auth_refresh_post: {
@@ -212,6 +267,8 @@ export interface components {
             refresh_token?: string | null;
             /** User Id */
             user_id?: number | null;
+            /** Session Id */
+            session_id?: string | null;
         };
         /** ForgotPasswordForm */
         ForgotPasswordForm: {
@@ -252,6 +309,25 @@ export interface components {
              */
             token_type: string;
             user: components["schemas"]["UserResponse"];
+        };
+        /**
+         * OAuthProvider
+         * @enum {string}
+         */
+        OAuthProvider: "google" | "github";
+        /** OAuthProviderPublicConfig */
+        OAuthProviderPublicConfig: {
+            provider: components["schemas"]["OAuthProvider"];
+            /**
+             * Start Path
+             * @description Backend endpoint path to start OAuth login.
+             */
+            start_path: string;
+        };
+        /** OAuthProvidersResponse */
+        OAuthProvidersResponse: {
+            /** Providers */
+            providers: components["schemas"]["OAuthProviderPublicConfig"][];
         };
         /** RefreshResponse */
         RefreshResponse: {
@@ -405,6 +481,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_providers_api_v1_auth_oauth_providers_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProvidersResponse"];
+                };
+            };
+        };
+    };
+    oauth_start_api_v1_auth_oauth__provider__start_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["OAuthProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    oauth_callback_api_v1_auth_oauth__provider__callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path: {
+                provider: components["schemas"]["OAuthProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

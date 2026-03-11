@@ -28,3 +28,7 @@ class OAuthIdentityProfile(BaseModel):
     email: str
     name: str
     email_verified: bool = False
+
+
+class OAuthProvidersResponse(BaseModel):
+    providers: list[OAuthProviderPublicConfig]

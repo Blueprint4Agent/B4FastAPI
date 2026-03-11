@@ -1,7 +1,12 @@
-from fastapi import APIRouter, Body, Depends, Request, Response
+from urllib.parse import urlencode, urljoin
+
+from fastapi import APIRouter, Body, Depends, Query, Request, Response
+from fastapi.responses import RedirectResponse
 
 from app.core.error import AuthErrorCode, AuthException, service_exception_to_http
+from app.core.settings import SETTINGS
 from app.deps import get_current_user
+from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
     ForgotPasswordForm,
     ForgotPasswordResponse,
@@ -34,6 +39,92 @@ async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
         return await service.signup(form)
     except AuthException as error:
         _raise_http_error(error)
+
+
+@router.get("/oauth/providers", response_model=OAuthProvidersResponse)
+async def oauth_providers(service: AuthService = Depends(AuthService)):
+    try:
+        providers = service.get_oauth_provider_public_configs()
+        return OAuthProvidersResponse(providers=providers)
+    except AuthException as error:
+        _raise_http_error(error)
+
+
+@router.get("/oauth/{provider}/start")
+async def oauth_start(
+    provider: OAuthProvider,
+    request: Request,
+    service: AuthService = Depends(AuthService),
+):
+    try:
+        redirect_uri = str(request.url_for("oauth_callback", provider=provider.value))
+        authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
+        return RedirectResponse(url=authorization_url, status_code=307)
+    except AuthException as error:
+        _raise_http_error(error)
+
+
+@router.get("/oauth/{provider}/callback", name="oauth_callback")
+async def oauth_callback(
+    provider: OAuthProvider,
+    request: Request,
+    code: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    error: str | None = Query(default=None),
+    service: AuthService = Depends(AuthService),
+):
+    if error:
+        failure_query = urlencode({"error": error})
+        failure_url = urljoin(
+            f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
+            SETTINGS.OAUTH_FRONTEND_FAILURE_PATH.lstrip("/"),
+        )
+        return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
+
+    if not code or not state:
+        _raise_http_error(
+            AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="OAuth callback requires code and state.",
+            )
+        )
+
+    refresh_session_id = create_refresh_session_id()
+    try:
+        token_payload = await service.oauth_callback_login(
+            provider=provider,
+            code=code,
+            state=state,
+            redirect_uri=str(request.url_for("oauth_callback", provider=provider.value)),
+            request=request,
+            refresh_session_id=refresh_session_id,
+        )
+    except AuthException as auth_error:
+        failure_query = urlencode(
+            {
+                "error": auth_error.code.error,
+                "message": auth_error.message,
+            }
+        )
+        failure_url = urljoin(
+            f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
+            SETTINGS.OAUTH_FRONTEND_FAILURE_PATH.lstrip("/"),
+        )
+        return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
+
+    success_url = urljoin(
+        f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
+        SETTINGS.OAUTH_FRONTEND_SUCCESS_PATH.lstrip("/"),
+    )
+    response = RedirectResponse(url=success_url, status_code=307)
+    set_refresh_cookies(
+        response=response,
+        request=request,
+        refresh_token=token_payload.refresh_token,
+        refresh_session_id=refresh_session_id,
+        remember_me=True,
+    )
+    return response
 
 
 @router.post("/login", response_model=LoginResponse)

@@ -1,5 +1,9 @@
+import asyncio
+import json
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode, urljoin
+from urllib.request import Request as URLRequest, urlopen
 
 from fastapi import Request
 
@@ -7,7 +11,12 @@ from app.core.error import AuthErrorCode, AuthException
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
-from app.models.oauth import OAuthProvider, OAuthProviderConfig, OAuthProviderPublicConfig
+from app.models.oauth import (
+    OAuthIdentityProfile,
+    OAuthProvider,
+    OAuthProviderConfig,
+    OAuthProviderPublicConfig,
+)
 from app.models.user import (
     LoginForm,
     LoginResponse,
@@ -66,6 +75,106 @@ class AuthService:
             )
             for config in self.get_oauth_provider_configs()
         ]
+
+    async def create_oauth_state(self, provider: OAuthProvider) -> str:
+        state = create_refresh_token()
+        redis = await RedisManager.get_client()
+        await redis.setex(
+            f"oauth_state:{state}",
+            timedelta(minutes=SETTINGS.OAUTH_STATE_EXPIRE_MINUTES),
+            provider.value,
+        )
+        return state
+
+    async def consume_oauth_state(self, state: str) -> OAuthProvider | None:
+        redis = await RedisManager.get_client()
+        key = f"oauth_state:{state}"
+        provider_value = await redis.get(key)
+        if provider_value is None:
+            return None
+        await redis.delete(key)
+        try:
+            return OAuthProvider(provider_value)
+        except ValueError:
+            return None
+
+    async def build_oauth_authorization_url(
+        self,
+        provider: OAuthProvider,
+        redirect_uri: str,
+    ) -> str:
+        provider_config = self._get_oauth_provider_config(provider)
+        state = await self.create_oauth_state(provider)
+
+        if provider == OAuthProvider.GOOGLE:
+            query = {
+                "response_type": "code",
+                "client_id": provider_config.client_id,
+                "redirect_uri": redirect_uri,
+                "scope": "openid email profile",
+                "state": state,
+                "access_type": "online",
+                "prompt": "select_account",
+            }
+        else:
+            query = {
+                "client_id": provider_config.client_id,
+                "redirect_uri": redirect_uri,
+                "scope": "read:user user:email",
+                "state": state,
+            }
+
+        return f"{provider_config.authorize_url}?{urlencode(query)}"
+
+    async def oauth_callback_login(
+        self,
+        provider: OAuthProvider,
+        code: str,
+        state: str,
+        redirect_uri: str,
+        request: Request,
+        refresh_session_id: str,
+    ) -> LoginResponse:
+        consumed_provider = await self.consume_oauth_state(state)
+        if consumed_provider is None or consumed_provider != provider:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="Invalid OAuth state.",
+            )
+
+        provider_config = self._get_oauth_provider_config(provider)
+        access_token = await self._exchange_oauth_code(
+            provider=provider,
+            provider_config=provider_config,
+            code=code,
+            redirect_uri=redirect_uri,
+        )
+        profile = await self._fetch_oauth_profile(provider, provider_config, access_token)
+
+        user = await self._resolve_oauth_user(profile)
+        user_ip = request.headers.get("X-Forwarded-For") or (
+            request.client.host if request.client else "unknown"
+        )
+        await Users.update_login_metadata(
+            user_id=user.id,
+            provider=provider.value,
+            identifier=profile.provider_user_id,
+            login_ip=user_ip,
+            user_agent=request.headers.get("user-agent"),
+            login_time=datetime.now(UTC),
+        )
+
+        issued_access_token, refresh_token = await self._issue_session_tokens(
+            user_id=user.id,
+            user_email=user.email,
+            refresh_session_id=refresh_session_id,
+        )
+        return LoginResponse(
+            access_token=issued_access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+            user=user.as_user_response(),
+        )
 
     async def signup(self, form: SignupForm) -> UserResponse:
         try:
@@ -182,6 +291,188 @@ class AuthService:
         refresh_token = create_refresh_token()
         await store_refresh_token(user_id, refresh_session_id, refresh_token)
         return access_token, refresh_token
+
+    def _get_oauth_provider_config(self, provider: OAuthProvider) -> OAuthProviderConfig:
+        provider_configs = {config.provider: config for config in self.get_oauth_provider_configs()}
+        if provider not in provider_configs:
+            raise AuthException(
+                code=AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
+                details={"provider": provider.value},
+            )
+        return provider_configs[provider]
+
+    async def _exchange_oauth_code(
+        self,
+        provider: OAuthProvider,
+        provider_config: OAuthProviderConfig,
+        code: str,
+        redirect_uri: str,
+    ) -> str:
+        data = {
+            "code": code,
+            "client_id": provider_config.client_id,
+            "client_secret": provider_config.client_secret,
+            "redirect_uri": redirect_uri,
+        }
+        if provider == OAuthProvider.GOOGLE:
+            data["grant_type"] = "authorization_code"
+
+        body = urlencode(data).encode("utf-8")
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+        }
+        payload = await self._http_request_json(
+            method="POST",
+            url=provider_config.token_url,
+            headers=headers,
+            body=body,
+        )
+        token = payload.get("access_token")
+        if not isinstance(token, str) or not token:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="OAuth token exchange failed.",
+            )
+        return token
+
+    async def _fetch_oauth_profile(
+        self,
+        provider: OAuthProvider,
+        provider_config: OAuthProviderConfig,
+        access_token: str,
+    ) -> OAuthIdentityProfile:
+        headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
+        payload = await self._http_request_json(
+            method="GET",
+            url=provider_config.userinfo_url,
+            headers=headers,
+        )
+
+        if provider == OAuthProvider.GOOGLE:
+            provider_user_id = str(payload.get("sub", "")).strip()
+            email = str(payload.get("email", "")).strip().lower()
+            name = str(payload.get("name", "")).strip() or email
+            email_verified = bool(payload.get("email_verified", False))
+        else:
+            provider_user_id = str(payload.get("id", "")).strip()
+            email = str(payload.get("email", "")).strip().lower()
+            name = str(payload.get("name", "")).strip() or str(payload.get("login", "")).strip()
+            if not email:
+                email = await self._fetch_github_primary_email(provider_config, access_token)
+            email_verified = bool(email)
+
+        if not provider_user_id or not email:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="OAuth profile payload is incomplete.",
+            )
+
+        return OAuthIdentityProfile(
+            provider=provider,
+            provider_user_id=provider_user_id,
+            email=email,
+            name=name or email,
+            email_verified=email_verified,
+        )
+
+    async def _fetch_github_primary_email(
+        self,
+        provider_config: OAuthProviderConfig,
+        access_token: str,
+    ) -> str:
+        emails_url = provider_config.userinfo_url.rstrip("/") + "/emails"
+        headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
+        payload = await self._http_request_json(method="GET", url=emails_url, headers=headers)
+        if not isinstance(payload, list):
+            return ""
+        for item in payload:
+            if not isinstance(item, Mapping):
+                continue
+            if item.get("primary") and item.get("verified") and item.get("email"):
+                return str(item["email"]).strip().lower()
+        for item in payload:
+            if isinstance(item, Mapping) and item.get("email"):
+                return str(item["email"]).strip().lower()
+        return ""
+
+    async def _resolve_oauth_user(self, profile: OAuthIdentityProfile):
+        auth_user = await Users.get_auth_user_by_identity(
+            provider=profile.provider.value,
+            identifier=profile.provider_user_id,
+        )
+        if auth_user is not None:
+            return auth_user
+
+        existing_user = await Users.get_user_response_by_email(profile.email)
+        if existing_user is not None:
+            try:
+                await Users.link_auth_identity(
+                    user_id=existing_user.id,
+                    provider=profile.provider.value,
+                    identifier=profile.provider_user_id,
+                )
+            except UserDAOError as error:
+                raise AuthException(
+                    code=AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
+                    message=error.message,
+                ) from error
+            linked_user = await Users.get_auth_user_by_id(existing_user.id)
+            if linked_user is None:
+                raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+            return linked_user
+
+        try:
+            await Users.create_oauth_user(
+                email=profile.email,
+                name=profile.name,
+                provider=profile.provider.value,
+                identifier=profile.provider_user_id,
+                is_verified=profile.email_verified,
+            )
+        except UserDAOError as error:
+            if error.code in {"EMAIL_ALREADY_EXISTS", "OAUTH_IDENTITY_CONFLICT"}:
+                raise AuthException(
+                    code=AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
+                    message=error.message,
+                ) from error
+            raise AuthException(
+                code=AuthErrorCode.SIGNUP_FAILED,
+                message=error.message,
+            ) from error
+
+        created_user = await Users.get_auth_user_by_identity(
+            provider=profile.provider.value,
+            identifier=profile.provider_user_id,
+        )
+        if created_user is None:
+            raise AuthException(code=AuthErrorCode.SIGNUP_FAILED)
+        return created_user
+
+    async def _http_request_json(
+        self,
+        method: str,
+        url: str,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
+    ):
+        def _do_request():
+            request = URLRequest(url=url, data=body, method=method)
+            for key, value in (headers or {}).items():
+                request.add_header(key, value)
+            with urlopen(request, timeout=10) as response:
+                return response.read().decode("utf-8")
+
+        try:
+            raw = await asyncio.to_thread(_do_request)
+            payload = json.loads(raw)
+        except Exception as error:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="OAuth provider request failed.",
+            ) from error
+
+        return payload
 
     async def verify_email(self, token: str) -> UserResponse:
         user_id = await consume_email_verification_token(token)

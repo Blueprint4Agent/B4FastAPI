@@ -61,6 +61,9 @@ class Settings(BaseModel):
 
     OAUTH_ENABLED: bool = os.getenv("OAUTH_ENABLED", "false").lower() == "true"
     OAUTH_ALLOWED_PROVIDERS: str = os.getenv("OAUTH_ALLOWED_PROVIDERS", "google,github")
+    OAUTH_STATE_EXPIRE_MINUTES: int = int(os.getenv("OAUTH_STATE_EXPIRE_MINUTES", "10"))
+    OAUTH_FRONTEND_SUCCESS_PATH: str = os.getenv("OAUTH_FRONTEND_SUCCESS_PATH", "/dashboard")
+    OAUTH_FRONTEND_FAILURE_PATH: str = os.getenv("OAUTH_FRONTEND_FAILURE_PATH", "/login")
 
     OAUTH_GOOGLE_CLIENT_ID: str = os.getenv("OAUTH_GOOGLE_CLIENT_ID", "")
     OAUTH_GOOGLE_CLIENT_SECRET: str = os.getenv("OAUTH_GOOGLE_CLIENT_SECRET", "")
