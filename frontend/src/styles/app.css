@@ -478,6 +478,51 @@ input:focus {
   transform: none;
 }
 
+.ui-button--oauth {
+  border-color: color-mix(in oklab, var(--panel-border) 92%, transparent 8%);
+  color: var(--text);
+  background: color-mix(in oklab, var(--panel) 92%, var(--input-bg) 8%);
+}
+
+.oauth-provider-button__content {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.oauth-provider-button__badge {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--panel-border) 90%, transparent 10%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font:
+    700 0.65rem/1 "IBM Plex Mono",
+    monospace;
+  background: color-mix(in oklab, var(--input-bg) 88%, transparent 12%);
+}
+
+.oauth-provider-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1.2rem;
+}
+
+.oauth-provider-list__divider {
+  margin: 0.2rem 0 0.1rem;
+  text-align: center;
+  color: var(--text-soft);
+  font:
+    500 0.78rem/1 "IBM Plex Mono",
+    monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .status-card {
   border-radius: 1.1rem;
   border: 1px solid;

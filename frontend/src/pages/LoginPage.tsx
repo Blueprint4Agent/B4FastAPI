@@ -1,11 +1,11 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
-import { resendVerificationEmail } from "../api/authApi";
+import { getOAuthProviders, resendVerificationEmail, type OAuthProvider } from "../api/authApi";
 import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { BrandMark, Button, FormCheckbox, InputField, PanelCard } from "../components/ui";
+import { BrandMark, Button, FormCheckbox, InputField, OAuthProviderButton, PanelCard } from "../components/ui";
 import { useAuthContext } from "../hooks/useAuth";
 import { useAppConfig } from "../hooks/useFeatures";
 import { isValidEmail, isValidPassword } from "../utils/validation";
@@ -42,7 +42,25 @@ export function LoginPage() {
   const [resendMessage, setResendMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
+  const [oauthProviders, setOAuthProviders] = useState<Array<{ provider: OAuthProvider; start_path: string }>>([]);
   const emailEnabled = appConfig?.email_enabled === true;
+  const oauthEnabled = appConfig?.oauth_enabled === true;
+
+  useEffect(() => {
+    const run = async () => {
+      if (!oauthEnabled) {
+        setOAuthProviders([]);
+        return;
+      }
+      try {
+        const payload = await getOAuthProviders();
+        setOAuthProviders(payload.providers);
+      } catch {
+        setOAuthProviders([]);
+      }
+    };
+    void run();
+  }, [oauthEnabled]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -118,6 +136,19 @@ export function LoginPage() {
       <div className="auth-panel-stack">
         <BrandMark className="brand-mark--login" />
         <PanelCard title={t("login.title")} subtitle={t("login.subtitle")}>
+          {oauthProviders.length > 0 ? (
+            <div className="oauth-provider-list">
+              {oauthProviders.map((item) => (
+                <OAuthProviderButton
+                  key={item.provider}
+                  provider={item.provider}
+                  label={t(`login.oauth.providers.${item.provider}`)}
+                  startPath={item.start_path}
+                />
+              ))}
+              <p className="oauth-provider-list__divider">{t("login.oauth.divider")}</p>
+            </div>
+          ) : null}
           <form onSubmit={onSubmit} className="form" noValidate>
             <InputField
               label={t("login.fields.email")}

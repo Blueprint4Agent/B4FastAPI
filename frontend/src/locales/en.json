@@ -30,6 +30,13 @@
   "login": {
     "title": "Login",
     "subtitle": "Sign in to access the template dashboard.",
+    "oauth": {
+      "divider": "or continue with email",
+      "providers": {
+        "google": "Continue with Google",
+        "github": "Continue with GitHub"
+      }
+    },
     "fields": {
       "email": "Email",
       "password": "Password"
