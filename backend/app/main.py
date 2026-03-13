@@ -25,6 +25,11 @@ class AppConfigResponse(BaseModel):
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    oauth_errors = SETTINGS.get_oauth_validation_errors()
+    if oauth_errors:
+        raise RuntimeError(
+            "Invalid OAuth configuration: " + " ".join(oauth_errors)
+        )
     await MAIL_SERVICE.initialize()
     await init_db()
     try:
