@@ -31,7 +31,7 @@
     "title": "Login",
     "subtitle": "Sign in to access the template dashboard.",
     "oauth": {
-      "divider": "or continue with email",
+      "divider": "Sign in with a social account",
       "providers": {
         "google": "Continue with Google",
         "github": "Continue with GitHub"

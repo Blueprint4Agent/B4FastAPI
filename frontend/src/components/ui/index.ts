@@ -3,6 +3,7 @@ export { BrandMark } from "./BrandMark";
 export { FormCheckbox } from "./FormCheckbox";
 export { InputField } from "./InputField";
 export { KeyValueCard } from "./KeyValueCard";
+export { OAuthOptionsCard } from "./OAuthOptionsCard";
 export { PanelCard } from "./PanelCard";
 export { ProfileDropdown } from "./ProfileDropdown";
 export { OAuthProviderButton } from "./OAuthProviderButton";

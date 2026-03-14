@@ -1,0 +1,23 @@
+# feat: polish oauth login ui and startup visibility
+
+- scope: cross-cutting
+- changed files:
+  - `backend/app/main.py`
+  - `frontend/src/pages/LoginPage.tsx`
+  - `frontend/src/components/ui/OAuthProviderButton.tsx`
+  - `frontend/src/components/ui/OAuthOptionsCard.tsx`
+  - `frontend/src/components/ui/index.ts`
+  - `frontend/src/styles/app.css`
+  - `frontend/src/locales/en.json`
+  - `frontend/public/icons/google-mark-light.svg`
+  - `frontend/public/icons/google-mark-dark.svg`
+  - `frontend/public/icons/github-mark-light.svg`
+  - `frontend/public/icons/github-mark-dark.svg`
+- reason:
+  - improve OAuth button placement and visual consistency in login flow.
+  - make startup logs explicitly show OAuth enabled/disabled and validation success.
+- impact:
+  - OAuth buttons are now grouped in a dedicated card below the password recovery link.
+  - Google/GitHub icons use dedicated light/dark assets with centered alignment.
+  - global frontend font stack now uses Inter + system fallback for wider compatibility.
+  - backend startup logs now print OAuth integration status and validation success.

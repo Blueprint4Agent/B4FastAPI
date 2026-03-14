@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
 from app.routers.v1 import auth
 
+logger = logging.getLogger("uvicorn.error")
+
 
 class AppConfigResponse(BaseModel):
     api_base_path: str
@@ -25,11 +28,22 @@ class AppConfigResponse(BaseModel):
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    if not SETTINGS.OAUTH_ENABLED:
+        logger.info("OAuth integration is disabled.")
+    else:
+        logger.info(
+            "OAuth integration enabled (providers=%s).",
+            ",".join(SETTINGS.oauth_provider_list),
+        )
+
     oauth_errors = SETTINGS.get_oauth_validation_errors()
     if oauth_errors:
         raise RuntimeError(
             "Invalid OAuth configuration: " + " ".join(oauth_errors)
         )
+    if SETTINGS.OAUTH_ENABLED:
+        logger.info("OAuth configuration validation succeeded.")
+
     await MAIL_SERVICE.initialize()
     await init_db()
     try:

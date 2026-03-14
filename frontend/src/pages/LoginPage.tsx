@@ -5,7 +5,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { getOAuthProviders, resendVerificationEmail, type OAuthProvider } from "../api/authApi";
 import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { BrandMark, Button, FormCheckbox, InputField, OAuthProviderButton, PanelCard } from "../components/ui";
+import {
+  BrandMark,
+  Button,
+  FormCheckbox,
+  InputField,
+  OAuthOptionsCard,
+  OAuthProviderButton,
+  PanelCard
+} from "../components/ui";
 import { useAuthContext } from "../hooks/useAuth";
 import { useAppConfig } from "../hooks/useFeatures";
 import { isValidEmail, isValidPassword } from "../utils/validation";
@@ -136,19 +144,6 @@ export function LoginPage() {
       <div className="auth-panel-stack">
         <BrandMark className="brand-mark--login" />
         <PanelCard title={t("login.title")} subtitle={t("login.subtitle")}>
-          {oauthProviders.length > 0 ? (
-            <div className="oauth-provider-list">
-              {oauthProviders.map((item) => (
-                <OAuthProviderButton
-                  key={item.provider}
-                  provider={item.provider}
-                  label={t(`login.oauth.providers.${item.provider}`)}
-                  startPath={item.start_path}
-                />
-              ))}
-              <p className="oauth-provider-list__divider">{t("login.oauth.divider")}</p>
-            </div>
-          ) : null}
           <form onSubmit={onSubmit} className="form" noValidate>
             <InputField
               label={t("login.fields.email")}
@@ -201,6 +196,20 @@ export function LoginPage() {
                 {t("login.forgotPasswordLink")}
               </Link>
             </p>
+          ) : null}
+          {oauthProviders.length > 0 ? (
+            <OAuthOptionsCard title={t("login.oauth.divider")}>
+              <div className="oauth-provider-list">
+                {oauthProviders.map((item) => (
+                  <OAuthProviderButton
+                    key={item.provider}
+                    provider={item.provider}
+                    label={t(`login.oauth.providers.${item.provider}`)}
+                    startPath={item.start_path}
+                  />
+                ))}
+              </div>
+            </OAuthOptionsCard>
           ) : null}
         </PanelCard>
       </div>
