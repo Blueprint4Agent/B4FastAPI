@@ -1,4 +1,5 @@
 import { Button } from "./Button";
+import { getApiBase } from "../../api/http";
 
 type OAuthProviderButtonProps = {
   provider: "google" | "github";
@@ -25,7 +26,8 @@ export function OAuthProviderButton({
   disabled = false
 }: OAuthProviderButtonProps) {
   const onClick = () => {
-    window.location.assign(startPath);
+    const oauthStartUrl = new URL(startPath, `${getApiBase()}/`).toString();
+    window.location.assign(oauthStartUrl);
   };
   const logos = PROVIDER_LOGOS[provider];
 
