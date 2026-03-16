@@ -178,6 +178,9 @@
     "hint": "Profile actions are available from the top-right menu."
   },
   "theme": {
+    "label": "Theme",
+    "select": "Theme mode",
+    "system": "System",
     "light": "Light mode",
     "dark": "Dark mode"
   }

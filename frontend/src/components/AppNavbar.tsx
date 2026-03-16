@@ -10,7 +10,7 @@ export function AppNavbar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout } = useAuthContext();
-  const { theme, toggleTheme } = useTheme();
+  const { themeMode, setThemeMode } = useTheme();
   const [busy, setBusy] = useState(false);
 
   const displayName = user?.name?.trim() || user?.email || "User";
@@ -38,8 +38,8 @@ export function AppNavbar() {
           displayName={displayName}
           email={user?.email}
           onLogout={() => void onLogout()}
-          onToggleTheme={toggleTheme}
-          theme={theme}
+          onChangeTheme={setThemeMode}
+          themeMode={themeMode}
         />
       </div>
     </header>

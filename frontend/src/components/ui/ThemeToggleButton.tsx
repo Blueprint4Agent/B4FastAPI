@@ -1,40 +1,68 @@
-import { Moon, Sun } from "lucide-react";
+import { Laptop, Moon, Sun } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 import { useTranslation } from "react-i18next";
 
-type Theme = "light" | "dark";
+import type { ThemeMode } from "../../hooks/useTheme";
 
-type ThemeToggleButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type"> & {
-  onToggle: () => void;
-  theme: Theme;
+type ThemeToggleButtonProps = Omit<ButtonHTMLAttributes<HTMLDivElement>, "onChange"> & {
+  onChangeTheme: (mode: ThemeMode) => void;
+  themeMode: ThemeMode;
 };
 
-export function ThemeToggleButton({ className, onToggle, theme, ...props }: ThemeToggleButtonProps) {
+export function ThemeToggleButton({
+  className,
+  onChangeTheme,
+  themeMode,
+  ...props
+}: ThemeToggleButtonProps) {
   const { t } = useTranslation();
-  const isDark = theme === "dark";
   const nextClassName = className ? `theme-toggle-button ${className}` : "theme-toggle-button";
 
   return (
-    <button
-      type="button"
-      className={nextClassName}
-      onClick={onToggle}
-      aria-label={isDark ? t("theme.dark") : t("theme.light")}
-      aria-pressed={isDark}
-      {...props}
-    >
-      <span className="theme-toggle-button__content">
-        <span className="theme-toggle-button__leading-icon" aria-hidden="true">
-          {isDark ? <Moon /> : <Sun />}
-        </span>
-        <span className="theme-toggle-button__label">{isDark ? t("theme.dark") : t("theme.light")}</span>
-      </span>
-      <span
-        className={isDark ? "theme-toggle-button__switch theme-toggle-button__switch--on" : "theme-toggle-button__switch"}
-        aria-hidden="true"
+    <div className={nextClassName} role="group" aria-label={t("theme.select")} {...props}>
+      <span className="theme-toggle-button__title">{t("theme.label")}</span>
+      <button
+        type="button"
+        className={
+          themeMode === "system"
+            ? "theme-toggle-button__option theme-toggle-button__option--active"
+            : "theme-toggle-button__option"
+        }
+        onClick={() => onChangeTheme("system")}
+        aria-pressed={themeMode === "system"}
+        aria-label={t("theme.system")}
+        title={t("theme.system")}
       >
-        <span className="theme-toggle-button__thumb" />
-      </span>
-    </button>
+        <Laptop />
+      </button>
+      <button
+        type="button"
+        className={
+          themeMode === "light"
+            ? "theme-toggle-button__option theme-toggle-button__option--active"
+            : "theme-toggle-button__option"
+        }
+        onClick={() => onChangeTheme("light")}
+        aria-pressed={themeMode === "light"}
+        aria-label={t("theme.light")}
+        title={t("theme.light")}
+      >
+        <Sun />
+      </button>
+      <button
+        type="button"
+        className={
+          themeMode === "dark"
+            ? "theme-toggle-button__option theme-toggle-button__option--active"
+            : "theme-toggle-button__option"
+        }
+        onClick={() => onChangeTheme("dark")}
+        aria-pressed={themeMode === "dark"}
+        aria-label={t("theme.dark")}
+        title={t("theme.dark")}
+      >
+        <Moon />
+      </button>
+    </div>
   );
 }

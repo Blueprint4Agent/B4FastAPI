@@ -278,64 +278,54 @@ a {
 .theme-toggle-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid color-mix(in oklab, var(--panel-border) 82%, transparent 18%);
+  background: color-mix(in oklab, var(--panel) 95%, transparent 5%);
+  gap: 0.24rem;
 }
 
-.theme-toggle-button__content {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-
-.theme-toggle-button__leading-icon {
-  width: 1rem;
-  height: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.theme-toggle-button__leading-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.theme-toggle-button__label {
+.theme-toggle-button__title {
+  margin: 0 0.2rem 0 0.25rem;
+  font:
+    600 0.76rem/1 "Inter",
+    system-ui,
+    sans-serif;
+  color: var(--text-soft);
   white-space: nowrap;
 }
 
-.theme-toggle-button__switch {
-  width: 2rem;
-  height: 1.2rem;
+.theme-toggle-button__option {
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  border: 1px solid color-mix(in oklab, var(--panel-border) 82%, transparent 18%);
-  background: color-mix(in oklab, var(--input-bg) 78%, transparent 22%);
-  padding: 0.12rem;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  transition: background-color 140ms ease;
+  justify-content: center;
+  gap: 0.35rem;
+  color: var(--text-soft);
+  background: transparent;
+  cursor: pointer;
 }
 
-.theme-toggle-button__switch--on {
-  background: color-mix(in oklab, var(--accent) 22%, var(--input-bg) 78%);
+.theme-toggle-button__option svg {
+  width: 1.08rem;
+  height: 1.08rem;
 }
 
-.theme-toggle-button__thumb {
-  width: 0.78rem;
-  height: 0.78rem;
-  border-radius: var(--radius-pill);
-  background: color-mix(in oklab, var(--text) 90%, transparent 10%);
-  transform: translateX(0);
-  transition: transform 140ms ease;
-}
-
-.theme-toggle-button__switch--on .theme-toggle-button__thumb {
-  transform: translateX(0.78rem);
+.theme-toggle-button__option--active {
+  color: var(--text);
+  border-color: color-mix(in oklab, var(--panel-border) 70%, transparent 30%);
+  background: color-mix(in oklab, var(--input-bg) 82%, transparent 18%);
 }
 
 .profile-menu__item.theme-toggle-button {
-  justify-content: space-between;
+  width: 100%;
+  justify-content: center;
+  padding: 0.24rem;
+  border-radius: 0.8rem;
 }
 
 .theme-toggle {
@@ -343,10 +333,7 @@ a {
   top: 1rem;
   right: 1rem;
   z-index: 10;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-pill);
-  padding: 0.6rem 0.95rem;
-  background: color-mix(in oklab, var(--panel) 92%, transparent 8%);
+  background: color-mix(in oklab, var(--panel) 94%, transparent 6%);
   color: var(--text);
   box-shadow: 0 10px 22px rgba(16, 24, 40, 0.15);
 }

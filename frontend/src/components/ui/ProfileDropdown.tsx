@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router-dom";
 
+import type { ThemeMode } from "../../hooks/useTheme";
 import { ThemeToggleButton } from "./ThemeToggleButton";
 
 type ProfileDropdownProps = {
@@ -11,8 +12,8 @@ type ProfileDropdownProps = {
   displayName: string;
   email?: string;
   onLogout: () => void;
-  onToggleTheme: () => void;
-  theme: "light" | "dark";
+  onChangeTheme: (mode: ThemeMode) => void;
+  themeMode: ThemeMode;
 };
 
 export function ProfileDropdown({
@@ -21,8 +22,8 @@ export function ProfileDropdown({
   displayName,
   email,
   onLogout,
-  onToggleTheme,
-  theme
+  onChangeTheme,
+  themeMode
 }: ProfileDropdownProps) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -81,12 +82,6 @@ export function ProfileDropdown({
             </span>
             <span>{t("nav.settings")}</span>
           </Link>
-          <ThemeToggleButton
-            className="profile-menu__item"
-            role="menuitem"
-            theme={theme}
-            onToggle={onToggleTheme}
-          />
           <button
             type="button"
             className="profile-menu__item profile-menu__item--danger"
@@ -99,6 +94,12 @@ export function ProfileDropdown({
             </span>
             <span>{busy ? t("nav.logoutBusy") : t("nav.logoutIdle")}</span>
           </button>
+          <ThemeToggleButton
+            className="profile-menu__item"
+            role="menuitem"
+            themeMode={themeMode}
+            onChangeTheme={onChangeTheme}
+          />
         </div>
       ) : null}
     </div>
