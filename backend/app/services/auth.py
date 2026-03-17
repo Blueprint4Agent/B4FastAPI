@@ -265,15 +265,16 @@ class AuthService:
         if user is None:
             raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
 
-        access_token, new_refresh_token = await self._issue_session_tokens(
-            user_id=user.id,
-            user_email=user.email,
-            refresh_session_id=refresh_session_id,
+        access_token = create_access_token(
+            subject=str(user.id),
+            email=user.email,
+            expires_delta=timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
+        await store_refresh_token(user.id, refresh_session_id, refresh_token)
 
         return RefreshResponse(
             access_token=access_token,
-            refresh_token=new_refresh_token,
+            refresh_token=refresh_token,
             token_type="bearer",
         )
 
