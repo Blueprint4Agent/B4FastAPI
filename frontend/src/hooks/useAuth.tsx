@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import * as authApi from "../api/authApi";
 import type { User } from "../api/authApi";
@@ -18,12 +18,26 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const refreshInFlightRef = useRef<Promise<void> | null>(null);
 
   const refreshSession = async () => {
-    const refreshResult = await authApi.refresh();
-    setAccessToken(refreshResult.access_token);
-    const me = await authApi.me();
-    setUser(me);
+    if (refreshInFlightRef.current) {
+      return refreshInFlightRef.current;
+    }
+
+    const refreshTask = (async () => {
+      const refreshResult = await authApi.refresh();
+      setAccessToken(refreshResult.access_token);
+      const me = await authApi.me();
+      setUser(me);
+    })();
+
+    refreshInFlightRef.current = refreshTask;
+    try {
+      await refreshTask;
+    } finally {
+      refreshInFlightRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -33,9 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const token = getAccessToken();
         if (token) {
-          const me = await authApi.me();
-          setUser(me);
-          return;
+          try {
+            const me = await authApi.me();
+            setUser(me);
+            return;
+          } catch {
+            clearAccessToken();
+          }
         }
 
         await refreshSession();

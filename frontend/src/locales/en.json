@@ -41,7 +41,7 @@
       "email": "Email",
       "password": "Password"
     },
-    "rememberMe": "Remember me (refresh cookie)",
+    "rememberMe": "Remember me",
     "submitIdle": "Sign in",
     "submitBusy": "Signing in...",
     "signupPrompt": "New here?",

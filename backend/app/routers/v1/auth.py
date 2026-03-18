@@ -24,7 +24,7 @@ from app.models.user import (
 )
 from app.services.auth import AuthService
 from app.utils.cookies import clear_refresh_cookies, get_refresh_cookie_value, set_refresh_cookies
-from app.utils.token import create_refresh_session_id, get_refresh_session_user_id
+from app.utils.token import create_refresh_session_id, get_refresh_session
 
 router = APIRouter()
 
@@ -179,9 +179,15 @@ async def refresh_token(
     refresh_token_value = refresh_token or cookie_token
     session_id_value = session_id or cookie_session_id
     user_id_value = user_id
+    remember_me = False
 
-    if user_id_value is None and session_id_value:
-        user_id_value = await get_refresh_session_user_id(session_id_value)
+    if session_id_value:
+        session = await get_refresh_session(session_id_value)
+        if session is not None:
+            session_user_id, session_remember_me = session
+            remember_me = session_remember_me
+            if user_id_value is None:
+                user_id_value = session_user_id
 
     if not refresh_token_value or not session_id_value or not user_id_value:
         clear_refresh_cookies(response)
@@ -197,6 +203,7 @@ async def refresh_token(
             user_id=int(user_id_value),
             refresh_session_id=session_id_value,
             refresh_token=refresh_token_value,
+            remember_me=remember_me,
         )
     except (AuthException, ValueError) as error:
         clear_refresh_cookies(response)
@@ -214,6 +221,7 @@ async def refresh_token(
         request=request,
         refresh_token=token_payload.refresh_token,
         refresh_session_id=session_id_value,
+        remember_me=remember_me,
     )
     return token_payload
 

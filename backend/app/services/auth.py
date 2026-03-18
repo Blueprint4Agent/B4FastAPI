@@ -168,6 +168,7 @@ class AuthService:
             user_id=user.id,
             user_email=user.email,
             refresh_session_id=refresh_session_id,
+            remember_me=True,
         )
         return LoginResponse(
             access_token=issued_access_token,
@@ -239,6 +240,7 @@ class AuthService:
             user_id=user.id,
             user_email=user.email,
             refresh_session_id=refresh_session_id,
+            remember_me=form.remember_me,
         )
 
         return LoginResponse(
@@ -256,6 +258,7 @@ class AuthService:
         user_id: int,
         refresh_session_id: str,
         refresh_token: str,
+        remember_me: bool = False,
     ) -> RefreshResponse:
         is_valid = await verify_refresh_token(user_id, refresh_session_id, refresh_token)
         if not is_valid:
@@ -270,7 +273,12 @@ class AuthService:
             email=user.email,
             expires_delta=timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
-        await store_refresh_token(user.id, refresh_session_id, refresh_token)
+        await store_refresh_token(
+            user.id,
+            refresh_session_id,
+            refresh_token,
+            remember_me=remember_me,
+        )
 
         return RefreshResponse(
             access_token=access_token,
@@ -283,6 +291,7 @@ class AuthService:
         user_id: int,
         user_email: str,
         refresh_session_id: str,
+        remember_me: bool = False,
     ) -> tuple[str, str]:
         access_token = create_access_token(
             subject=str(user_id),
@@ -290,7 +299,12 @@ class AuthService:
             expires_delta=timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES),
         )
         refresh_token = create_refresh_token()
-        await store_refresh_token(user_id, refresh_session_id, refresh_token)
+        await store_refresh_token(
+            user_id,
+            refresh_session_id,
+            refresh_token,
+            remember_me=remember_me,
+        )
         return access_token, refresh_token
 
     def _get_oauth_provider_config(self, provider: OAuthProvider) -> OAuthProviderConfig:

@@ -40,13 +40,19 @@ def _refresh_user_sessions_key(user_id: int) -> str:
     return f"refresh_user_sessions:{user_id}"
 
 
-async def store_refresh_token(user_id: int, session_id: str, refresh_token: str) -> None:
+async def store_refresh_token(
+    user_id: int,
+    session_id: str,
+    refresh_token: str,
+    remember_me: bool = False,
+) -> None:
     redis = await RedisManager.get_client()
     ttl = timedelta(days=SETTINGS.REFRESH_TOKEN_EXPIRE_DAYS)
     session_payload = json.dumps(
         {
             "user_id": user_id,
             "refresh_token": refresh_token,
+            "remember_me": remember_me,
         }
     )
     await redis.setex(
@@ -56,6 +62,22 @@ async def store_refresh_token(user_id: int, session_id: str, refresh_token: str)
     )
     await redis.sadd(_refresh_user_sessions_key(user_id), session_id)
     await redis.expire(_refresh_user_sessions_key(user_id), ttl)
+
+
+async def get_refresh_session(session_id: str) -> tuple[int, bool] | None:
+    redis = await RedisManager.get_client()
+    raw_session = await redis.get(_refresh_session_key(session_id))
+    if raw_session is None:
+        return None
+
+    try:
+        session_data = json.loads(raw_session)
+        user_id = int(session_data.get("user_id"))
+        remember_me = bool(session_data.get("remember_me", False))
+    except (TypeError, ValueError):
+        return None
+
+    return user_id, remember_me
 
 
 async def store_email_verification_token(user_id: int, token: str) -> None:
@@ -102,18 +124,10 @@ async def verify_refresh_token(user_id: int, session_id: str, refresh_token: str
 
 
 async def get_refresh_session_user_id(session_id: str) -> int | None:
-    redis = await RedisManager.get_client()
-    raw_session = await redis.get(_refresh_session_key(session_id))
-    if raw_session is None:
+    session = await get_refresh_session(session_id)
+    if session is None:
         return None
-
-    try:
-        session_data = json.loads(raw_session)
-        user_id = int(session_data.get("user_id"))
-    except (TypeError, ValueError):
-        return None
-
-    return user_id
+    return session[0]
 
 
 async def consume_email_verification_token(token: str) -> int | None:
