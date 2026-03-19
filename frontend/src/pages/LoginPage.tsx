@@ -29,6 +29,10 @@ type APIError = {
   };
 };
 
+const REMEMBER_EMAIL_STORAGE_KEY = "template_remember_email";
+const REMEMBER_EMAIL_ENABLED_STORAGE_KEY = "template_remember_email_enabled";
+const REMEMBER_ME_ENABLED_STORAGE_KEY = "template_remember_me_enabled";
+
 function extractApiDetail(error: unknown): APIError["detail"] | null {
   if (!error || typeof error !== "object") return null;
   const detail = (error as APIError).detail;
@@ -43,7 +47,8 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
   const [showResendButton, setShowResendButton] = useState(false);
@@ -53,6 +58,27 @@ export function LoginPage() {
   const [oauthProviders, setOAuthProviders] = useState<Array<{ provider: OAuthProvider; start_path: string }>>([]);
   const emailEnabled = appConfig?.email_enabled === true;
   const oauthEnabled = appConfig?.oauth_enabled === true;
+
+  useEffect(() => {
+    try {
+      const rememberMeEnabled = window.localStorage.getItem(REMEMBER_ME_ENABLED_STORAGE_KEY) === "true";
+      setRememberMe(rememberMeEnabled);
+
+      const rememberEmailEnabled =
+        window.localStorage.getItem(REMEMBER_EMAIL_ENABLED_STORAGE_KEY) === "true";
+      if (!rememberEmailEnabled) {
+        setRememberEmail(false);
+        return;
+      }
+      const rememberedEmail = window.localStorage.getItem(REMEMBER_EMAIL_STORAGE_KEY);
+      if (rememberedEmail) {
+        setEmail(rememberedEmail);
+        setRememberEmail(true);
+      }
+    } catch {
+      // ignore storage errors in restricted browser contexts
+    }
+  }, []);
 
   useEffect(() => {
     const run = async () => {
@@ -101,6 +127,21 @@ export function LoginPage() {
 
     try {
       await login({ email, password, remember_me: rememberMe });
+      try {
+        window.localStorage.setItem(
+          REMEMBER_ME_ENABLED_STORAGE_KEY,
+          rememberMe ? "true" : "false"
+        );
+        if (rememberEmail) {
+          window.localStorage.setItem(REMEMBER_EMAIL_ENABLED_STORAGE_KEY, "true");
+          window.localStorage.setItem(REMEMBER_EMAIL_STORAGE_KEY, email.trim());
+        } else {
+          window.localStorage.setItem(REMEMBER_EMAIL_ENABLED_STORAGE_KEY, "false");
+          window.localStorage.removeItem(REMEMBER_EMAIL_STORAGE_KEY);
+        }
+      } catch {
+        // ignore storage errors in restricted browser contexts
+      }
       navigate("/dashboard", { replace: true });
     } catch (nextError) {
       const detail = extractApiDetail(nextError);
@@ -159,11 +200,18 @@ export function LoginPage() {
               value={password}
               onValueChange={setPassword}
             />
-            <FormCheckbox
-              checked={rememberMe}
-              onCheckedChange={setRememberMe}
-              label={t("login.rememberMe")}
-            />
+            <div className="login-remember-options">
+              <FormCheckbox
+                checked={rememberEmail}
+                onCheckedChange={setRememberEmail}
+                label={t("login.rememberEmail")}
+              />
+              <FormCheckbox
+                checked={rememberMe}
+                onCheckedChange={setRememberMe}
+                label={t("login.rememberMe")}
+              />
+            </div>
             {warningMessage ? (
               <WarningCard title={t("cards.warningTitle")} message={warningMessage}>
                 <div className="status-card__actions">

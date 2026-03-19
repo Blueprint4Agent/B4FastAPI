@@ -42,6 +42,7 @@
       "password": "Password"
     },
     "rememberMe": "Remember me",
+    "rememberEmail": "Remember email",
     "submitIdle": "Sign in",
     "submitBusy": "Signing in...",
     "signupPrompt": "New here?",

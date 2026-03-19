@@ -425,6 +425,11 @@ input:focus {
   gap: 0.55rem;
 }
 
+.login-remember-options {
+  display: grid;
+  gap: 0.35rem;
+}
+
 .checkbox input {
   width: 1.1rem;
   height: 1.1rem;
