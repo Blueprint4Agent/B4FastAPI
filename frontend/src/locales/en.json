@@ -1,5 +1,7 @@
 {
   "app": {
+    "loadingTitle": "Loading",
+    "loadingSubtitle": "Please wait while we prepare your session.",
     "loadingSession": "Loading session..."
   },
   "auth": {

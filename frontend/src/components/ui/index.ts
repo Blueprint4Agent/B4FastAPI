@@ -7,6 +7,7 @@ export { OAuthOptionsCard } from "./OAuthOptionsCard";
 export { PanelCard } from "./PanelCard";
 export { ProfileDropdown } from "./ProfileDropdown";
 export { OAuthProviderButton } from "./OAuthProviderButton";
+export { Spinner } from "./Spinner";
 export { ThemeToggleButton } from "./ThemeToggleButton";
 export { ValidationCard } from "./ValidationCard";
 export type { ValidationRule } from "./ValidationCard";

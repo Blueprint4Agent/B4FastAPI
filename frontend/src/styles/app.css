@@ -5,7 +5,7 @@
   --radius-pill: 999px;
   --radius-panel: 2rem;
   --radius-input: 1rem;
-  --bg: #f7f4ea;
+  --bg: #ffffff;
   --bg-grad-a: rgba(48, 117, 211, 0.18);
   --bg-grad-b: rgba(196, 153, 54, 0.14);
   --text: #132033;
@@ -468,6 +468,55 @@ input:focus {
   border: 2px solid color-mix(in oklab, var(--button-fg) 35%, transparent 65%);
   border-top-color: var(--button-fg);
   animation: spin 720ms linear infinite;
+}
+
+.ui-spinner {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  color: var(--text);
+}
+
+.ui-spinner__ring {
+  border-radius: 999px;
+  border: 3px solid color-mix(in oklab, var(--text) 18%, transparent 82%);
+  border-top-color: color-mix(in oklab, var(--accent) 85%, var(--text) 15%);
+  animation: spin 860ms linear infinite;
+}
+
+.ui-spinner--sm .ui-spinner__ring {
+  width: 1rem;
+  height: 1rem;
+}
+
+.ui-spinner--md .ui-spinner__ring {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.ui-spinner--lg .ui-spinner__ring {
+  width: 2.1rem;
+  height: 2.1rem;
+}
+
+.ui-spinner__label {
+  font:
+    500 0.86rem/1.2 "Inter",
+    system-ui,
+    sans-serif;
+  color: var(--text-soft);
+}
+
+.loading-panel {
+  width: min(28rem, 100%);
+}
+
+.loading-panel__body {
+  min-height: 9.5rem;
+  display: grid;
+  place-items: center;
 }
 
 .ui-button:hover {

@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { ForgotPasswordEmailSentPage } from "./pages/ForgotPasswordEmailSentPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
+import { LoadingPage } from "./pages/LoadingPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ResetPasswordSuccessPage } from "./pages/ResetPasswordSuccessPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -19,11 +20,7 @@ function ProtectedLayout() {
   const { t } = useTranslation();
 
   if (loading) {
-    return (
-      <main className="page">
-        <section className="panel">{t("app.loadingSession")}</section>
-      </main>
-    );
+    return <LoadingPage message={t("app.loadingSession")} />;
   }
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -44,6 +41,7 @@ export function App() {
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/loading" element={<LoadingPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/signup/email-sent" element={<SignupEmailSentPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
