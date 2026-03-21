@@ -1,196 +1,196 @@
 {
-  "app": {
-    "loadingTitle": "Loading",
-    "loadingSubtitle": "Please wait while we prepare your session.",
-    "loadingSession": "Loading session..."
-  },
-  "auth": {
-    "actions": {
-      "resendVerification": "Resend verification email"
+    "app": {
+        "loadingTitle": "Loading",
+        "loadingSubtitle": "Please wait while we prepare your session.",
+        "loadingSession": "Loading session..."
     },
-    "errors": {
-      "loginFallback": "Login failed. Please try again.",
-      "signupFallback": "Signup failed. Please check your input.",
-      "passwordMismatch": "Password confirmation does not match.",
-      "requiredEmail": "Email is required.",
-      "requiredName": "Name is required.",
-      "requiredPassword": "Password is required.",
-      "requiredConfirmPassword": "Please confirm your password.",
-      "invalidEmail": "Please enter a valid email address.",
-      "invalidPasswordPattern": "Password must be 8-24 chars and include uppercase, number, and symbol.",
-      "invalidCredentialsWithCount": "Incorrect credentials. {{count}} attempt(s) remaining.",
-      "accountLocked": "Too many failed attempts. Try again in {{seconds}} seconds.",
-      "emailNotVerified": "Email verification is required. Please verify your email first.",
-      "resendVerificationFallback": "Could not resend verification email. Please try again."
+    "auth": {
+        "actions": {
+            "resendVerification": "Resend verification email"
+        },
+        "errors": {
+            "loginFallback": "Login failed. Please try again.",
+            "signupFallback": "Signup failed. Please check your input.",
+            "passwordMismatch": "Password confirmation does not match.",
+            "requiredEmail": "Email is required.",
+            "requiredName": "Name is required.",
+            "requiredPassword": "Password is required.",
+            "requiredConfirmPassword": "Please confirm your password.",
+            "invalidEmail": "Please enter a valid email address.",
+            "invalidPasswordPattern": "Password must be 8-24 chars and include uppercase, number, and symbol.",
+            "invalidCredentialsWithCount": "Incorrect credentials. {{count}} attempt(s) remaining.",
+            "accountLocked": "Too many failed attempts. Try again in {{seconds}} seconds.",
+            "emailNotVerified": "Email verification is required. Please verify your email first.",
+            "resendVerificationFallback": "Could not resend verification email. Please try again."
+        }
+    },
+    "cards": {
+        "errorTitle": "Action required",
+        "warningTitle": "Warning",
+        "infoTitle": "Info"
+    },
+    "login": {
+        "title": "Login",
+        "subtitle": "Sign in to access the template dashboard.",
+        "oauth": {
+            "divider": "Sign in with a social account",
+            "providers": {
+                "google": "Continue with Google",
+                "github": "Continue with GitHub"
+            }
+        },
+        "fields": {
+            "email": "Email",
+            "password": "Password"
+        },
+        "rememberMe": "Remember me",
+        "rememberEmail": "Remember email",
+        "submitIdle": "Sign in",
+        "submitBusy": "Signing in...",
+        "signupPrompt": "New here?",
+        "signupLink": "Create an account",
+        "forgotPasswordPrompt": "Forgot your password?",
+        "forgotPasswordLink": "Find your password"
+    },
+    "signup": {
+        "title": "Sign up",
+        "subtitle": "Create a starter account for local development.",
+        "configLoading": "Loading server configuration. Please try again in a moment.",
+        "fields": {
+            "name": "Name",
+            "email": "Email",
+            "password": "Password",
+            "confirmPassword": "Confirm password"
+        },
+        "submitIdle": "Create account",
+        "submitBusy": "Creating account and sending verification email...",
+        "loginPrompt": "Already have an account?",
+        "loginLink": "Back to login",
+        "validation": {
+            "email": "Email validation",
+            "password": "Password validation",
+            "confirm": "Password confirmation"
+        },
+        "rules": {
+            "email": {
+                "format": "Use a valid email format."
+            },
+            "password": {
+                "length": "8 to 24 characters.",
+                "upper": "Include at least one uppercase letter.",
+                "number": "Include at least one number.",
+                "symbol": "Include at least one symbol.",
+                "noSpace": "Do not use spaces."
+            },
+            "confirm": {
+                "match": "Password and confirmation must match."
+            }
+        }
+    },
+    "signupEmailSent": {
+        "title": "Check your email",
+        "subtitle": "We sent a verification link to {{email}}.",
+        "description": "Open your inbox and verify your email to activate your account.",
+        "accountCreatedTitle": "Account created",
+        "accountCreatedSubtitle": "Your account is ready.",
+        "accountCreatedMessage": "Account has been created. Please go to the login page.",
+        "resendButton": "Resend verification email",
+        "resendFallback": "Could not resend verification email. Please try again.",
+        "loginButton": "Back to login",
+        "noEmail": "your email address"
+    },
+    "forgotPassword": {
+        "title": "Find your password",
+        "subtitle": "Enter your email and we will send a password reset link.",
+        "emailLabel": "Email",
+        "submitIdle": "Send reset link",
+        "loginPrompt": "Remember your password?",
+        "loginLink": "Back to login",
+        "configLoading": "Loading server configuration. Please try again in a moment.",
+        "disabled": "Password reset is currently unavailable.",
+        "disabledTitle": "Password reset unavailable",
+        "sentTitle": "Check your email",
+        "sentSubtitle": "We sent a password reset link to {{email}}.",
+        "sentDescription": "Open your inbox and use the link to continue resetting your password.",
+        "backToRequest": "Request again",
+        "backToLogin": "Back to login",
+        "requestFallback": "Could not request password reset. Please try again.",
+        "noEmail": "your email address"
+    },
+    "resetPassword": {
+        "title": "Reset password",
+        "subtitle": "Set a new password for your account.",
+        "passwordLabel": "New password",
+        "confirmPasswordLabel": "Confirm new password",
+        "submitIdle": "Reset password",
+        "successTitle": "Password reset complete",
+        "successSubtitle": "Your password has been updated.",
+        "successDescription": "You can now sign in with your new password.",
+        "backToLogin": "Back to login",
+        "loginPrompt": "Ready to sign in?",
+        "loginLink": "Go to login",
+        "errors": {
+            "missingToken": "Reset token is missing. Please use the link from your email.",
+            "fallback": "Password reset failed. The link may be expired or invalid."
+        }
+    },
+    "verifyEmail": {
+        "loadingTitle": "Verifying your email",
+        "loadingSubtitle": "Please wait while we confirm your verification token.",
+        "loadingDescription": "This usually takes a few seconds.",
+        "successTitle": "Email verified",
+        "successSubtitle": "Your account is now verified.",
+        "successDescription": "You can now sign in with your email and password.",
+        "errorTitle": "Verification failed",
+        "errorSubtitle": "We could not verify your email.",
+        "backToLogin": "Back to login",
+        "errors": {
+            "missingToken": "Verification token is missing. Please use the link from your email.",
+            "fallback": "Verification failed. The link may be expired or invalid."
+        }
+    },
+    "dashboard": {
+        "title": "Show Case",
+        "subtitle": "Review these components and instruct the Agent which ones to use for your screen.",
+        "labels": {
+            "userId": "User ID",
+            "name": "Name",
+            "email": "Email"
+        },
+        "logoutIdle": "Sign out",
+        "logoutBusy": "Signing out..."
+    },
+    "nav": {
+        "profileMenu": "Profile menu",
+        "pageTitles": {
+            "showCase": "Show Case",
+            "settings": "Settings",
+            "loading": "Loading",
+            "notFound": "Not Found 404"
+        },
+        "settings": "Settings",
+        "logoutIdle": "Sign out",
+        "logoutBusy": "Signing out...",
+        "aria": {
+            "goDashboard": "Go to dashboard",
+            "openMenu": "Open profile menu"
+        }
+    },
+    "settings": {
+        "title": "Settings",
+        "subtitle": "Manage your account and preferences.",
+        "labels": {
+            "name": "Name",
+            "email": "Email",
+            "userId": "User ID"
+        },
+        "hint": "Profile actions are available from the top-right menu."
+    },
+    "theme": {
+        "label": "Theme",
+        "select": "Theme mode",
+        "system": "System",
+        "light": "Light mode",
+        "dark": "Dark mode"
     }
-  },
-  "cards": {
-    "errorTitle": "Action required",
-    "warningTitle": "Warning",
-    "infoTitle": "Info"
-  },
-  "login": {
-    "title": "Login",
-    "subtitle": "Sign in to access the template dashboard.",
-    "oauth": {
-      "divider": "Sign in with a social account",
-      "providers": {
-        "google": "Continue with Google",
-        "github": "Continue with GitHub"
-      }
-    },
-    "fields": {
-      "email": "Email",
-      "password": "Password"
-    },
-    "rememberMe": "Remember me",
-    "rememberEmail": "Remember email",
-    "submitIdle": "Sign in",
-    "submitBusy": "Signing in...",
-    "signupPrompt": "New here?",
-    "signupLink": "Create an account",
-    "forgotPasswordPrompt": "Forgot your password?",
-    "forgotPasswordLink": "Find your password"
-  },
-  "signup": {
-    "title": "Sign up",
-    "subtitle": "Create a starter account for local development.",
-    "configLoading": "Loading server configuration. Please try again in a moment.",
-    "fields": {
-      "name": "Name",
-      "email": "Email",
-      "password": "Password",
-      "confirmPassword": "Confirm password"
-    },
-    "submitIdle": "Create account",
-    "submitBusy": "Creating account and sending verification email...",
-    "loginPrompt": "Already have an account?",
-    "loginLink": "Back to login",
-    "validation": {
-      "email": "Email validation",
-      "password": "Password validation",
-      "confirm": "Password confirmation"
-    },
-    "rules": {
-      "email": {
-        "format": "Use a valid email format."
-      },
-      "password": {
-        "length": "8 to 24 characters.",
-        "upper": "Include at least one uppercase letter.",
-        "number": "Include at least one number.",
-        "symbol": "Include at least one symbol.",
-        "noSpace": "Do not use spaces."
-      },
-      "confirm": {
-        "match": "Password and confirmation must match."
-      }
-    }
-  },
-  "signupEmailSent": {
-    "title": "Check your email",
-    "subtitle": "We sent a verification link to {{email}}.",
-    "description": "Open your inbox and verify your email to activate your account.",
-    "accountCreatedTitle": "Account created",
-    "accountCreatedSubtitle": "Your account is ready.",
-    "accountCreatedMessage": "Account has been created. Please go to the login page.",
-    "resendButton": "Resend verification email",
-    "resendFallback": "Could not resend verification email. Please try again.",
-    "loginButton": "Back to login",
-    "noEmail": "your email address"
-  },
-  "forgotPassword": {
-    "title": "Find your password",
-    "subtitle": "Enter your email and we will send a password reset link.",
-    "emailLabel": "Email",
-    "submitIdle": "Send reset link",
-    "loginPrompt": "Remember your password?",
-    "loginLink": "Back to login",
-    "configLoading": "Loading server configuration. Please try again in a moment.",
-    "disabled": "Password reset is currently unavailable.",
-    "disabledTitle": "Password reset unavailable",
-    "sentTitle": "Check your email",
-    "sentSubtitle": "We sent a password reset link to {{email}}.",
-    "sentDescription": "Open your inbox and use the link to continue resetting your password.",
-    "backToRequest": "Request again",
-    "backToLogin": "Back to login",
-    "requestFallback": "Could not request password reset. Please try again.",
-    "noEmail": "your email address"
-  },
-  "resetPassword": {
-    "title": "Reset password",
-    "subtitle": "Set a new password for your account.",
-    "passwordLabel": "New password",
-    "confirmPasswordLabel": "Confirm new password",
-    "submitIdle": "Reset password",
-    "successTitle": "Password reset complete",
-    "successSubtitle": "Your password has been updated.",
-    "successDescription": "You can now sign in with your new password.",
-    "backToLogin": "Back to login",
-    "loginPrompt": "Ready to sign in?",
-    "loginLink": "Go to login",
-    "errors": {
-      "missingToken": "Reset token is missing. Please use the link from your email.",
-      "fallback": "Password reset failed. The link may be expired or invalid."
-    }
-  },
-  "verifyEmail": {
-    "loadingTitle": "Verifying your email",
-    "loadingSubtitle": "Please wait while we confirm your verification token.",
-    "loadingDescription": "This usually takes a few seconds.",
-    "successTitle": "Email verified",
-    "successSubtitle": "Your account is now verified.",
-    "successDescription": "You can now sign in with your email and password.",
-    "errorTitle": "Verification failed",
-    "errorSubtitle": "We could not verify your email.",
-    "backToLogin": "Back to login",
-    "errors": {
-      "missingToken": "Verification token is missing. Please use the link from your email.",
-      "fallback": "Verification failed. The link may be expired or invalid."
-    }
-  },
-  "dashboard": {
-    "title": "Show Case",
-    "subtitle": "Review these components and instruct the Agent which ones to use for your screen.",
-    "labels": {
-      "userId": "User ID",
-      "name": "Name",
-      "email": "Email"
-    },
-    "logoutIdle": "Sign out",
-    "logoutBusy": "Signing out..."
-  },
-  "nav": {
-    "profileMenu": "Profile menu",
-    "pageTitles": {
-      "showCase": "Show Case",
-      "settings": "Settings",
-      "loading": "Loading",
-      "notFound": "Not Found 404"
-    },
-    "settings": "Settings",
-    "logoutIdle": "Sign out",
-    "logoutBusy": "Signing out...",
-    "aria": {
-      "goDashboard": "Go to dashboard",
-      "openMenu": "Open profile menu"
-    }
-  },
-  "settings": {
-    "title": "Settings",
-    "subtitle": "Manage your account and preferences.",
-    "labels": {
-      "name": "Name",
-      "email": "Email",
-      "userId": "User ID"
-    },
-    "hint": "Profile actions are available from the top-right menu."
-  },
-  "theme": {
-    "label": "Theme",
-    "select": "Theme mode",
-    "system": "System",
-    "light": "Light mode",
-    "dark": "Dark mode"
-  }
 }
