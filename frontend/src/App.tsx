@@ -39,7 +39,7 @@ function ProtectedLayout() {
 export function App() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/" element={<Navigate to="/show-case" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/loading" element={<LoadingPage />} />
       <Route path="/signup" element={<SignupPage />} />
@@ -50,10 +50,11 @@ export function App() {
       <Route path="/reset-password/success" element={<ResetPasswordSuccessPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
       <Route element={<ProtectedLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<Navigate to="/show-case" replace />} />
+        <Route path="/show-case" element={<DashboardPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/show-case" replace />} />
     </Routes>
   );
 }

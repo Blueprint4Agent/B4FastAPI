@@ -111,3 +111,12 @@ Read [`AGENTS.md`](./AGENTS.md) first.
 - i18n bootstrap: `frontend/src/i18n.ts`
 - English locale file: `frontend/src/locales/en.json`
 - Current default language: `en`
+
+## Show Case + Agent Workflow
+
+- Open the Show Case page after login: `http://localhost:5173/show-case`
+- Review available UI components by category (`Buttons & Components`, `Cards`)
+- Ask the Agent to compose UI by explicitly naming components from Show Case
+- Example prompt:
+  - "Build the settings form with `PanelCard`, `InputField`, `FormCheckbox`, `Button`, and `InfoCard`."
+- Prefer component-first requests over raw HTML/CSS requests for consistency and reuse.

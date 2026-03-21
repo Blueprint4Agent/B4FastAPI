@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthContext } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
@@ -9,12 +9,15 @@ import { BrandMark, ProfileDropdown } from "./ui";
 export function AppNavbar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuthContext();
   const { themeMode, setThemeMode } = useTheme();
   const [busy, setBusy] = useState(false);
 
   const displayName = user?.name?.trim() || user?.email || "User";
   const avatarLabel = displayName.slice(0, 1).toUpperCase();
+  const pageTitle =
+    location.pathname === "/settings" ? t("nav.pageTitles.settings") : t("nav.pageTitles.showCase");
 
   const onLogout = async () => {
     setBusy(true);
@@ -29,9 +32,10 @@ export function AppNavbar() {
   return (
     <header className="app-nav">
       <div className="app-nav__inner">
-        <Link to="/dashboard" className="app-nav__brand" aria-label={t("nav.aria.goDashboard")}>
+        <Link to="/show-case" className="app-nav__brand" aria-label={t("nav.aria.goDashboard")}>
           <BrandMark className="brand-mark--nav" />
         </Link>
+        <p className="app-nav__title">{pageTitle}</p>
         <ProfileDropdown
           avatarLabel={avatarLabel}
           busy={busy}

@@ -1,6 +1,7 @@
 export { Button } from "./Button";
 export { BrandMark } from "./BrandMark";
 export { FormCheckbox } from "./FormCheckbox";
+export { DropdownMenu } from "./DropdownMenu";
 export { InputField } from "./InputField";
 export { KeyValueCard } from "./KeyValueCard";
 export { OAuthOptionsCard } from "./OAuthOptionsCard";

@@ -150,8 +150,8 @@
     }
   },
   "dashboard": {
-    "title": "Dashboard",
-    "subtitle": "You are authenticated. This is the template landing page.",
+    "title": "Show Case",
+    "subtitle": "Review these components and instruct the Agent which ones to use for your screen.",
     "labels": {
       "userId": "User ID",
       "name": "Name",
@@ -162,6 +162,10 @@
   },
   "nav": {
     "profileMenu": "Profile menu",
+    "pageTitles": {
+      "showCase": "Show Case",
+      "settings": "Settings"
+    },
     "settings": "Settings",
     "logoutIdle": "Sign out",
     "logoutBusy": "Signing out...",

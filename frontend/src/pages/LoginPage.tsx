@@ -142,7 +142,7 @@ export function LoginPage() {
       } catch {
         // ignore storage errors in restricted browser contexts
       }
-      navigate("/dashboard", { replace: true });
+      navigate("/show-case", { replace: true });
     } catch (nextError) {
       const detail = extractApiDetail(nextError);
       const code = detail?.error;
