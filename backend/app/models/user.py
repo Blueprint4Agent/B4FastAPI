@@ -298,7 +298,9 @@ class UserDAO:
 
     async def get_user_response_by_email(self, email: str) -> UserResponse | None:
         async with get_db() as db:
-            result = await db.execute(select(User).where(User.email == email, User.is_active.is_(True)))
+            result = await db.execute(
+                select(User).where(User.email == email, User.is_active.is_(True))
+            )
             user = result.scalar_one_or_none()
             if user is None:
                 return None

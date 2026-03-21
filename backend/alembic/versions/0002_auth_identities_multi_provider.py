@@ -48,9 +48,7 @@ def upgrade() -> None:
         unique=False,
     )
 
-    op.execute(
-        sa.text(
-            """
+    op.execute(sa.text("""
             INSERT INTO auth_identities (
                 user_id,
                 provider,
@@ -67,9 +65,7 @@ def upgrade() -> None:
                 last_login_ip,
                 last_login_user_agent
             FROM auth_records
-            """
-        )
-    )
+            """))
 
     op.drop_index("ix_auth_records_identifier", table_name="auth_records")
     op.drop_table("auth_records")
@@ -91,9 +87,7 @@ def downgrade() -> None:
     )
     op.create_index("ix_auth_records_identifier", "auth_records", ["identifier"], unique=False)
 
-    op.execute(
-        sa.text(
-            """
+    op.execute(sa.text("""
             INSERT INTO auth_records (
                 user_id,
                 provider,
@@ -121,9 +115,7 @@ def downgrade() -> None:
                 GROUP BY user_id
             ) AS selected
                 ON selected.selected_id = chosen.id
-            """
-        )
-    )
+            """))
 
     op.drop_index("ix_auth_identities_identifier", table_name="auth_identities")
     op.drop_table("auth_identities")

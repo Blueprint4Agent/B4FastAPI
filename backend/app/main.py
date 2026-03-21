@@ -38,9 +38,7 @@ async def lifespan(_app: FastAPI):
 
     oauth_errors = SETTINGS.get_oauth_validation_errors()
     if oauth_errors:
-        raise RuntimeError(
-            "Invalid OAuth configuration: " + " ".join(oauth_errors)
-        )
+        raise RuntimeError("Invalid OAuth configuration: " + " ".join(oauth_errors))
     if SETTINGS.OAUTH_ENABLED:
         logger.info("OAuth configuration validation succeeded.")
 
