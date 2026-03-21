@@ -16,8 +16,14 @@ export function AppNavbar() {
 
   const displayName = user?.name?.trim() || user?.email || "User";
   const avatarLabel = displayName.slice(0, 1).toUpperCase();
-  const pageTitle =
-    location.pathname === "/settings" ? t("nav.pageTitles.settings") : t("nav.pageTitles.showCase");
+  let pageTitle = t("nav.pageTitles.showCase");
+  if (location.pathname === "/settings") {
+    pageTitle = t("nav.pageTitles.settings");
+  } else if (location.pathname === "/show-case/loading") {
+    pageTitle = t("nav.pageTitles.loading");
+  } else if (location.pathname === "/show-case/404" || !location.pathname.startsWith("/show-case")) {
+    pageTitle = t("nav.pageTitles.notFound");
+  }
 
   const onLogout = async () => {
     setBusy(true);

@@ -305,6 +305,11 @@ a {
   min-width: 17rem;
 }
 
+.showcase-not-found__actions {
+  display: grid;
+  justify-items: center;
+}
+
 .profile-menu {
   position: relative;
 }

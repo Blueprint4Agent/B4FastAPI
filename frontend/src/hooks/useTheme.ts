@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 
 export type ThemeMode = "system" | "light" | "dark";
 export type ResolvedTheme = "light" | "dark";
@@ -29,7 +29,7 @@ export function useTheme() {
   const [themeMode, setThemeMode] = useState<ThemeMode>(getInitialThemeMode);
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => resolveTheme(getInitialThemeMode()));
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (themeMode === "system") {
       delete document.documentElement.dataset.theme;
       window.localStorage.setItem(THEME_STORAGE_KEY, themeMode);

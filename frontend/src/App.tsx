@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { AppNavbar } from "./components/AppNavbar";
 import { useAuthContext } from "./hooks/useAuth";
+import { useTheme } from "./hooks/useTheme";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ForgotPasswordEmailSentPage } from "./pages/ForgotPasswordEmailSentPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
@@ -11,6 +12,7 @@ import { LoadingPage } from "./pages/LoadingPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ResetPasswordSuccessPage } from "./pages/ResetPasswordSuccessPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ShowCaseNotFoundPage } from "./pages/ShowCaseNotFoundPage";
 import { SignupEmailSentPage } from "./pages/SignupEmailSentPage";
 import { SignupPage } from "./pages/SignupPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -36,7 +38,34 @@ function ProtectedLayout() {
   );
 }
 
+function NotFoundRoute() {
+  const { user, loading } = useAuthContext();
+
+  if (loading) {
+    return <LoadingPage />;
+  }
+
+  if (user) {
+    return (
+      <div className="app-shell">
+        <AppNavbar />
+        <main className="app-main">
+          <ShowCaseNotFoundPage />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <main className="page">
+      <ShowCaseNotFoundPage />
+    </main>
+  );
+}
+
 export function App() {
+  useTheme();
+
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/show-case" replace />} />
@@ -52,9 +81,11 @@ export function App() {
       <Route element={<ProtectedLayout />}>
         <Route path="/dashboard" element={<Navigate to="/show-case" replace />} />
         <Route path="/show-case" element={<DashboardPage />} />
+        <Route path="/show-case/loading" element={<LoadingPage message="Loading preview..." />} />
+        <Route path="/show-case/404" element={<ShowCaseNotFoundPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/show-case" replace />} />
+      <Route path="*" element={<NotFoundRoute />} />
     </Routes>
   );
 }

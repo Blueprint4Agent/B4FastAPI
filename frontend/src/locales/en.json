@@ -164,7 +164,9 @@
     "profileMenu": "Profile menu",
     "pageTitles": {
       "showCase": "Show Case",
-      "settings": "Settings"
+      "settings": "Settings",
+      "loading": "Loading",
+      "notFound": "Not Found 404"
     },
     "settings": "Settings",
     "logoutIdle": "Sign out",

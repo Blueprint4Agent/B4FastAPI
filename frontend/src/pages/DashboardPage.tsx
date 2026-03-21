@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { ErrorCard, InfoCard, WarningCard } from "../components/StatusCard";
 import { useTheme } from "../hooks/useTheme";
@@ -41,6 +42,7 @@ function ShowcaseItem({
 export function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuthContext();
+  const navigate = useNavigate();
   const { themeMode, setThemeMode } = useTheme();
   const [sampleInput, setSampleInput] = useState("");
   const [sampleChecked, setSampleChecked] = useState(true);
@@ -145,6 +147,22 @@ export function DashboardPage() {
               </ShowcaseItem>
               <ShowcaseItem component="Spinner (lg)">
                 <Spinner size="lg" label="Large spinner" />
+              </ShowcaseItem>
+            </div>
+          </div>
+
+          <div className="dashboard-catalog__section-card">
+            <h3>Pages</h3>
+            <div className="dashboard-catalog__row">
+              <ShowcaseItem component="LoadingPage">
+                <Button type="button" onClick={() => navigate("/show-case/loading")}>
+                  Open loading page
+                </Button>
+              </ShowcaseItem>
+              <ShowcaseItem component="ShowCaseNotFoundPage">
+                <Button type="button" onClick={() => navigate("/show-case/404")}>
+                  Open 404 page
+                </Button>
               </ShowcaseItem>
             </div>
           </div>
