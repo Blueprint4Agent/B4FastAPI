@@ -18,6 +18,7 @@ class Settings(BaseModel):
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5173")
     SWAGGER_ENABLED: bool = os.getenv("SWAGGER_ENABLED", "true").lower() == "true"
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+    TRUST_PROXY_HEADERS: bool = os.getenv("TRUST_PROXY_HEADERS", "false").lower() == "true"
 
     SECRET_KEY: str = os.getenv("SECRET_KEY", "CHANGE_ME")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")

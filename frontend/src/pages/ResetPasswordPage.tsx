@@ -13,21 +13,8 @@ import {
     type ValidationRule,
 } from "../components/ui";
 import { useAppConfig } from "../hooks/useFeatures";
+import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 import { isValidPassword } from "../utils/validation";
-
-type APIError = {
-    detail?: {
-        error?: string;
-        message?: string;
-    };
-};
-
-function extractApiDetail(error: unknown): APIError["detail"] | null {
-    if (!error || typeof error !== "object") return null;
-    const detail = (error as APIError).detail;
-    if (!detail || typeof detail !== "object") return null;
-    return detail;
-}
 
 export function ResetPasswordPage() {
     const { t } = useTranslation();
@@ -134,7 +121,7 @@ export function ResetPasswordPage() {
                 setWarningMessage(t("forgotPassword.disabled"));
             } else {
                 setErrorMessage(
-                    detail?.message || detail?.error || t("resetPassword.errors.fallback"),
+                    resolveAuthErrorMessage(t, detail, "resetPassword.errors.fallback"),
                 );
             }
         } finally {

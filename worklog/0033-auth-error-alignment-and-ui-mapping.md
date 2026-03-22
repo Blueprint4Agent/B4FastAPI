@@ -1,0 +1,27 @@
+# refactor: align auth error handling across backend and frontend
+
+- scope: cross-cutting
+- changed files:
+  - backend/app/core/error/__init__.py
+  - backend/app/core/error/auth_exception.py
+  - backend/app/core/error/error.py
+  - backend/app/core/settings.py
+  - backend/app/models/user.py
+  - backend/app/routers/v1/auth.py
+  - backend/app/services/auth.py
+  - frontend/src/locales/en.json
+  - frontend/src/pages/LoginPage.tsx
+  - frontend/src/pages/SignupPage.tsx
+  - frontend/src/pages/ForgotPasswordPage.tsx
+  - frontend/src/pages/ResetPasswordPage.tsx
+  - frontend/src/pages/VerifyEmailPage.tsx
+  - frontend/src/utils/authError.ts
+- reason:
+  - Remove redundant router error wrapper and normalize exception flow.
+  - Restructure backend error modules and tighten auth error boundaries across layers.
+  - Simplify DB duplicate-email handling strategy and keep server-error mapping in service layer.
+  - Unify frontend auth-page error message handling via shared utility and i18n mappings.
+- impact:
+  - Auth error behavior is more consistent between API responses and UI rendering.
+  - Maintenance cost is reduced by centralizing frontend error-code mapping.
+  - Backend auth paths now follow a clearer separation of responsibilities.

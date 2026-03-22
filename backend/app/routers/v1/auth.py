@@ -29,16 +29,12 @@ from app.utils.token import create_refresh_session_id, get_refresh_session
 router = APIRouter()
 
 
-def _raise_http_error(error: AuthException):
-    raise service_exception_to_http(error)
-
-
 @router.post("/signup", response_model=UserResponse)
 async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
     try:
         return await service.signup(form)
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
 
 @router.get("/oauth/providers", response_model=OAuthProvidersResponse)
@@ -47,7 +43,7 @@ async def oauth_providers(service: AuthService = Depends(AuthService)):
         providers = service.get_oauth_provider_public_configs()
         return OAuthProvidersResponse(providers=providers)
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
 
 @router.get("/oauth/{provider}/start")
@@ -61,7 +57,7 @@ async def oauth_start(
         authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
         return RedirectResponse(url=authorization_url, status_code=307)
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
 
 @router.get("/oauth/{provider}/callback", name="oauth_callback")
@@ -82,7 +78,7 @@ async def oauth_callback(
         return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
 
     if not code or not state:
-        _raise_http_error(
+        raise service_exception_to_http(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
                 message="OAuth callback requires code and state.",
@@ -138,7 +134,7 @@ async def login(
     try:
         token_payload = await service.login(form, request, refresh_session_id=refresh_session_id)
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
     set_refresh_cookies(
         response=response,
@@ -189,12 +185,12 @@ async def refresh_token(
             if user_id_value is None:
                 user_id_value = session_user_id
 
-    if not refresh_token_value or not session_id_value or not user_id_value:
+    if not refresh_token_value or not session_id_value or user_id_value is None:
         clear_refresh_cookies(response)
-        _raise_http_error(
+        raise service_exception_to_http(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
-                message="Refresh token and session_id are required.",
+                message="Refresh token, session_id, and user_id are required.",
             )
         )
 
@@ -208,13 +204,13 @@ async def refresh_token(
     except (AuthException, ValueError) as error:
         clear_refresh_cookies(response)
         if isinstance(error, AuthException):
-            _raise_http_error(error)
-        _raise_http_error(
+            raise service_exception_to_http(error) from error
+        raise service_exception_to_http(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
                 message="Invalid refresh token payload.",
             )
-        )
+        ) from error
 
     set_refresh_cookies(
         response=response,
@@ -235,7 +231,7 @@ async def verify_email(
         user = await service.verify_email(form.token)
         return VerifyEmailResponse(message="Email verified successfully.", user=user)
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
 
 @router.post("/resend-verification", response_model=ResendVerificationResponse)
@@ -249,7 +245,7 @@ async def resend_verification_email(
             message="If an unverified account exists, a verification email has been sent.",
         )
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
@@ -263,7 +259,7 @@ async def forgot_password(
             message="If the account exists, a password reset email has been sent.",
         )
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error
 
 
 @router.post("/reset-password", response_model=ResetPasswordResponse)
@@ -275,4 +271,4 @@ async def reset_password(
         await service.reset_password(form.token, form.password)
         return ResetPasswordResponse(message="Password reset completed successfully.")
     except AuthException as error:
-        _raise_http_error(error)
+        raise service_exception_to_http(error) from error

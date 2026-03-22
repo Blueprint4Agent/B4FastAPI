@@ -2,10 +2,12 @@ import asyncio
 import json
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request as URLRequest, urlopen
 
 from fastapi import Request
+from sqlalchemy.exc import IntegrityError
 
 from app.core.error import AuthErrorCode, AuthException
 from app.core.mail import MAIL_SERVICE
@@ -22,7 +24,6 @@ from app.models.user import (
     LoginResponse,
     RefreshResponse,
     SignupForm,
-    UserDAOError,
     UserResponse,
     Users,
 )
@@ -152,9 +153,7 @@ class AuthService:
         profile = await self._fetch_oauth_profile(provider, provider_config, access_token)
 
         user = await self._resolve_oauth_user(profile)
-        user_ip = request.headers.get("X-Forwarded-For") or (
-            request.client.host if request.client else "unknown"
-        )
+        user_ip = self._get_client_ip(request)
         await Users.update_login_metadata(
             user_id=user.id,
             provider=provider.value,
@@ -185,26 +184,17 @@ class AuthService:
                 password_hash=hash_password(form.password),
                 is_verified=not SETTINGS.EMAIL_ENABLED,
             )
-            if SETTINGS.EMAIL_ENABLED:
-                await self._send_verification_email(user.id, user.email, user.name)
-            return user
-        except UserDAOError as error:
-            if error.code == "EMAIL_ALREADY_EXISTS":
-                raise AuthException(
-                    code=AuthErrorCode.EMAIL_ALREADY_EXISTS,
-                    message=error.message,
-                ) from error
-            raise AuthException(
-                code=AuthErrorCode.SIGNUP_FAILED,
-                message=error.message,
-            ) from error
+        except IntegrityError as error:
+            raise AuthException(code=AuthErrorCode.SIGNUP_FAILED) from error
+
+        if SETTINGS.EMAIL_ENABLED:
+            await self._send_verification_email(user.id, user.email, user.name)
+        return user
 
     async def login(
         self, form: LoginForm, request: Request, refresh_session_id: str
     ) -> LoginResponse:
-        user_ip = request.headers.get("X-Forwarded-For") or (
-            request.client.host if request.client else "unknown"
-        )
+        user_ip = self._get_client_ip(request)
         await self._check_login_limit(user_ip)
 
         user = await Users.get_auth_user_by_email(form.email)
@@ -373,9 +363,12 @@ class AuthService:
             provider_user_id = str(payload.get("id", "")).strip()
             email = str(payload.get("email", "")).strip().lower()
             name = str(payload.get("name", "")).strip() or str(payload.get("login", "")).strip()
-            if not email:
-                email = await self._fetch_github_primary_email(provider_config, access_token)
-            email_verified = bool(email)
+            verified_email, email_verified = await self._fetch_github_primary_email(
+                provider_config,
+                access_token,
+            )
+            if verified_email:
+                email = verified_email
 
         if not provider_user_id or not email:
             raise AuthException(
@@ -395,23 +388,29 @@ class AuthService:
         self,
         provider_config: OAuthProviderConfig,
         access_token: str,
-    ) -> str:
+    ) -> tuple[str, bool]:
         emails_url = provider_config.userinfo_url.rstrip("/") + "/emails"
         headers = {"Authorization": f"Bearer {access_token}", "Accept": "application/json"}
         payload = await self._http_request_json(method="GET", url=emails_url, headers=headers)
         if not isinstance(payload, list):
-            return ""
+            return "", False
         for item in payload:
             if not isinstance(item, Mapping):
                 continue
             if item.get("primary") and item.get("verified") and item.get("email"):
-                return str(item["email"]).strip().lower()
+                return str(item["email"]).strip().lower(), True
         for item in payload:
-            if isinstance(item, Mapping) and item.get("email"):
-                return str(item["email"]).strip().lower()
-        return ""
+            if isinstance(item, Mapping) and item.get("verified") and item.get("email"):
+                return str(item["email"]).strip().lower(), True
+        return "", False
 
     async def _resolve_oauth_user(self, profile: OAuthIdentityProfile):
+        if not profile.email_verified:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="OAuth email is not verified.",
+            )
+
         auth_user = await Users.get_auth_user_by_identity(
             provider=profile.provider.value,
             identifier=profile.provider_user_id,
@@ -421,17 +420,15 @@ class AuthService:
 
         existing_user = await Users.get_user_response_by_email(profile.email)
         if existing_user is not None:
-            try:
-                await Users.link_auth_identity(
-                    user_id=existing_user.id,
-                    provider=profile.provider.value,
-                    identifier=profile.provider_user_id,
-                )
-            except UserDAOError as error:
+            linked = await Users.link_auth_identity(
+                user_id=existing_user.id,
+                provider=profile.provider.value,
+                identifier=profile.provider_user_id,
+            )
+            if not linked:
                 raise AuthException(
                     code=AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
-                    message=error.message,
-                ) from error
+                )
             linked_user = await Users.get_auth_user_by_id(existing_user.id)
             if linked_user is None:
                 raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
@@ -445,15 +442,9 @@ class AuthService:
                 identifier=profile.provider_user_id,
                 is_verified=profile.email_verified,
             )
-        except UserDAOError as error:
-            if error.code in {"EMAIL_ALREADY_EXISTS", "OAUTH_IDENTITY_CONFLICT"}:
-                raise AuthException(
-                    code=AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
-                    message=error.message,
-                ) from error
+        except IntegrityError as error:
             raise AuthException(
-                code=AuthErrorCode.SIGNUP_FAILED,
-                message=error.message,
+                code=AuthErrorCode.OAUTH_SIGNUP_FAILED,
             ) from error
 
         created_user = await Users.get_auth_user_by_identity(
@@ -461,7 +452,7 @@ class AuthService:
             identifier=profile.provider_user_id,
         )
         if created_user is None:
-            raise AuthException(code=AuthErrorCode.SIGNUP_FAILED)
+            raise AuthException(code=AuthErrorCode.OAUTH_SIGNUP_FAILED)
         return created_user
 
     async def _http_request_json(
@@ -481,13 +472,32 @@ class AuthService:
         try:
             raw = await asyncio.to_thread(_do_request)
             payload = json.loads(raw)
-        except Exception as error:
+        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError) as error:
             raise AuthException(
-                code=AuthErrorCode.INVALID_TOKEN,
+                code=AuthErrorCode.OAUTH_PROVIDER_REQUEST_FAILED,
                 message="OAuth provider request failed.",
             ) from error
 
         return payload
+
+    def _get_client_ip(self, request: Request) -> str:
+        client_ip = request.client.host if request.client else "unknown"
+        if not SETTINGS.TRUST_PROXY_HEADERS:
+            return client_ip
+
+        x_forwarded_for = request.headers.get("X-Forwarded-For")
+        if x_forwarded_for:
+            forwarded_ip = x_forwarded_for.split(",")[0].strip()
+            if forwarded_ip:
+                return forwarded_ip
+
+        x_real_ip = request.headers.get("X-Real-IP")
+        if x_real_ip:
+            real_ip = x_real_ip.strip()
+            if real_ip:
+                return real_ip
+
+        return client_ip
 
     async def verify_email(self, token: str) -> UserResponse:
         user_id = await consume_email_verification_token(token)

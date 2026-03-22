@@ -6,22 +6,9 @@ import { verifyEmail } from "../api/authApi";
 import { ErrorCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button, PanelCard } from "../components/ui";
+import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 
 type VerifyStatus = "loading" | "success" | "error";
-
-type APIError = {
-    detail?: {
-        error?: string;
-        message?: string;
-    };
-};
-
-function extractApiDetail(error: unknown): APIError["detail"] | null {
-    if (!error || typeof error !== "object") return null;
-    const detail = (error as APIError).detail;
-    if (!detail || typeof detail !== "object") return null;
-    return detail;
-}
 
 export function VerifyEmailPage() {
     const { t } = useTranslation();
@@ -49,9 +36,7 @@ export function VerifyEmailPage() {
             } catch (nextError) {
                 const detail = extractApiDetail(nextError);
                 setStatus("error");
-                setErrorMessage(
-                    detail?.message || detail?.error || t("verifyEmail.errors.fallback"),
-                );
+                setErrorMessage(resolveAuthErrorMessage(t, detail, "verifyEmail.errors.fallback"));
             }
         };
 

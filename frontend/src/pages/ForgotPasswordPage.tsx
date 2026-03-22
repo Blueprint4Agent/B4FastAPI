@@ -7,21 +7,8 @@ import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Button, InputField, PanelCard } from "../components/ui";
 import { useAppConfig } from "../hooks/useFeatures";
+import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 import { isValidEmail } from "../utils/validation";
-
-type APIError = {
-    detail?: {
-        error?: string;
-        message?: string;
-    };
-};
-
-function extractApiDetail(error: unknown): APIError["detail"] | null {
-    if (!error || typeof error !== "object") return null;
-    const detail = (error as APIError).detail;
-    if (!detail || typeof detail !== "object") return null;
-    return detail;
-}
 
 export function ForgotPasswordPage() {
     const { t } = useTranslation();
@@ -72,7 +59,7 @@ export function ForgotPasswordPage() {
                 setWarningMessage(t("forgotPassword.disabled"));
             } else {
                 setErrorMessage(
-                    detail?.message || detail?.error || t("forgotPassword.requestFallback"),
+                    resolveAuthErrorMessage(t, detail, "forgotPassword.requestFallback"),
                 );
             }
         } finally {

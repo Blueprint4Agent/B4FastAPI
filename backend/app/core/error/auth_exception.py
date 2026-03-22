@@ -1,27 +1,8 @@
-from dataclasses import dataclass
 from enum import Enum
 
-from fastapi import HTTPException, status
+from fastapi import status
 
-
-@dataclass(frozen=True)
-class ServiceErrorCode:
-    error: str
-    default_message: str
-    status_code: int
-
-
-class ServiceException(Exception):
-    def __init__(
-        self,
-        code: ServiceErrorCode,
-        message: str | None = None,
-        details: dict | None = None,
-    ):
-        super().__init__(message or code.default_message)
-        self.code = code
-        self.message = message or code.default_message
-        self.details = details
+from .error import ServiceErrorCode, ServiceException
 
 
 class AuthErrorCode(Enum):
@@ -80,6 +61,16 @@ class AuthErrorCode(Enum):
         "OAuth identity is already linked to another user.",
         status.HTTP_409_CONFLICT,
     )
+    OAUTH_SIGNUP_FAILED = ServiceErrorCode(
+        "OAUTH_SIGNUP_FAILED",
+        "Failed to create OAuth user account.",
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+    OAUTH_PROVIDER_REQUEST_FAILED = ServiceErrorCode(
+        "OAUTH_PROVIDER_REQUEST_FAILED",
+        "OAuth provider request failed.",
+        status.HTTP_502_BAD_GATEWAY,
+    )
 
     @property
     def code(self) -> ServiceErrorCode:
@@ -94,13 +85,3 @@ class AuthException(ServiceException):
         details: dict | None = None,
     ):
         super().__init__(code=code.code, message=message, details=details)
-
-
-def service_exception_to_http(exc: ServiceException) -> HTTPException:
-    payload: dict[str, str | dict] = {
-        "error": exc.code.error,
-        "message": exc.message,
-    }
-    if exc.details is not None:
-        payload["details"] = exc.details
-    return HTTPException(status_code=exc.code.status_code, detail=payload)

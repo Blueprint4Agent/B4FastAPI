@@ -21,7 +21,16 @@
             "invalidCredentialsWithCount": "Incorrect credentials. {{count}} attempt(s) remaining.",
             "accountLocked": "Too many failed attempts. Try again in {{seconds}} seconds.",
             "emailNotVerified": "Email verification is required. Please verify your email first.",
-            "resendVerificationFallback": "Could not resend verification email. Please try again."
+            "resendVerificationFallback": "Could not resend verification email. Please try again.",
+            "emailAlreadyExists": "This email is already in use.",
+            "emailDisabled": "Email-based features are currently unavailable.",
+            "invalidToken": "The token is invalid or has expired.",
+            "userNotFound": "User account was not found.",
+            "oauthProviderNotEnabled": "This OAuth provider is not enabled.",
+            "oauthProviderConfigInvalid": "OAuth provider settings are invalid.",
+            "oauthIdentityConflict": "This OAuth account is already linked to another user.",
+            "oauthSignupFailed": "Could not create an account with OAuth.",
+            "oauthProviderRequestFailed": "OAuth provider request failed. Please try again."
         }
     },
     "cards": {

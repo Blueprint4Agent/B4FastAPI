@@ -16,29 +16,12 @@ import {
 } from "../components/ui";
 import { useAuthContext } from "../hooks/useAuth";
 import { useAppConfig } from "../hooks/useFeatures";
+import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 import { isValidEmail, isValidPassword } from "../utils/validation";
-
-type APIError = {
-    detail?: {
-        error?: string;
-        message?: string;
-        details?: {
-            remaining_attempts?: number;
-            remaining_seconds?: number;
-        };
-    };
-};
 
 const REMEMBER_EMAIL_STORAGE_KEY = "template_remember_email";
 const REMEMBER_EMAIL_ENABLED_STORAGE_KEY = "template_remember_email_enabled";
 const REMEMBER_ME_ENABLED_STORAGE_KEY = "template_remember_me_enabled";
-
-function extractApiDetail(error: unknown): APIError["detail"] | null {
-    if (!error || typeof error !== "object") return null;
-    const detail = (error as APIError).detail;
-    if (!detail || typeof detail !== "object") return null;
-    return detail;
-}
 
 export function LoginPage() {
     const { t } = useTranslation();
@@ -168,7 +151,7 @@ export function LoginPage() {
                 setWarningMessage(t("auth.errors.emailNotVerified"));
                 setShowResendButton(true);
             } else {
-                setErrorMessage(detail?.message || detail?.error || t("auth.errors.loginFallback"));
+                setErrorMessage(resolveAuthErrorMessage(t, detail, "auth.errors.loginFallback"));
             }
         } finally {
             setSubmitting(false);

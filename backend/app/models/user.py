@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 
 from app.core.database import Base, get_db
+from app.core.error import AuthErrorCode, AuthException
 
 EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 
@@ -194,14 +195,7 @@ class AuthUserDTO(BaseModel):
         )
 
 
-class UserDAOError(Exception):
-    def __init__(self, code: str, message: str):
-        super().__init__(message)
-        self.code = code
-        self.message = message
-
-
-class UserDAO:
+class UserRepository:
     async def create_signup_user(
         self,
         email: str,
@@ -210,12 +204,9 @@ class UserDAO:
         is_verified: bool = False,
     ) -> UserResponse:
         async with get_db() as db:
-            exists_result = await db.execute(select(User.id).where(User.email == email).limit(1))
-            if exists_result.first() is not None:
-                raise UserDAOError(
-                    code="EMAIL_ALREADY_EXISTS",
-                    message="User with this email already exists.",
-                )
+            existing = await db.execute(select(User.id).where(User.email == email).limit(1))
+            if existing.first() is not None:
+                raise AuthException(code=AuthErrorCode.EMAIL_ALREADY_EXISTS)
 
             user = User(email=email, name=name, is_verified=is_verified)
             user.credential = Credential(password_hash=password_hash)
@@ -225,12 +216,9 @@ class UserDAO:
             try:
                 await db.commit()
                 await db.refresh(user)
-            except IntegrityError as error:
+            except IntegrityError:
                 await db.rollback()
-                raise UserDAOError(
-                    code="SIGNUP_FAILED",
-                    message="Failed to create the user account.",
-                ) from error
+                raise
 
             return UserResponse.model_validate(user)
 
@@ -243,12 +231,9 @@ class UserDAO:
         is_verified: bool = True,
     ) -> UserResponse:
         async with get_db() as db:
-            exists_result = await db.execute(select(User.id).where(User.email == email).limit(1))
-            if exists_result.first() is not None:
-                raise UserDAOError(
-                    code="EMAIL_ALREADY_EXISTS",
-                    message="User with this email already exists.",
-                )
+            existing = await db.execute(select(User.id).where(User.email == email).limit(1))
+            if existing.first() is not None:
+                raise AuthException(code=AuthErrorCode.EMAIL_ALREADY_EXISTS)
 
             user = User(email=email, name=name, is_verified=is_verified)
             user.auth_identities = [AuthIdentity(provider=provider, identifier=identifier)]
@@ -257,12 +242,9 @@ class UserDAO:
             try:
                 await db.commit()
                 await db.refresh(user)
-            except IntegrityError as error:
+            except IntegrityError:
                 await db.rollback()
-                raise UserDAOError(
-                    code="OAUTH_SIGNUP_FAILED",
-                    message="Failed to create OAuth user account.",
-                ) from error
+                raise
 
             return UserResponse.model_validate(user)
 
@@ -334,7 +316,7 @@ class UserDAO:
             return None
         return auth_user.as_user_response()
 
-    async def link_auth_identity(self, user_id: int, provider: str, identifier: str) -> None:
+    async def link_auth_identity(self, user_id: int, provider: str, identifier: str) -> bool:
         async with get_db() as db:
             auth_identity = AuthIdentity(
                 user_id=user_id,
@@ -344,12 +326,10 @@ class UserDAO:
             db.add(auth_identity)
             try:
                 await db.commit()
-            except IntegrityError as error:
+            except IntegrityError:
                 await db.rollback()
-                raise UserDAOError(
-                    code="OAUTH_IDENTITY_CONFLICT",
-                    message="OAuth identity is already linked.",
-                ) from error
+                return False
+        return True
 
     async def update_login_metadata(
         self,
@@ -408,4 +388,4 @@ class UserDAO:
             return True
 
 
-Users = UserDAO()
+Users = UserRepository()

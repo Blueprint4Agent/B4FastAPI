@@ -13,21 +13,8 @@ import {
 } from "../components/ui";
 import { useAuthContext } from "../hooks/useAuth";
 import { useAppConfig } from "../hooks/useFeatures";
+import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 import { isValidEmail, isValidPassword } from "../utils/validation";
-
-type APIError = {
-    detail?: {
-        error?: string;
-        message?: string;
-    };
-};
-
-function extractApiDetail(error: unknown): APIError["detail"] | null {
-    if (!error || typeof error !== "object") return null;
-    const detail = (error as APIError).detail;
-    if (!detail || typeof detail !== "object") return null;
-    return detail;
-}
 
 export function SignupPage() {
     const { t } = useTranslation();
@@ -152,7 +139,7 @@ export function SignupPage() {
             }
         } catch (nextError) {
             const detail = extractApiDetail(nextError);
-            setErrorMessage(detail?.message || detail?.error || t("auth.errors.signupFallback"));
+            setErrorMessage(resolveAuthErrorMessage(t, detail, "auth.errors.signupFallback"));
         } finally {
             setSubmitting(false);
         }
