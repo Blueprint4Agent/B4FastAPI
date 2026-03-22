@@ -1,10 +1,37 @@
-from .auth_exception import AuthErrorCode, AuthException
-from .error import ServiceErrorCode, ServiceException, service_exception_to_http
+from .auth_exception import (
+    AuthErrorCode,
+    AuthErrorDetail,
+    AuthErrorResponse,
+    AuthException,
+    auth_error_responses,
+)
+from .error import (
+    ErrorDetail,
+    ErrorResponse,
+    ServiceErrorCode,
+    ServiceException,
+    build_error_models,
+    build_error_example,
+    build_error_response_models,
+    build_error_responses_from_codes,
+    select_error_responses,
+    service_exception_to_http,
+)
 
 __all__ = [
     "AuthErrorCode",
+    "AuthErrorDetail",
+    "AuthErrorResponse",
     "AuthException",
+    "auth_error_responses",
+    "ErrorDetail",
+    "ErrorResponse",
     "ServiceErrorCode",
     "ServiceException",
+    "build_error_models",
+    "build_error_example",
+    "build_error_response_models",
+    "build_error_responses_from_codes",
+    "select_error_responses",
     "service_exception_to_http",
 ]

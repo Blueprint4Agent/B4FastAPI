@@ -2,7 +2,12 @@ from enum import Enum
 
 from fastapi import status
 
-from .error import ServiceErrorCode, ServiceException
+from .error import (
+    ServiceErrorCode,
+    ServiceException,
+    build_error_models,
+    build_error_responses_from_codes,
+)
 
 
 class AuthErrorCode(Enum):
@@ -85,3 +90,29 @@ class AuthException(ServiceException):
         details: dict | None = None,
     ):
         super().__init__(code=code.code, message=message, details=details)
+
+
+AUTH_ERROR_CODE_VALUES = tuple(error_code.code.error for error_code in AuthErrorCode)
+
+
+AuthErrorDetail, AuthErrorResponse = build_error_models(
+    detail_model_name="AuthErrorDetail",
+    response_model_name="AuthErrorResponse",
+    error_values=AUTH_ERROR_CODE_VALUES,
+    example_error=AuthErrorCode.INVALID_TOKEN.code.error,
+)
+
+
+AUTH_ERROR_EXAMPLE_DETAILS: dict[AuthErrorCode, dict[str, object]] = {
+    AuthErrorCode.ACCOUNT_LOCKED: {"remaining_seconds": 120},
+}
+
+
+def auth_error_responses(*codes: AuthErrorCode) -> dict[int, dict[str, object]]:
+    return build_error_responses_from_codes(
+        response_model=AuthErrorResponse,
+        codes=(code.code for code in codes),
+        example_details_by_error={
+            code.code.error: details for code, details in AUTH_ERROR_EXAMPLE_DETAILS.items()
+        },
+    )

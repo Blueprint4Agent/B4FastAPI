@@ -3,7 +3,12 @@ from urllib.parse import urlencode, urljoin
 from fastapi import APIRouter, Body, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 
-from app.core.error import AuthErrorCode, AuthException, service_exception_to_http
+from app.core.error import (
+    AuthErrorCode,
+    AuthException,
+    auth_error_responses,
+    service_exception_to_http,
+)
 from app.core.settings import SETTINGS
 from app.deps import get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
@@ -29,7 +34,14 @@ from app.utils.token import create_refresh_session_id, get_refresh_session
 router = APIRouter()
 
 
-@router.post("/signup", response_model=UserResponse)
+@router.post(
+    "/signup",
+    response_model=UserResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.EMAIL_ALREADY_EXISTS,
+        AuthErrorCode.SIGNUP_FAILED,
+    ),
+)
 async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
     try:
         return await service.signup(form)
@@ -37,7 +49,14 @@ async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
         raise service_exception_to_http(error) from error
 
 
-@router.get("/oauth/providers", response_model=OAuthProvidersResponse)
+@router.get(
+    "/oauth/providers",
+    response_model=OAuthProvidersResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
+        AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
+    ),
+)
 async def oauth_providers(service: AuthService = Depends(AuthService)):
     try:
         providers = service.get_oauth_provider_public_configs()
@@ -46,7 +65,13 @@ async def oauth_providers(service: AuthService = Depends(AuthService)):
         raise service_exception_to_http(error) from error
 
 
-@router.get("/oauth/{provider}/start")
+@router.get(
+    "/oauth/{provider}/start",
+    responses=auth_error_responses(
+        AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
+        AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
+    ),
+)
 async def oauth_start(
     provider: OAuthProvider,
     request: Request,
@@ -60,7 +85,16 @@ async def oauth_start(
         raise service_exception_to_http(error) from error
 
 
-@router.get("/oauth/{provider}/callback", name="oauth_callback")
+@router.get(
+    "/oauth/{provider}/callback",
+    name="oauth_callback",
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
+        AuthErrorCode.OAUTH_SIGNUP_FAILED,
+        AuthErrorCode.OAUTH_PROVIDER_REQUEST_FAILED,
+    ),
+)
 async def oauth_callback(
     provider: OAuthProvider,
     request: Request,
@@ -123,7 +157,16 @@ async def oauth_callback(
     return response
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post(
+    "/login",
+    response_model=LoginResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_CREDENTIALS,
+        AuthErrorCode.EMAIL_NOT_VERIFIED,
+        AuthErrorCode.ACCOUNT_LOCKED,
+        AuthErrorCode.SIGNUP_FAILED,
+    ),
+)
 async def login(
     request: Request,
     response: Response,
@@ -162,7 +205,14 @@ async def logout(
     return {"message": "Successfully logged out."}
 
 
-@router.post("/refresh", response_model=RefreshResponse)
+@router.post(
+    "/refresh",
+    response_model=RefreshResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.USER_NOT_FOUND,
+    ),
+)
 async def refresh_token(
     request: Request,
     response: Response,
@@ -222,7 +272,14 @@ async def refresh_token(
     return token_payload
 
 
-@router.post("/verify-email", response_model=VerifyEmailResponse)
+@router.post(
+    "/verify-email",
+    response_model=VerifyEmailResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.USER_NOT_FOUND,
+    ),
+)
 async def verify_email(
     form: VerifyEmailForm,
     service: AuthService = Depends(AuthService),
@@ -234,7 +291,11 @@ async def verify_email(
         raise service_exception_to_http(error) from error
 
 
-@router.post("/resend-verification", response_model=ResendVerificationResponse)
+@router.post(
+    "/resend-verification",
+    response_model=ResendVerificationResponse,
+    responses=auth_error_responses(AuthErrorCode.SIGNUP_FAILED),
+)
 async def resend_verification_email(
     form: ResendVerificationForm,
     service: AuthService = Depends(AuthService),
@@ -248,7 +309,14 @@ async def resend_verification_email(
         raise service_exception_to_http(error) from error
 
 
-@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+@router.post(
+    "/forgot-password",
+    response_model=ForgotPasswordResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.EMAIL_DISABLED,
+        AuthErrorCode.SIGNUP_FAILED,
+    ),
+)
 async def forgot_password(
     form: ForgotPasswordForm,
     service: AuthService = Depends(AuthService),
@@ -262,7 +330,15 @@ async def forgot_password(
         raise service_exception_to_http(error) from error
 
 
-@router.post("/reset-password", response_model=ResetPasswordResponse)
+@router.post(
+    "/reset-password",
+    response_model=ResetPasswordResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.EMAIL_DISABLED,
+        AuthErrorCode.USER_NOT_FOUND,
+    ),
+)
 async def reset_password(
     form: ResetPasswordForm,
     service: AuthService = Depends(AuthService),

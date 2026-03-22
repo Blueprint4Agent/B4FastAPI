@@ -122,3 +122,15 @@ chore: fix auth form validation flow
   - scope (`frontend` or `backend` or `cross-cutting`)
   - changed files (key paths)
   - brief reason and impact
+
+## 11) Error response pattern for API expansion (required)
+
+- When adding a new domain/service error module, follow the same pattern used by auth:
+  - Define domain error codes as `Enum` values of `ServiceErrorCode`.
+  - Generate domain error schema models via `build_error_models(...)` in `backend/app/core/error/error.py`.
+  - Build OpenAPI error responses from error codes via `build_error_responses_from_codes(...)` (no hard-coded status numbers in routers).
+- Router usage rule:
+  - In route decorators, pass domain error enums to a domain helper (e.g. `xxx_error_responses(ErrorCode.A, ErrorCode.B)`), not raw `400/401/500` literals.
+- Frontend usage rule:
+  - Parse and map backend error codes based on generated `frontend/src/api/generated/openapi.ts` schemas.
+  - Keep error-code translation maps exhaustive (`Record<ErrorCode, ...>`) to fail fast on newly added backend codes.

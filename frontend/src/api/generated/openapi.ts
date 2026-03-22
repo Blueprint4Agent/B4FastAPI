@@ -261,6 +261,25 @@ export interface components {
             /** Oauth Providers */
             oauth_providers: string[];
         };
+        /** AuthErrorDetail */
+        AuthErrorDetail: {
+            /**
+             * Error
+             * @example INVALID_TOKEN
+             * @enum {string}
+             */
+            error: "SIGNUP_FAILED" | "EMAIL_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "EMAIL_NOT_VERIFIED" | "EMAIL_DISABLED" | "INVALID_TOKEN" | "USER_NOT_FOUND" | "OAUTH_PROVIDER_NOT_ENABLED" | "OAUTH_PROVIDER_CONFIG_INVALID" | "OAUTH_IDENTITY_CONFLICT" | "OAUTH_SIGNUP_FAILED" | "OAUTH_PROVIDER_REQUEST_FAILED";
+            /** Message */
+            message: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** AuthErrorResponse */
+        AuthErrorResponse: {
+            detail: components["schemas"]["AuthErrorDetail"];
+        };
         /** Body_refresh_token_api_v1_auth_refresh_post */
         Body_refresh_token_api_v1_auth_refresh_post: {
             /** Refresh Token */
@@ -483,6 +502,23 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "EMAIL_ALREADY_EXISTS",
+                     *         "message": "User with this email already exists."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -490,6 +526,23 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "SIGNUP_FAILED",
+                     *         "message": "Failed to create the user account."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -510,6 +563,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OAuthProvidersResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_PROVIDER_NOT_ENABLED",
+                     *         "message": "The requested OAuth provider is not enabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_PROVIDER_CONFIG_INVALID",
+                     *         "message": "OAuth provider configuration is invalid."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -534,6 +621,23 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_PROVIDER_NOT_ENABLED",
+                     *         "message": "The requested OAuth provider is not enabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -541,6 +645,23 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_PROVIDER_CONFIG_INVALID",
+                     *         "message": "OAuth provider configuration is invalid."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -569,6 +690,40 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_TOKEN",
+                     *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_IDENTITY_CONFLICT",
+                     *         "message": "OAuth identity is already linked to another user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -576,6 +731,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_SIGNUP_FAILED",
+                     *         "message": "Failed to create OAuth user account."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "OAUTH_PROVIDER_REQUEST_FAILED",
+                     *         "message": "OAuth provider request failed."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -602,6 +791,40 @@ export interface operations {
                     "application/json": components["schemas"]["LoginResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_CREDENTIALS",
+                     *         "message": "Incorrect email or password."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "EMAIL_NOT_VERIFIED",
+                     *         "message": "Email verification is required."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -609,6 +832,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "ACCOUNT_LOCKED",
+                     *         "message": "Account is temporarily locked.",
+                     *         "details": {
+                     *           "remaining_seconds": 120
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "SIGNUP_FAILED",
+                     *         "message": "Failed to create the user account."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -675,6 +935,40 @@ export interface operations {
                     "application/json": components["schemas"]["RefreshResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_TOKEN",
+                     *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -706,6 +1000,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VerifyEmailResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_TOKEN",
+                     *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
             /** @description Validation Error */
@@ -750,6 +1078,23 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "SIGNUP_FAILED",
+                     *         "message": "Failed to create the user account."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
         };
     };
     forgot_password_api_v1_auth_forgot_password_post: {
@@ -774,6 +1119,23 @@ export interface operations {
                     "application/json": components["schemas"]["ForgotPasswordResponse"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "EMAIL_DISABLED",
+                     *         "message": "Email-based features are disabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -781,6 +1143,23 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "SIGNUP_FAILED",
+                     *         "message": "Failed to create the user account."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -805,6 +1184,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResetPasswordResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_TOKEN",
+                     *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "EMAIL_DISABLED",
+                     *         "message": "Email-based features are disabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
             /** @description Validation Error */
