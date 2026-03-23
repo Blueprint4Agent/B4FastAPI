@@ -99,6 +99,10 @@ class LoginForm(BaseModel):
     remember_me: bool = False
 
 
+class UpdateProfileForm(BaseModel):
+    name: str = Field(min_length=2, max_length=50)
+
+
 class UserResponse(BaseModel):
     id: int
     email: str
@@ -386,6 +390,21 @@ class UserRepository:
             credential.updated_at = datetime.now(UTC)
             await db.commit()
             return True
+
+    async def update_user_name(self, user_id: int, name: str) -> UserResponse | None:
+        async with get_db() as db:
+            result = await db.execute(
+                select(User).where(User.id == user_id, User.is_active.is_(True))
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                return None
+
+            user.name = name
+            user.updated_at = datetime.now(UTC)
+            await db.commit()
+            await db.refresh(user)
+            return UserResponse.model_validate(user)
 
 
 Users = UserRepository()

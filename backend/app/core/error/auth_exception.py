@@ -51,6 +51,11 @@ class AuthErrorCode(Enum):
         "User not found.",
         status.HTTP_404_NOT_FOUND,
     )
+    PROFILE_UPDATE_FAILED = ServiceErrorCode(
+        "PROFILE_UPDATE_FAILED",
+        "Failed to update profile.",
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
     OAUTH_PROVIDER_NOT_ENABLED = ServiceErrorCode(
         "OAUTH_PROVIDER_NOT_ENABLED",
         "The requested OAuth provider is not enabled.",

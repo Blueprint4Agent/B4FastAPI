@@ -23,6 +23,7 @@ from app.models.user import (
     ResetPasswordForm,
     ResetPasswordResponse,
     SignupForm,
+    UpdateProfileForm,
     UserResponse,
     VerifyEmailForm,
     VerifyEmailResponse,
@@ -192,6 +193,22 @@ async def login(
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: UserResponse = Depends(get_current_user)):
     return current_user
+
+
+@router.patch(
+    "/me",
+    response_model=UserResponse,
+    responses=auth_error_responses(AuthErrorCode.PROFILE_UPDATE_FAILED),
+)
+async def update_me(
+    form: UpdateProfileForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: AuthService = Depends(AuthService),
+):
+    try:
+        return await service.update_profile_name(user_id=current_user.id, name=form.name)
+    except AuthException as error:
+        raise service_exception_to_http(error) from error
 
 
 @router.post("/logout")

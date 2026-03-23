@@ -532,6 +532,12 @@ class AuthService:
 
         await self._send_password_reset_email(user.id, user.email, user.name)
 
+    async def update_profile_name(self, user_id: int, name: str) -> UserResponse:
+        user = await Users.update_user_name(user_id=user_id, name=name)
+        if user is None:
+            raise AuthException(code=AuthErrorCode.PROFILE_UPDATE_FAILED)
+        return user
+
     async def reset_password(self, token: str, password: str) -> None:
         if not SETTINGS.EMAIL_ENABLED:
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
