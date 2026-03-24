@@ -16,6 +16,7 @@ const AUTH_ERROR_CODES = [
     "OAUTH_PROVIDER_NOT_ENABLED",
     "OAUTH_PROVIDER_REQUEST_FAILED",
     "OAUTH_SIGNUP_FAILED",
+    "PROFILE_UPDATE_FAILED",
     "SIGNUP_FAILED",
     "USER_NOT_FOUND",
 ] as const satisfies readonly AuthErrorCode[];
@@ -41,6 +42,7 @@ const AUTH_ERROR_CODE_TO_KEY: Record<AuthErrorCode, string> = {
     INVALID_CREDENTIALS: "auth.errors.loginFallback",
     INVALID_TOKEN: "auth.errors.invalidToken",
     USER_NOT_FOUND: "auth.errors.userNotFound",
+    PROFILE_UPDATE_FAILED: "auth.errors.profileUpdateFailed",
     OAUTH_PROVIDER_NOT_ENABLED: "auth.errors.oauthProviderNotEnabled",
     OAUTH_PROVIDER_CONFIG_INVALID: "auth.errors.oauthProviderConfigInvalid",
     OAUTH_IDENTITY_CONFLICT: "auth.errors.oauthIdentityConflict",

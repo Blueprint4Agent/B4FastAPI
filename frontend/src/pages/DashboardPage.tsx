@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { KeyRound, SlidersHorizontal, UserRound } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +13,7 @@ import {
     FormCheckbox,
     InputField,
     KeyValueCard,
+    MenuList,
     OAuthOptionsCard,
     OAuthProviderButton,
     PanelCard,
@@ -46,6 +48,12 @@ export function DashboardPage() {
     const { themeMode, setThemeMode } = useTheme();
     const [sampleInput, setSampleInput] = useState("");
     const [sampleChecked, setSampleChecked] = useState(true);
+    const [sampleMenu, setSampleMenu] = useState("profile");
+    const sampleMenuItems = [
+        { key: "profile", label: "Profile", icon: UserRound },
+        { key: "general", label: "General", icon: SlidersHorizontal },
+        { key: "apiKey", label: "API Key", icon: KeyRound },
+    ];
 
     return (
         <section className="dashboard-catalog">
@@ -113,6 +121,20 @@ export function DashboardPage() {
                                         { id: "item-2", label: "Item 2" },
                                         { id: "item-3", label: "Item 3" },
                                     ]}
+                                />
+                            </ShowcaseItem>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-catalog__section-card">
+                        <h3>Menu</h3>
+                        <div className="dashboard-catalog__row">
+                            <ShowcaseItem component="MenuList">
+                                <MenuList
+                                    items={sampleMenuItems}
+                                    activeKey={sampleMenu}
+                                    onSelect={setSampleMenu}
+                                    ariaLabel="Sample menu list"
                                 />
                             </ShowcaseItem>
                         </div>
@@ -234,3 +256,4 @@ export function DashboardPage() {
         </section>
     );
 }
+

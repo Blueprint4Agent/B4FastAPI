@@ -137,7 +137,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Update Me */
+        patch: operations["update_me_api_v1_auth_me_patch"];
         trace?: never;
     };
     "/api/v1/auth/logout": {
@@ -268,7 +269,7 @@ export interface components {
              * @example INVALID_TOKEN
              * @enum {string}
              */
-            error: "SIGNUP_FAILED" | "EMAIL_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "EMAIL_NOT_VERIFIED" | "EMAIL_DISABLED" | "INVALID_TOKEN" | "USER_NOT_FOUND" | "OAUTH_PROVIDER_NOT_ENABLED" | "OAUTH_PROVIDER_CONFIG_INVALID" | "OAUTH_IDENTITY_CONFLICT" | "OAUTH_SIGNUP_FAILED" | "OAUTH_PROVIDER_REQUEST_FAILED";
+            error: "SIGNUP_FAILED" | "EMAIL_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "EMAIL_NOT_VERIFIED" | "EMAIL_DISABLED" | "INVALID_TOKEN" | "USER_NOT_FOUND" | "PROFILE_UPDATE_FAILED" | "OAUTH_PROVIDER_NOT_ENABLED" | "OAUTH_PROVIDER_CONFIG_INVALID" | "OAUTH_IDENTITY_CONFLICT" | "OAUTH_SIGNUP_FAILED" | "OAUTH_PROVIDER_REQUEST_FAILED";
             /** Message */
             message: string;
             /** Details */
@@ -390,6 +391,11 @@ export interface components {
             name: string;
             /** Password */
             password: string;
+        };
+        /** UpdateProfileForm */
+        UpdateProfileForm: {
+            /** Name */
+            name: string;
         };
         /** UserResponse */
         UserResponse: {
@@ -889,6 +895,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "PROFILE_UPDATE_FAILED",
+                     *         "message": "Failed to update profile."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };

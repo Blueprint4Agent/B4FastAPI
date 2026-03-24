@@ -3,6 +3,7 @@ import { apiClient, getAuthHeader } from "./http";
 
 type SignupInput = components["schemas"]["SignupForm"];
 type LoginInput = components["schemas"]["LoginForm"];
+type UpdateProfileInput = components["schemas"]["UpdateProfileForm"];
 export type User = components["schemas"]["UserResponse"];
 export type LoginPayload = components["schemas"]["LoginResponse"];
 export type RefreshPayload = components["schemas"]["RefreshResponse"];
@@ -40,6 +41,17 @@ export async function getOAuthProviders(): Promise<OAuthProvidersPayload> {
 export async function me(): Promise<User> {
     const { data, error } = await apiClient.GET("/api/v1/auth/me", {
         headers: getAuthHeader(),
+    });
+    if (error || !data) {
+        throw error;
+    }
+    return data;
+}
+
+export async function updateMe(input: UpdateProfileInput): Promise<User> {
+    const { data, error } = await apiClient.PATCH("/api/v1/auth/me", {
+        headers: getAuthHeader(),
+        body: input,
     });
     if (error || !data) {
         throw error;

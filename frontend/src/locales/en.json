@@ -30,7 +30,8 @@
             "oauthProviderConfigInvalid": "OAuth provider settings are invalid.",
             "oauthIdentityConflict": "This OAuth account is already linked to another user.",
             "oauthSignupFailed": "Could not create an account with OAuth.",
-            "oauthProviderRequestFailed": "OAuth provider request failed. Please try again."
+            "oauthProviderRequestFailed": "OAuth provider request failed. Please try again.",
+            "profileUpdateFailed": "Could not update your profile. Please try again."
         }
     },
     "cards": {
@@ -188,12 +189,30 @@
     "settings": {
         "title": "Settings",
         "subtitle": "Manage your account and preferences.",
+        "menu": {
+            "title": "Settings menu",
+            "profile": "Profile",
+            "general": "General"
+        },
         "labels": {
             "name": "Name",
             "email": "Email",
             "userId": "User ID"
         },
-        "hint": "Profile actions are available from the top-right menu."
+        "profile": {
+            "title": "Profile",
+            "subtitle": "Update your profile information and avatar.",
+            "photo": "Profile Photo",
+            "namePlaceholder": "Enter your name",
+            "save": "Save",
+            "saveSuccess": "Profile name was saved successfully.",
+            "saveError": "Could not save your profile name. Please try again."
+        },
+        "general": {
+            "title": "General",
+            "subtitle": "Language and theme preferences.",
+            "placeholder": "General settings section is coming soon."
+        }
     },
     "theme": {
         "label": "Theme",

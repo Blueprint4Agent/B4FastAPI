@@ -9,6 +9,7 @@ type AuthContextValue = {
     loading: boolean;
     login: (input: { email: string; password: string; remember_me: boolean }) => Promise<void>;
     signup: (input: { email: string; name: string; password: string }) => Promise<void>;
+    updateProfileName: (input: { name: string }) => Promise<void>;
     logout: () => Promise<void>;
     refreshSession: () => Promise<void>;
 };
@@ -79,6 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             },
             signup: async (input) => {
                 await authApi.signup(input);
+            },
+            updateProfileName: async (input) => {
+                const nextUser = await authApi.updateMe(input);
+                setUser(nextUser);
             },
             logout: async () => {
                 try {
