@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, UniqueConstraint, select
+from pydantic import BaseModel, Field, field_validator, model_validator
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 
@@ -17,6 +17,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
+    profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -100,13 +101,49 @@ class LoginForm(BaseModel):
 
 
 class UpdateProfileForm(BaseModel):
-    name: str = Field(min_length=2, max_length=50)
+    name: str | None = Field(default=None, min_length=2, max_length=50)
+    profile_image_url: str | None = Field(default=None, max_length=12_000_000)
+
+    @field_validator("profile_image_url")
+    @classmethod
+    def validate_profile_image_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+
+        normalized = value.strip()
+        if not normalized:
+            return None
+
+        allowed_data_url_prefixes = (
+            "data:image/png;base64,",
+            "data:image/jpeg;base64,",
+            "data:image/jpg;base64,",
+            "data:image/webp;base64,",
+            "data:image/gif;base64,",
+        )
+        if normalized.startswith(("http://", "https://")):
+            return normalized
+        if normalized.startswith(allowed_data_url_prefixes):
+            return normalized
+
+        raise ValueError("profile_image_url must be a valid image URL or image data URL.")
+
+    @model_validator(mode="after")
+    def validate_fields(self):
+        has_name = "name" in self.model_fields_set
+        has_profile_image_url = "profile_image_url" in self.model_fields_set
+        if not has_name and not has_profile_image_url:
+            raise ValueError("At least one field must be provided.")
+        if has_name and self.name is None:
+            raise ValueError("name cannot be null.")
+        return self
 
 
 class UserResponse(BaseModel):
     id: int
     email: str
     name: str
+    profile_image_url: str | None = None
     is_verified: bool
     created_at: datetime
 
@@ -184,6 +221,7 @@ class AuthUserDTO(BaseModel):
     id: int
     email: str
     name: str
+    profile_image_url: str | None = None
     is_active: bool
     is_verified: bool
     created_at: datetime
@@ -194,6 +232,7 @@ class AuthUserDTO(BaseModel):
             id=self.id,
             email=self.email,
             name=self.name,
+            profile_image_url=self.profile_image_url,
             is_verified=self.is_verified,
             created_at=self.created_at,
         )
@@ -273,6 +312,7 @@ class UserRepository:
             id=user.id,
             email=user.email,
             name=user.name,
+            profile_image_url=user.profile_image_url,
             is_active=user.is_active,
             is_verified=user.is_verified,
             created_at=user.created_at,
@@ -308,6 +348,7 @@ class UserRepository:
             id=user.id,
             email=user.email,
             name=user.name,
+            profile_image_url=user.profile_image_url,
             is_active=user.is_active,
             is_verified=user.is_verified,
             created_at=user.created_at,
@@ -391,7 +432,15 @@ class UserRepository:
             await db.commit()
             return True
 
-    async def update_user_name(self, user_id: int, name: str) -> UserResponse | None:
+    async def update_user_profile(
+        self,
+        user_id: int,
+        *,
+        name: str | None,
+        profile_image_url: str | None,
+        update_name: bool,
+        update_profile_image_url: bool,
+    ) -> UserResponse | None:
         async with get_db() as db:
             result = await db.execute(
                 select(User).where(User.id == user_id, User.is_active.is_(True))
@@ -400,7 +449,10 @@ class UserRepository:
             if user is None:
                 return None
 
-            user.name = name
+            if update_name and name is not None:
+                user.name = name
+            if update_profile_image_url:
+                user.profile_image_url = profile_image_url
             user.updated_at = datetime.now(UTC)
             await db.commit()
             await db.refresh(user)

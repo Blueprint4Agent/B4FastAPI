@@ -24,6 +24,7 @@ from app.models.user import (
     LoginResponse,
     RefreshResponse,
     SignupForm,
+    UpdateProfileForm,
     UserResponse,
     Users,
 )
@@ -532,8 +533,14 @@ class AuthService:
 
         await self._send_password_reset_email(user.id, user.email, user.name)
 
-    async def update_profile_name(self, user_id: int, name: str) -> UserResponse:
-        user = await Users.update_user_name(user_id=user_id, name=name)
+    async def update_profile(self, user_id: int, form: UpdateProfileForm) -> UserResponse:
+        user = await Users.update_user_profile(
+            user_id=user_id,
+            name=form.name,
+            profile_image_url=form.profile_image_url,
+            update_name="name" in form.model_fields_set,
+            update_profile_image_url="profile_image_url" in form.model_fields_set,
+        )
         if user is None:
             raise AuthException(code=AuthErrorCode.PROFILE_UPDATE_FAILED)
         return user

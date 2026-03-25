@@ -206,7 +206,7 @@ async def update_me(
     service: AuthService = Depends(AuthService),
 ):
     try:
-        return await service.update_profile_name(user_id=current_user.id, name=form.name)
+        return await service.update_profile(user_id=current_user.id, form=form)
     except AuthException as error:
         raise service_exception_to_http(error) from error
 
