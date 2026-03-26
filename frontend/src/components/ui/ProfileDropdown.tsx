@@ -5,9 +5,11 @@ import { Link, useLocation } from "react-router-dom";
 
 import type { ThemeMode } from "../../hooks/useTheme";
 import { ThemeToggleButton } from "./ThemeToggleButton";
+import { UserAvatar } from "./UserAvatar";
 
 type ProfileDropdownProps = {
     avatarLabel: string;
+    avatarImageUrl?: string | null;
     busy: boolean;
     displayName: string;
     email?: string;
@@ -18,6 +20,7 @@ type ProfileDropdownProps = {
 
 export function ProfileDropdown({
     avatarLabel,
+    avatarImageUrl,
     busy,
     displayName,
     email,
@@ -69,9 +72,7 @@ export function ProfileDropdown({
                 onClick={() => setMenuOpen((prev) => !prev)}
                 title={displayName}
             >
-                <span className="profile-menu__avatar" aria-hidden="true">
-                    {avatarLabel}
-                </span>
+                <UserAvatar className="profile-menu__avatar" imageUrl={avatarImageUrl} label={avatarLabel} />
             </button>
             {menuOpen ? (
                 <div

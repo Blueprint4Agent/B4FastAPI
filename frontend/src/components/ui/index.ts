@@ -1,3 +1,4 @@
+export { AvatarUploadField } from "./AvatarUploadField";
 export { Button } from "./Button";
 export { BrandMark } from "./BrandMark";
 export { FormCheckbox } from "./FormCheckbox";
@@ -12,6 +13,7 @@ export { ProfileDropdown } from "./ProfileDropdown";
 export { OAuthProviderButton } from "./OAuthProviderButton";
 export { Spinner } from "./Spinner";
 export { ThemeToggleButton } from "./ThemeToggleButton";
+export { UserAvatar } from "./UserAvatar";
 export { ValidationCard } from "./ValidationCard";
 export type { MenuListItem } from "./MenuList";
 export type { ValidationRule } from "./ValidationCard";

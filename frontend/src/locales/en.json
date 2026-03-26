@@ -203,10 +203,16 @@
             "title": "Profile",
             "subtitle": "Update your profile information and avatar.",
             "photo": "Profile Photo",
+            "photoHelp": "Supported: PNG, JPG, WEBP, GIF (max 8MB)",
+            "photoSelect": "Choose photo",
+            "photoClear": "Remove photo",
+            "photoTypeError": "Only PNG, JPG, WEBP, and GIF files are supported.",
+            "photoSizeError": "Profile photo must be 8MB or smaller.",
+            "photoReadError": "Could not read the selected image.",
             "namePlaceholder": "Enter your name",
             "save": "Save",
-            "saveSuccess": "Profile name was saved successfully.",
-            "saveError": "Could not save your profile name. Please try again."
+            "saveSuccess": "Profile changes were saved successfully.",
+            "saveError": "Could not save your profile changes. Please try again."
         },
         "general": {
             "title": "General",

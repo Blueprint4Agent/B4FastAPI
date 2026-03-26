@@ -51,6 +51,7 @@ export function AppNavbar() {
                 <p className="app-nav__title">{pageTitle}</p>
                 <ProfileDropdown
                     avatarLabel={avatarLabel}
+                    avatarImageUrl={user?.profile_image_url}
                     busy={busy}
                     displayName={displayName}
                     email={user?.email}

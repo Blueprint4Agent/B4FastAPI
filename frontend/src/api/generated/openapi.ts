@@ -395,7 +395,9 @@ export interface components {
         /** UpdateProfileForm */
         UpdateProfileForm: {
             /** Name */
-            name: string;
+            name?: string | null;
+            /** Profile Image Url */
+            profile_image_url?: string | null;
         };
         /** UserResponse */
         UserResponse: {
@@ -405,6 +407,8 @@ export interface components {
             email: string;
             /** Name */
             name: string;
+            /** Profile Image Url */
+            profile_image_url?: string | null;
             /** Is Verified */
             is_verified: boolean;
             /**
