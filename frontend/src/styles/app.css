@@ -293,7 +293,7 @@ a {
 .settings-profile-content {
     margin-top: 1.75rem;
     display: grid;
-    grid-template-columns: minmax(18rem, 1fr) auto;
+    grid-template-columns: minmax(18rem, 1fr) minmax(13rem, 14rem);
     gap: 1.5rem;
     align-items: start;
 }
@@ -362,7 +362,8 @@ a {
     align-content: start;
     justify-items: center;
     gap: 1rem;
-    min-width: 13rem;
+    width: 100%;
+    min-width: 0;
     padding-top: 0.2rem;
 }
 
@@ -381,13 +382,100 @@ a {
     background: color-mix(in oklab, var(--accent) 14%, var(--panel) 86%);
 }
 
+.avatar-upload-field {
+    width: 100%;
+    justify-items: center;
+    text-align: center;
+    display: grid;
+    gap: 0.55rem;
+}
+
+.avatar-upload-field__actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.avatar-upload-field__button {
+    border: 1px solid var(--button-border);
+    border-radius: var(--radius-pill);
+    min-height: 2.2rem;
+    padding: 0.45rem 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font:
+        500 0.78rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--button-fg);
+    background: var(--button-bg);
+    cursor: pointer;
+}
+
+.avatar-upload-field__button input {
+    display: none;
+}
+
+.avatar-upload-field__button--ghost {
+    color: var(--text);
+    border-color: color-mix(in oklab, var(--panel-border) 84%, transparent 16%);
+    background: color-mix(in oklab, var(--panel) 94%, transparent 6%);
+}
+
+.avatar-upload-field__button:disabled {
+    opacity: 0.56;
+    cursor: not-allowed;
+}
+
+.avatar-upload-field__helper {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-soft);
+    text-align: center;
+}
+
 .settings-content-card__placeholder {
     margin: 1.75rem 0 0;
     color: var(--text-soft);
 }
 
 .settings-feedback {
-    margin-top: 1.25rem;
+    margin-top: 0.45rem;
+    width: 100%;
+}
+
+.settings-feedback-slot--name {
+    margin-top: 0.35rem;
+    min-height: 2rem;
+}
+
+.settings-feedback--name {
+    margin-top: 0;
+}
+
+.status-card--compact {
+    padding: 0.45rem 0.6rem;
+    border-radius: 0.7rem;
+    gap: 0;
+}
+
+.status-card--compact .status-card__message {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.settings-feedback--name .status-card--compact {
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.6rem;
+}
+
+.settings-feedback--name .status-card--compact .status-card__message {
+    font-size: 0.72rem;
+    line-height: 1.15;
 }
 
 .dashboard-catalog {
@@ -549,6 +637,17 @@ a {
         sans-serif;
     color: color-mix(in oklab, var(--accent) 75%, var(--text) 25%);
     background: color-mix(in oklab, var(--accent) 14%, var(--panel) 86%);
+}
+
+.user-avatar {
+    overflow: hidden;
+}
+
+.user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .profile-menu__dropdown {

@@ -1,16 +1,18 @@
 import type { ReactNode } from "react";
 
 type StatusCardProps = {
-    title: string;
+    title?: string;
     message: string;
     tone: "error" | "warning" | "info";
+    compact?: boolean;
     children?: ReactNode;
 };
 
-export function StatusCard({ title, message, tone, children }: StatusCardProps) {
+export function StatusCard({ title, message, tone, compact = false, children }: StatusCardProps) {
+    const className = compact ? `status-card status-card--${tone} status-card--compact` : `status-card status-card--${tone}`;
     return (
-        <div className={`status-card status-card--${tone}`} role="alert" aria-live="polite">
-            <div className="status-card__title">{title}</div>
+        <div className={className} role="alert" aria-live="polite">
+            {title ? <div className="status-card__title">{title}</div> : null}
             <div className="status-card__message">{message}</div>
             {children}
         </div>
