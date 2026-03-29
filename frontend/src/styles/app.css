@@ -667,9 +667,27 @@ a {
 
 .profile-menu__email {
     margin: 0;
-    padding: 0.2rem 0.45rem 0.4rem;
+    padding: 0;
     font-size: 0.78rem;
     color: var(--text-soft);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.profile-menu__identity {
+    padding: 0.2rem 0.45rem 0.4rem;
+    display: grid;
+    gap: 0.15rem;
+}
+
+.profile-menu__name {
+    margin: 0;
+    font:
+        600 0.82rem/1.2 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--text);
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

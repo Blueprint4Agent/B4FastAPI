@@ -80,7 +80,10 @@ export function ProfileDropdown({
                     role="menu"
                     aria-label={t("nav.profileMenu")}
                 >
-                    <p className="profile-menu__email">{email}</p>
+                    <div className="profile-menu__identity">
+                        <p className="profile-menu__name">{displayName}</p>
+                        <p className="profile-menu__email">{email}</p>
+                    </div>
                     <Link to="/settings" className="profile-menu__item" role="menuitem">
                         <span className="profile-menu__item-icon" aria-hidden="true">
                             <Settings />
