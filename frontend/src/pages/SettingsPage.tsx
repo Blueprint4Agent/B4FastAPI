@@ -12,7 +12,6 @@ import {
 } from "../components/ui";
 import { ErrorCard, InfoCard } from "../components/StatusCard";
 import { useAuthContext } from "../hooks/useAuth";
-import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 
 type SaveFeedback = {
     message: string;
@@ -105,14 +104,17 @@ export function SettingsPage() {
             setSaveBusy(true);
             try {
                 await updateProfile({ profile_image_url: dataUrl });
-                setSaveFeedback(null);
+                setSaveFeedback({
+                    tone: "info",
+                    source: "photo",
+                    message: t("settings.profile.photoUpdateSuccess"),
+                });
             } catch (error) {
-                const detail = extractApiDetail(error);
                 setProfileImageInput(normalizedCurrentProfileImage);
                 setSaveFeedback({
                     tone: "error",
                     source: "photo",
-                    message: resolveAuthErrorMessage(t, detail, "settings.profile.saveError"),
+                    message: t("settings.profile.photoUpdateError"),
                 });
             } finally {
                 setSaveBusy(false);
@@ -139,14 +141,13 @@ export function SettingsPage() {
             setSaveFeedback({
                 tone: "info",
                 source: "name",
-                message: t("settings.profile.saveSuccess"),
+                message: t("settings.profile.nameSaveSuccess"),
             });
         } catch (error) {
-            const detail = extractApiDetail(error);
             setSaveFeedback({
                 tone: "error",
                 source: "name",
-                message: resolveAuthErrorMessage(t, detail, "settings.profile.saveError"),
+                message: t("settings.profile.nameSaveError"),
             });
         } finally {
             setSaveBusy(false);
@@ -253,19 +254,18 @@ export function SettingsPage() {
                                         setSaveBusy(true);
                                         void updateProfile({ profile_image_url: null })
                                             .then(() => {
-                                                setSaveFeedback(null);
+                                                setSaveFeedback({
+                                                    tone: "info",
+                                                    source: "photo",
+                                                    message: t("settings.profile.photoDeleteSuccess"),
+                                                });
                                             })
                                             .catch((error) => {
-                                                const detail = extractApiDetail(error);
                                                 setProfileImageInput(normalizedCurrentProfileImage);
                                                 setSaveFeedback({
                                                     tone: "error",
                                                     source: "photo",
-                                                    message: resolveAuthErrorMessage(
-                                                        t,
-                                                        detail,
-                                                        "settings.profile.saveError",
-                                                    ),
+                                                    message: t("settings.profile.photoUpdateError"),
                                                 });
                                             })
                                             .finally(() => {
@@ -273,11 +273,6 @@ export function SettingsPage() {
                                             });
                                     }}
                                 />
-                                {saveFeedback?.source === "photo" && saveFeedback?.tone === "error" ? (
-                                    <div className="settings-feedback">
-                                        <ErrorCard message={saveFeedback.message} compact />
-                                    </div>
-                                ) : null}
                             </aside>
                         </section>
                     </>

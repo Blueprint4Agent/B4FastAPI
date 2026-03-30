@@ -211,6 +211,8 @@
             "photoReadError": "Could not read the selected image.",
             "namePlaceholder": "Enter your name",
             "save": "Save",
+            "nameSaveSuccess": "Name has been changed successfully.",
+            "nameSaveError": "Failed to change the name.",
             "saveSuccess": "Profile changes were saved successfully.",
             "saveError": "Could not save your profile changes. Please try again."
         },
