@@ -144,6 +144,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     profile_image_url: str | None = None
+    oauth_providers: list[str] = Field(default_factory=list)
     is_verified: bool
     created_at: datetime
 
@@ -222,6 +223,7 @@ class AuthUserDTO(BaseModel):
     email: str
     name: str
     profile_image_url: str | None = None
+    oauth_providers: list[str] = Field(default_factory=list)
     is_active: bool
     is_verified: bool
     created_at: datetime
@@ -233,9 +235,22 @@ class AuthUserDTO(BaseModel):
             email=self.email,
             name=self.name,
             profile_image_url=self.profile_image_url,
+            oauth_providers=self.oauth_providers,
             is_verified=self.is_verified,
             created_at=self.created_at,
         )
+
+
+def _extract_connected_oauth_providers(auth_identities: list[AuthIdentity] | None) -> list[str]:
+    if not auth_identities:
+        return []
+
+    connected = {
+        identity.provider.strip().lower()
+        for identity in auth_identities
+        if identity.provider and identity.provider.strip().lower() != "email"
+    }
+    return sorted(connected)
 
 
 class UserRepository:
@@ -313,6 +328,7 @@ class UserRepository:
             email=user.email,
             name=user.name,
             profile_image_url=user.profile_image_url,
+            oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
             is_verified=user.is_verified,
             created_at=user.created_at,
@@ -349,6 +365,7 @@ class UserRepository:
             email=user.email,
             name=user.name,
             profile_image_url=user.profile_image_url,
+            oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
             is_verified=user.is_verified,
             created_at=user.created_at,

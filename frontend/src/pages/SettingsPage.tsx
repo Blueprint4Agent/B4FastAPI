@@ -22,6 +22,17 @@ type SettingsMenuKey = "profile" | "general";
 const MAX_PROFILE_PHOTO_SIZE_MB = 8;
 const MAX_PROFILE_PHOTO_SIZE_BYTES = MAX_PROFILE_PHOTO_SIZE_MB * 1024 * 1024;
 
+const CONNECTED_OAUTH_PROVIDER_LOGOS: Record<string, { light: string; dark: string }> = {
+    google: {
+        light: "/icons/google-mark-light.svg",
+        dark: "/icons/google-mark-dark.svg",
+    },
+    github: {
+        light: "/icons/github-mark-light.svg",
+        dark: "/icons/github-mark-dark.svg",
+    },
+};
+
 export function SettingsPage() {
     const { t } = useTranslation();
     const { user, updateProfile } = useAuthContext();
@@ -42,6 +53,17 @@ export function SettingsPage() {
     const normalizedProfileImageInput = profileImageInput?.trim() || null;
     const normalizedCurrentProfileImage = user?.profile_image_url ?? null;
     const isNameChanged = normalizedNameInput !== normalizedCurrentName;
+    const connectedOAuthProviders = user?.oauth_providers ?? [];
+
+    const resolveOAuthProviderLabel = (provider: string) => {
+        if (provider === "google") {
+            return t("settings.profile.oauthProviders.google");
+        }
+        if (provider === "github") {
+            return t("settings.profile.oauthProviders.github");
+        }
+        return provider.toUpperCase();
+    };
 
     useEffect(() => {
         setNameInput(user?.name ?? "");
@@ -104,18 +126,10 @@ export function SettingsPage() {
             setSaveBusy(true);
             try {
                 await updateProfile({ profile_image_url: dataUrl });
-                setSaveFeedback({
-                    tone: "info",
-                    source: "photo",
-                    message: t("settings.profile.photoUpdateSuccess"),
-                });
-            } catch (error) {
+                setSaveFeedback(null);
+            } catch {
                 setProfileImageInput(normalizedCurrentProfileImage);
-                setSaveFeedback({
-                    tone: "error",
-                    source: "photo",
-                    message: t("settings.profile.photoUpdateError"),
-                });
+                setSaveFeedback(null);
             } finally {
                 setSaveBusy(false);
             }
@@ -228,6 +242,47 @@ export function SettingsPage() {
                                     <h2>{t("settings.labels.email")}</h2>
                                     <p>{user?.email ?? "-"}</p>
                                 </article>
+
+                                <article className="settings-profile-field-card">
+                                    <h2>{t("settings.profile.oauthConnectedTitle")}</h2>
+                                    {connectedOAuthProviders.length > 0 ? (
+                                        <div className="settings-oauth-provider-list">
+                                            {connectedOAuthProviders.map((provider) => (
+                                                <Button
+                                                    key={provider}
+                                                    className="settings-oauth-provider-button"
+                                                    type="button"
+                                                    disabled
+                                                >
+                                                    <span className="settings-oauth-provider-button__content">
+                                                        {CONNECTED_OAUTH_PROVIDER_LOGOS[provider] ? (
+                                                            <span
+                                                                className="oauth-provider-button__logo-wrap"
+                                                                aria-hidden="true"
+                                                            >
+                                                                <img
+                                                                    src={CONNECTED_OAUTH_PROVIDER_LOGOS[provider].dark}
+                                                                    alt=""
+                                                                    className={`oauth-provider-button__logo oauth-provider-button__logo--dark oauth-provider-button__logo--${provider}`}
+                                                                />
+                                                                <img
+                                                                    src={CONNECTED_OAUTH_PROVIDER_LOGOS[provider].light}
+                                                                    alt=""
+                                                                    className={`oauth-provider-button__logo oauth-provider-button__logo--light oauth-provider-button__logo--${provider}`}
+                                                                />
+                                                            </span>
+                                                        ) : null}
+                                                        <span className="settings-oauth-provider-button__label">
+                                                            {resolveOAuthProviderLabel(provider)}
+                                                        </span>
+                                                    </span>
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p>{t("settings.profile.oauthConnectedEmpty")}</p>
+                                    )}
+                                </article>
                             </div>
 
                             <aside className="settings-profile-photo-panel">
@@ -254,19 +309,11 @@ export function SettingsPage() {
                                         setSaveBusy(true);
                                         void updateProfile({ profile_image_url: null })
                                             .then(() => {
-                                                setSaveFeedback({
-                                                    tone: "info",
-                                                    source: "photo",
-                                                    message: t("settings.profile.photoDeleteSuccess"),
-                                                });
+                                                setSaveFeedback(null);
                                             })
-                                            .catch((error) => {
+                                            .catch(() => {
                                                 setProfileImageInput(normalizedCurrentProfileImage);
-                                                setSaveFeedback({
-                                                    tone: "error",
-                                                    source: "photo",
-                                                    message: t("settings.profile.photoUpdateError"),
-                                                });
+                                                setSaveFeedback(null);
                                             })
                                             .finally(() => {
                                                 setSaveBusy(false);

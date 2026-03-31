@@ -409,6 +409,8 @@ export interface components {
             name: string;
             /** Profile Image Url */
             profile_image_url?: string | null;
+            /** Oauth Providers */
+            oauth_providers?: string[];
             /** Is Verified */
             is_verified: boolean;
             /**

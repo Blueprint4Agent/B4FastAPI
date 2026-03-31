@@ -333,6 +333,63 @@ a {
     word-break: break-word;
 }
 
+.settings-oauth-provider-list {
+    margin-top: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.settings-oauth-provider-button.ui-button {
+    width: auto;
+    min-width: 8rem;
+    height: 2.35rem;
+    justify-self: start;
+    padding: 0 0.7rem;
+    border-color: var(--button-border);
+    color: var(--button-fg);
+    background: var(--button-bg);
+    opacity: 1;
+}
+
+.settings-oauth-provider-button.ui-button:disabled {
+    opacity: 1;
+    cursor: default;
+}
+
+.settings-oauth-provider-button__content {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    line-height: 1;
+}
+
+.settings-oauth-provider-button.ui-button .ui-button__content {
+    align-items: center;
+}
+
+.settings-oauth-provider-button .oauth-provider-button__logo-wrap {
+    display: grid;
+    place-items: center;
+    align-self: center;
+}
+
+.settings-oauth-provider-button .oauth-provider-button__logo--github {
+    transform: translateY(-1px);
+}
+
+.settings-oauth-provider-button__label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font:
+        600 0.78rem/1 "Inter",
+        system-ui,
+        sans-serif;
+}
+
 .settings-profile-name-edit {
     margin-top: 0.8rem;
     display: grid;
@@ -413,6 +470,7 @@ a {
     color: var(--button-fg);
     background: var(--button-bg);
     cursor: pointer;
+    transition: transform 150ms ease;
 }
 
 .avatar-upload-field__button input {
@@ -425,9 +483,14 @@ a {
     background: color-mix(in oklab, var(--panel) 94%, transparent 6%);
 }
 
+.avatar-upload-field__button:hover {
+    transform: translateY(-2px);
+}
+
 .avatar-upload-field__button:disabled {
     opacity: 0.56;
     cursor: not-allowed;
+    transform: none;
 }
 
 .avatar-upload-field__helper {

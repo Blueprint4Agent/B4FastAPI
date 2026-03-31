@@ -213,6 +213,12 @@
             "save": "Save",
             "nameSaveSuccess": "Name has been changed successfully.",
             "nameSaveError": "Failed to change the name.",
+            "oauthConnectedTitle": "Connected OAuth",
+            "oauthConnectedEmpty": "No external OAuth providers are connected.",
+            "oauthProviders": {
+                "google": "Google",
+                "github": "GitHub"
+            },
             "saveSuccess": "Profile changes were saved successfully.",
             "saveError": "Could not save your profile changes. Please try again."
         },
