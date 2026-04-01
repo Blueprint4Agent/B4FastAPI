@@ -5,13 +5,16 @@ import { useTranslation } from "react-i18next";
 import {
     AvatarUploadField,
     Button,
+    DropdownMenu,
     InputField,
     MenuList,
     PrimaryCard,
+    ThemeToggleButton,
     UserAvatar,
 } from "../components/ui";
 import { ErrorCard, InfoCard } from "../components/StatusCard";
 import { useAuthContext } from "../hooks/useAuth";
+import { useTheme } from "../hooks/useTheme";
 
 type SaveFeedback = {
     message: string;
@@ -34,8 +37,9 @@ const CONNECTED_OAUTH_PROVIDER_LOGOS: Record<string, { light: string; dark: stri
 };
 
 export function SettingsPage() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { user, updateProfile } = useAuthContext();
+    const { themeMode, setThemeMode } = useTheme();
     const [activeMenu, setActiveMenu] = useState<SettingsMenuKey>("profile");
     const [nameInput, setNameInput] = useState("");
     const [profileImageInput, setProfileImageInput] = useState<string | null>(null);
@@ -54,6 +58,7 @@ export function SettingsPage() {
     const normalizedCurrentProfileImage = user?.profile_image_url ?? null;
     const isNameChanged = normalizedNameInput !== normalizedCurrentName;
     const connectedOAuthProviders = user?.oauth_providers ?? [];
+    const currentLanguageLabel = t("settings.general.languages.en");
 
     const resolveOAuthProviderLabel = (provider: string) => {
         if (provider === "google") {
@@ -334,9 +339,38 @@ export function SettingsPage() {
                             </h1>
                             <p>{t("settings.general.subtitle")}</p>
                         </header>
-                        <p className="settings-content-card__placeholder">
-                            {t("settings.general.placeholder")}
-                        </p>
+                        <section
+                            className="settings-general-content"
+                            aria-label={t("settings.general.title")}
+                        >
+                            <article className="settings-profile-field-card">
+                                <h2>{t("settings.general.themeTitle")}</h2>
+                                <div className="settings-general-control">
+                                    <ThemeToggleButton
+                                        themeMode={themeMode}
+                                        onChangeTheme={setThemeMode}
+                                    />
+                                </div>
+                            </article>
+                            <article className="settings-profile-field-card">
+                                <h2>{t("settings.general.languageTitle")}</h2>
+                                <div className="settings-general-control">
+                                    <DropdownMenu
+                                        triggerLabel={currentLanguageLabel}
+                                        label={t("settings.general.languageTitle")}
+                                        items={[
+                                            {
+                                                id: "en",
+                                                label: t("settings.general.languages.en"),
+                                            },
+                                        ]}
+                                        onSelect={(languageId) => {
+                                            void i18n.changeLanguage(languageId);
+                                        }}
+                                    />
+                                </div>
+                            </article>
+                        </section>
                     </>
                 )}
             </PrimaryCard>

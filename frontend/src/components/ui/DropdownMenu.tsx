@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 type DropdownItem = {
     id: string;
@@ -56,7 +57,17 @@ export function DropdownMenu({
                 aria-expanded={open}
                 onClick={() => setOpen((prev) => !prev)}
             >
-                {triggerLabel}
+                <span>{triggerLabel}</span>
+                <span
+                    className={
+                        open
+                            ? "ui-dropdown__trigger-icon ui-dropdown__trigger-icon--open"
+                            : "ui-dropdown__trigger-icon"
+                    }
+                    aria-hidden="true"
+                >
+                    <ChevronDown />
+                </span>
             </button>
             {open ? (
                 <div className="ui-dropdown__menu" role="menu" aria-label={label}>

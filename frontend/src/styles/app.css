@@ -505,6 +505,24 @@ a {
     color: var(--text-soft);
 }
 
+.settings-general-content {
+    margin-top: 1.75rem;
+    display: grid;
+    gap: 1.2rem;
+}
+
+.settings-general-control {
+    margin-top: 0.8rem;
+}
+
+.settings-general-control .theme-toggle-button {
+    width: fit-content;
+}
+
+.settings-general-control .ui-dropdown__trigger {
+    border-radius: 0.65rem;
+}
+
 .settings-feedback {
     margin-top: 0.45rem;
     width: 100%;
@@ -875,6 +893,29 @@ a {
     color: var(--text);
     background: color-mix(in oklab, var(--input-bg) 85%, transparent 15%);
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.ui-dropdown__trigger-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.95rem;
+    height: 0.95rem;
+    color: var(--text-soft);
+    transition: transform 160ms ease;
+}
+
+.ui-dropdown__trigger-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ui-dropdown__trigger-icon--open {
+    transform: rotate(180deg);
 }
 
 .ui-dropdown__menu {

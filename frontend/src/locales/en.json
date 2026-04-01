@@ -225,7 +225,11 @@
         "general": {
             "title": "General",
             "subtitle": "Language and theme preferences.",
-            "placeholder": "General settings section is coming soon."
+            "themeTitle": "Theme",
+            "languageTitle": "Language",
+            "languages": {
+                "en": "English"
+            }
         }
     },
     "theme": {
