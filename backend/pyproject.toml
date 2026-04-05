@@ -18,6 +18,11 @@ dependencies = [
     "fakeredis>=2.23.0",
 ]
 
+[dependency-groups]
+dev = [
+    "ruff",
+]
+
 [tool.uv]
 package = false
 
