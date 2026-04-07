@@ -187,7 +187,10 @@ export function SettingsPage() {
                     <>
                         <header className="settings-content-card__header">
                             <h1>
-                                <span className="settings-content-card__title-icon" aria-hidden="true">
+                                <span
+                                    className="settings-content-card__title-icon"
+                                    aria-hidden="true"
+                                >
                                     <HeaderIcon />
                                 </span>
                                 <span>{t("settings.profile.title")}</span>
@@ -195,7 +198,10 @@ export function SettingsPage() {
                             <p>{t("settings.profile.subtitle")}</p>
                         </header>
 
-                        <section className="settings-profile-content" aria-label={t("settings.profile.title")}>
+                        <section
+                            className="settings-profile-content"
+                            aria-label={t("settings.profile.title")}
+                        >
                             <div className="settings-profile-info">
                                 <article className="settings-profile-field-card">
                                     <h2>{t("settings.labels.name")}</h2>
@@ -229,18 +235,19 @@ export function SettingsPage() {
                                         </Button>
                                     </form>
                                     <div className="settings-feedback-slot settings-feedback-slot--name">
-                                        {saveFeedback?.source === "name" && saveFeedback?.tone === "info" ? (
+                                        {saveFeedback?.source === "name" &&
+                                        saveFeedback?.tone === "info" ? (
                                             <div className="settings-feedback settings-feedback--name">
                                                 <InfoCard message={saveFeedback.message} compact />
                                             </div>
                                         ) : null}
-                                        {saveFeedback?.source === "name" && saveFeedback?.tone === "error" ? (
+                                        {saveFeedback?.source === "name" &&
+                                        saveFeedback?.tone === "error" ? (
                                             <div className="settings-feedback settings-feedback--name">
                                                 <ErrorCard message={saveFeedback.message} compact />
                                             </div>
                                         ) : null}
                                     </div>
-
                                 </article>
 
                                 <article className="settings-profile-field-card">
@@ -260,18 +267,28 @@ export function SettingsPage() {
                                                     disabled
                                                 >
                                                     <span className="settings-oauth-provider-button__content">
-                                                        {CONNECTED_OAUTH_PROVIDER_LOGOS[provider] ? (
+                                                        {CONNECTED_OAUTH_PROVIDER_LOGOS[
+                                                            provider
+                                                        ] ? (
                                                             <span
                                                                 className="oauth-provider-button__logo-wrap"
                                                                 aria-hidden="true"
                                                             >
                                                                 <img
-                                                                    src={CONNECTED_OAUTH_PROVIDER_LOGOS[provider].dark}
+                                                                    src={
+                                                                        CONNECTED_OAUTH_PROVIDER_LOGOS[
+                                                                            provider
+                                                                        ].dark
+                                                                    }
                                                                     alt=""
                                                                     className={`oauth-provider-button__logo oauth-provider-button__logo--dark oauth-provider-button__logo--${provider}`}
                                                                 />
                                                                 <img
-                                                                    src={CONNECTED_OAUTH_PROVIDER_LOGOS[provider].light}
+                                                                    src={
+                                                                        CONNECTED_OAUTH_PROVIDER_LOGOS[
+                                                                            provider
+                                                                        ].light
+                                                                    }
                                                                     alt=""
                                                                     className={`oauth-provider-button__logo oauth-provider-button__logo--light oauth-provider-button__logo--${provider}`}
                                                                 />
@@ -332,7 +349,10 @@ export function SettingsPage() {
                     <>
                         <header className="settings-content-card__header">
                             <h1>
-                                <span className="settings-content-card__title-icon" aria-hidden="true">
+                                <span
+                                    className="settings-content-card__title-icon"
+                                    aria-hidden="true"
+                                >
                                     <HeaderIcon />
                                 </span>
                                 <span>{t("settings.general.title")}</span>
@@ -377,4 +397,3 @@ export function SettingsPage() {
         </section>
     );
 }
-

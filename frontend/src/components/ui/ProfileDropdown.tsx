@@ -72,7 +72,11 @@ export function ProfileDropdown({
                 onClick={() => setMenuOpen((prev) => !prev)}
                 title={displayName}
             >
-                <UserAvatar className="profile-menu__avatar" imageUrl={avatarImageUrl} label={avatarLabel} />
+                <UserAvatar
+                    className="profile-menu__avatar"
+                    imageUrl={avatarImageUrl}
+                    label={avatarLabel}
+                />
             </button>
             {menuOpen ? (
                 <div

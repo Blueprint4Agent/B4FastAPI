@@ -9,7 +9,9 @@ type StatusCardProps = {
 };
 
 export function StatusCard({ title, message, tone, compact = false, children }: StatusCardProps) {
-    const className = compact ? `status-card status-card--${tone} status-card--compact` : `status-card status-card--${tone}`;
+    const className = compact
+        ? `status-card status-card--${tone} status-card--compact`
+        : `status-card status-card--${tone}`;
     return (
         <div className={className} role="alert" aria-live="polite">
             {title ? <div className="status-card__title">{title}</div> : null}
