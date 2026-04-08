@@ -5,6 +5,7 @@ Blueprint4FastAPI is an internal project within the **BluePrint4Agent** organiza
 This repository is a trimmed template focused on agent-driven customization patterns.
 
 Included baseline features:
+
 - Signup and authentication login
 - JWT access token + Redis-backed refresh token rotation
 - Initial project setup support (`.env`, DB, Redis)
@@ -35,21 +36,26 @@ scripts/
 ## Quick Start
 
 1. Bootstrap env files.
+
 ```bash
 pwsh ./scripts/bootstrap.ps1
 ```
+
 or
+
 ```bash
 bash ./scripts/bootstrap.sh
 ```
 
 2. (Optional) Run local infra:
+
 ```bash
 cd docker
 docker compose --env-file .env up -d
 ```
 
 3. Run backend:
+
 ```bash
 cd backend
 pip install -e .
@@ -57,6 +63,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 4. Run frontend:
+
 ```bash
 cd frontend
 npm install
@@ -64,31 +71,33 @@ npm run dev
 ```
 
 5. Open:
+
 - Frontend: `http://localhost:5173`
 - API docs: `http://localhost:8000/docs`
 
 ## Environment Notes
 
 - `backend/.env`
-  - `DB_DRIVER=sqlite+aiosqlite` for zero-setup local DB
-  - switch to `postgresql+asyncpg` for Docker/Postgres mode
-  - `REDIS_IN_MEMORY=true` allows backend execution without external Redis
+    - `DB_DRIVER=sqlite+aiosqlite` for zero-setup local DB
+    - switch to `postgresql+asyncpg` for Docker/Postgres mode
+    - `REDIS_IN_MEMORY=true` allows backend execution without external Redis
 - `frontend/.env`
-  - `VITE_API_BASE_URL` should point to backend host
+    - `VITE_API_BASE_URL` should point to backend host
 
 ## Frontend OpenAPI Contract
 
 - Source of truth: backend OpenAPI endpoint `http://localhost:8000/openapi.json`
 - Generated file: `frontend/src/api/generated/openapi.ts`
 - Primary command:
-  - `npm run generate:api`
+    - `npm run generate:api`
 - Build behavior:
-  - `npm run build` runs `generate:api` first, then TypeScript/Vite build
+    - `npm run build` runs `generate:api` first, then TypeScript/Vite build
 - Optional safe sync:
-  - `npm run generate:api:optional`
-  - If regeneration fails but a generated file already exists, the build can continue with the existing file
+    - `npm run generate:api:optional`
+    - If regeneration fails but a generated file already exists, the build can continue with the existing file
 
 Guideline:
+
 - Frontend API code should import contract types from `src/api/generated/openapi.ts`.
 - Avoid adding hand-written API contract types for endpoints already present in OpenAPI.
 
@@ -118,5 +127,5 @@ Read [`AGENTS.md`](./AGENTS.md) first.
 - Review available UI components by category (`Buttons & Components`, `Cards`)
 - Ask the Agent to compose UI by explicitly naming components from Show Case
 - Example prompt:
-  - "Build the settings form with `PanelCard`, `InputField`, `FormCheckbox`, `Button`, and `InfoCard`."
+    - "Build the settings form with `PanelCard`, `InputField`, `FormCheckbox`, `Button`, and `InfoCard`."
 - Prefer component-first requests over raw HTML/CSS requests for consistency and reuse.
