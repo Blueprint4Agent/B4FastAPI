@@ -2,6 +2,7 @@ from urllib.parse import urlencode, urljoin
 
 from fastapi import APIRouter, Body, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.error import (
     AuthErrorCode,
@@ -156,6 +157,33 @@ async def oauth_callback(
         remember_me=True,
     )
     return response
+
+
+@router.post(
+    "/token",
+    response_model=LoginResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_CREDENTIALS,
+        AuthErrorCode.EMAIL_NOT_VERIFIED,
+        AuthErrorCode.ACCOUNT_LOCKED,
+        AuthErrorCode.SIGNUP_FAILED,
+    ),
+)
+async def oauth_token_login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    service: AuthService = Depends(AuthService),
+):
+    refresh_session_id = create_refresh_session_id()
+    form = LoginForm(
+        email=form_data.username,
+        password=form_data.password,
+        remember_me=False,
+    )
+    try:
+        return await service.login(form, request, refresh_session_id=refresh_session_id)
+    except AuthException as error:
+        raise service_exception_to_http(error) from error
 
 
 @router.post(

@@ -11,6 +11,16 @@ from .error import (
 
 
 class APIKeyErrorCode(Enum):
+    API_KEY_INVALID = ServiceErrorCode(
+        "API_KEY_INVALID",
+        "Invalid API key.",
+        status.HTTP_401_UNAUTHORIZED,
+    )
+    API_KEY_USER_MISMATCH = ServiceErrorCode(
+        "API_KEY_USER_MISMATCH",
+        "API key does not belong to the authenticated user.",
+        status.HTTP_403_FORBIDDEN,
+    )
     API_KEY_CREATE_FAILED = ServiceErrorCode(
         "API_KEY_CREATE_FAILED",
         "Failed to create API key.",
