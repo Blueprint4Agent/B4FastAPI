@@ -4,7 +4,8 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
-from urllib.request import Request as URLRequest, urlopen
+from urllib.request import Request as URLRequest
+from urllib.request import urlopen
 
 from fastapi import Request
 from sqlalchemy.exc import IntegrityError

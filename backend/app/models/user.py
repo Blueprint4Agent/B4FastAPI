@@ -44,6 +44,7 @@ class User(Base):
     auth_identities = relationship(
         "AuthIdentity", back_populates="user", cascade="all, delete-orphan"
     )
+    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
 
 
 class Credential(Base):

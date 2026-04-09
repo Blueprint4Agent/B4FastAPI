@@ -12,7 +12,7 @@ from app.core.database import dispose_db, init_db
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
-from app.routers.v1 import auth
+from app.routers.v1 import api_key, auth
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
         }
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+    app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])
 
     if static_dist_dir.exists():
         app.mount("/", StaticFiles(directory=static_dist_dir, html=True), name="frontend")

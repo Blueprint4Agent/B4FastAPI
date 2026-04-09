@@ -11,7 +11,10 @@ from app.core.database import Base
 from app.core.settings import SETTINGS
 
 # Ensure models are imported so Base.metadata includes every mapped table.
-from app.models import user  # noqa: F401
+from app.models import (
+    api_key,  # noqa: F401
+    user,  # noqa: F401
+)
 
 config = context.config
 
