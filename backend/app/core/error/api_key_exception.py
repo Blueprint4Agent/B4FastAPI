@@ -36,6 +36,11 @@ class APIKeyErrorCode(Enum):
         "API key not found.",
         status.HTTP_404_NOT_FOUND,
     )
+    API_KEY_UPDATE_FAILED = ServiceErrorCode(
+        "API_KEY_UPDATE_FAILED",
+        "Failed to update API key state.",
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
     @property
     def code(self) -> ServiceErrorCode:

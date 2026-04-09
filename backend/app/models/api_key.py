@@ -54,6 +54,10 @@ class APIKeysResponse(BaseModel):
     items: list[APIKeyResponse]
 
 
+class APIKeyStatusUpdateForm(BaseModel):
+    enabled: bool
+
+
 class APIKeyRepository:
     async def create_api_key(
         self,
@@ -88,7 +92,7 @@ class APIKeyRepository:
             )
             return [APIKeyResponse.model_validate(row) for row in result.scalars().all()]
 
-    async def revoke_api_key(self, *, user_id: int, api_key_id: int) -> APIKeyResponse | None:
+    async def delete_api_key(self, *, user_id: int, api_key_id: int) -> APIKeyResponse | None:
         async with get_db() as db:
             result = await db.execute(
                 select(APIKey).where(APIKey.id == api_key_id, APIKey.user_id == user_id)
@@ -97,11 +101,33 @@ class APIKeyRepository:
             if api_key is None:
                 return None
 
-            if api_key.revoked_at is None:
-                api_key.revoked_at = datetime.now(UTC)
-                await db.commit()
-                await db.refresh(api_key)
+            response_payload = APIKeyResponse.model_validate(api_key)
+            await db.delete(api_key)
+            await db.commit()
+            return response_payload
 
+    async def set_api_key_enabled(
+        self,
+        *,
+        user_id: int,
+        api_key_id: int,
+        enabled: bool,
+    ) -> APIKeyResponse | None:
+        async with get_db() as db:
+            result = await db.execute(
+                select(APIKey).where(APIKey.id == api_key_id, APIKey.user_id == user_id)
+            )
+            api_key = result.scalar_one_or_none()
+            if api_key is None:
+                return None
+
+            if enabled:
+                api_key.revoked_at = None
+            elif api_key.revoked_at is None:
+                api_key.revoked_at = datetime.now(UTC)
+
+            await db.commit()
+            await db.refresh(api_key)
             return APIKeyResponse.model_validate(api_key)
 
 

@@ -12,6 +12,7 @@ from app.models.api_key import (
     APIKeyResponse,
     APIKeys,
     APIKeysResponse,
+    APIKeyStatusUpdateForm,
 )
 
 API_KEY_PREFIX = "sk_live_"
@@ -43,11 +44,27 @@ class APIKeyService:
         keys = await APIKeys.list_api_keys(user_id=user_id)
         return APIKeysResponse(items=keys)
 
-    async def revoke_api_key(self, *, user_id: int, api_key_id: int) -> APIKeyResponse:
-        revoked = await APIKeys.revoke_api_key(user_id=user_id, api_key_id=api_key_id)
-        if revoked is None:
+    async def delete_api_key(self, *, user_id: int, api_key_id: int) -> APIKeyResponse:
+        deleted = await APIKeys.delete_api_key(user_id=user_id, api_key_id=api_key_id)
+        if deleted is None:
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
-        return revoked
+        return deleted
+
+    async def update_api_key_status(
+        self,
+        *,
+        user_id: int,
+        api_key_id: int,
+        form: APIKeyStatusUpdateForm,
+    ) -> APIKeyResponse:
+        updated = await APIKeys.set_api_key_enabled(
+            user_id=user_id,
+            api_key_id=api_key_id,
+            enabled=form.enabled,
+        )
+        if updated is None:
+            raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
+        return updated
 
     def _generate_api_key(self) -> str:
         secret = secrets.token_urlsafe(API_KEY_SECRET_BYTES)

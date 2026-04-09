@@ -12,6 +12,7 @@ from app.models.api_key import (
     APIKeyCreateResponse,
     APIKeyResponse,
     APIKeysResponse,
+    APIKeyStatusUpdateForm,
 )
 from app.models.user import UserResponse
 from app.services.api_key import APIKeyService
@@ -51,12 +52,36 @@ async def list_api_keys(
     response_model=APIKeyResponse,
     responses=api_key_error_responses(APIKeyErrorCode.API_KEY_NOT_FOUND),
 )
-async def revoke_api_key(
+async def delete_api_key(
     api_key_id: int,
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
 ):
     try:
-        return await service.revoke_api_key(user_id=current_user.id, api_key_id=api_key_id)
+        return await service.delete_api_key(user_id=current_user.id, api_key_id=api_key_id)
+    except APIKeyException as error:
+        raise service_exception_to_http(error) from error
+
+
+@router.patch(
+    "/{api_key_id}/status",
+    response_model=APIKeyResponse,
+    responses=api_key_error_responses(
+        APIKeyErrorCode.API_KEY_NOT_FOUND,
+        APIKeyErrorCode.API_KEY_UPDATE_FAILED,
+    ),
+)
+async def update_api_key_status(
+    api_key_id: int,
+    form: APIKeyStatusUpdateForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: APIKeyService = Depends(APIKeyService),
+):
+    try:
+        return await service.update_api_key_status(
+            user_id=current_user.id,
+            api_key_id=api_key_id,
+            form=form,
+        )
     except APIKeyException as error:
         raise service_exception_to_http(error) from error
