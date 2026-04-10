@@ -482,8 +482,7 @@ class UserRepository:
                 user.profile_image_url = profile_image_url
             user.updated_at = datetime.now(UTC)
             await db.commit()
-            await db.refresh(user)
-            return UserResponse.model_validate(user)
+        return await self.get_user_response_by_id(user_id)
 
 
 Users = UserRepository()

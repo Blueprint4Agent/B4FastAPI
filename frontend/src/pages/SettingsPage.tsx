@@ -6,6 +6,7 @@ import {
     AvatarUploadField,
     Button,
     DropdownMenu,
+    InlineMessage,
     InputField,
     MenuList,
     PrimaryCard,
@@ -13,7 +14,6 @@ import {
     UserAvatar,
 } from "../components/ui";
 import { DeveloperApiKeysSection } from "../components/DeveloperApiKeysSection";
-import { ErrorCard, InfoCard } from "../components/StatusCard";
 import { useAuthContext } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
 
@@ -241,13 +241,15 @@ export function SettingsPage() {
                                         {saveFeedback?.source === "name" &&
                                         saveFeedback?.tone === "info" ? (
                                             <div className="settings-feedback settings-feedback--name">
-                                                <InfoCard message={saveFeedback.message} compact />
+                                                <InlineMessage tone="info">
+                                                    {saveFeedback.message}
+                                                </InlineMessage>
                                             </div>
                                         ) : null}
                                         {saveFeedback?.source === "name" &&
                                         saveFeedback?.tone === "error" ? (
                                             <div className="settings-feedback settings-feedback--name">
-                                                <ErrorCard message={saveFeedback.message} compact />
+                                                <InlineMessage>{saveFeedback.message}</InlineMessage>
                                             </div>
                                         ) : null}
                                     </div>

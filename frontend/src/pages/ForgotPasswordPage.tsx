@@ -3,9 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { requestPasswordReset } from "../api/authApi";
-import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
-import { Button, InputField, PanelCard } from "../components/ui";
+import { Button, InlineMessage, InputField, PanelCard } from "../components/ui";
 import { useAppConfig } from "../hooks/useFeatures";
 import { extractApiDetail, resolveAuthErrorMessage } from "../utils/authError";
 import { isValidEmail } from "../utils/validation";
@@ -77,14 +76,16 @@ export function ForgotPasswordPage() {
                         type="email"
                         autoComplete="email"
                         value={email}
-                        onValueChange={setEmail}
+                        onValueChange={(value) => {
+                            setEmail(value);
+                            if (warningMessage || errorMessage) {
+                                setWarningMessage("");
+                                setErrorMessage("");
+                            }
+                        }}
                     />
-                    {warningMessage ? (
-                        <WarningCard title={t("cards.warningTitle")} message={warningMessage} />
-                    ) : null}
-                    {errorMessage ? (
-                        <ErrorCard title={t("cards.errorTitle")} message={errorMessage} />
-                    ) : null}
+                    {warningMessage ? <InlineMessage>{warningMessage}</InlineMessage> : null}
+                    {errorMessage ? <InlineMessage>{errorMessage}</InlineMessage> : null}
                     <Button
                         type="submit"
                         loading={submitting}

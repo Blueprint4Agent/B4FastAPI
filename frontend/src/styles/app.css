@@ -257,7 +257,7 @@ a {
 }
 
 .settings-content-card {
-    padding: 2rem;
+    padding: 2rem 2rem 1.35rem;
     min-height: 22rem;
     width: 100%;
 }
@@ -535,6 +535,11 @@ a {
 
 .settings-feedback--name {
     margin-top: 0;
+}
+
+.settings-feedback--name .ui-inline-message {
+    font-size: 0.72rem;
+    line-height: 1.15;
 }
 
 .status-card.status-card--compact {
@@ -1266,12 +1271,12 @@ html[data-theme="dark"] .ui-toggle__track--on {
     font-weight: 600;
 }
 
-.ui-inline-message--error {
+.ui-inline-message.ui-inline-message--error {
     color: #c7364e;
 }
 
-.ui-inline-message--info {
-    color: color-mix(in oklab, var(--text-soft) 88%, transparent 12%);
+.ui-inline-message.ui-inline-message--info {
+    color: #1f8f4d;
 }
 
 .developer-section {
@@ -1531,6 +1536,19 @@ input:focus {
 .login-remember-options {
     display: grid;
     gap: 0.35rem;
+}
+
+.login-inline-actions {
+    display: flex;
+    justify-content: flex-start;
+}
+
+.login-inline-actions .ui-button {
+    width: auto;
+    min-width: 0;
+    height: 2.25rem;
+    padding: 0.4rem 0.7rem;
+    justify-self: start;
 }
 
 .checkbox input {

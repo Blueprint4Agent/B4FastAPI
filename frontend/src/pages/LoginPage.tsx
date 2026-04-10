@@ -3,13 +3,13 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { getOAuthProviders, resendVerificationEmail, type OAuthProvider } from "../api/authApi";
-import { ErrorCard, WarningCard } from "../components/StatusCard";
 import { ThemeToggle } from "../components/ThemeToggle";
 import {
     BrandMark,
     Button,
     FormCheckbox,
     InputField,
+    InlineMessage,
     OAuthOptionsCard,
     OAuthProviderButton,
     PanelCard,
@@ -36,8 +36,8 @@ export function LoginPage() {
     const [resending, setResending] = useState(false);
     const [showResendButton, setShowResendButton] = useState(false);
     const [resendMessage, setResendMessage] = useState("");
-    const [errorMessage, setErrorMessage] = useState("");
-    const [warningMessage, setWarningMessage] = useState("");
+    const [emailErrorMessage, setEmailErrorMessage] = useState("");
+    const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
     const [oauthProviders, setOAuthProviders] = useState<
         Array<{ provider: OAuthProvider; start_path: string }>
     >([]);
@@ -85,28 +85,28 @@ export function LoginPage() {
     const onSubmit = async (event: FormEvent) => {
         event.preventDefault();
         setSubmitting(true);
-        setErrorMessage("");
-        setWarningMessage("");
+        setEmailErrorMessage("");
+        setPasswordErrorMessage("");
         setShowResendButton(false);
         setResendMessage("");
 
         if (!email.trim()) {
-            setWarningMessage(t("auth.errors.requiredEmail"));
+            setEmailErrorMessage(t("auth.errors.requiredEmail"));
             setSubmitting(false);
             return;
         }
         if (!isValidEmail(email)) {
-            setWarningMessage(t("auth.errors.invalidEmail"));
+            setEmailErrorMessage(t("auth.errors.invalidEmail"));
             setSubmitting(false);
             return;
         }
         if (!password.trim()) {
-            setWarningMessage(t("auth.errors.requiredPassword"));
+            setPasswordErrorMessage(t("auth.errors.requiredPassword"));
             setSubmitting(false);
             return;
         }
         if (!isValidPassword(password)) {
-            setWarningMessage(t("auth.errors.invalidPasswordPattern"));
+            setPasswordErrorMessage(t("auth.errors.invalidPasswordPattern"));
             setSubmitting(false);
             return;
         }
@@ -135,7 +135,7 @@ export function LoginPage() {
             const details = detail?.details;
 
             if (code === "INVALID_CREDENTIALS" && typeof details?.remaining_attempts === "number") {
-                setWarningMessage(
+                setPasswordErrorMessage(
                     t("auth.errors.invalidCredentialsWithCount", {
                         count: details.remaining_attempts,
                     }),
@@ -144,14 +144,16 @@ export function LoginPage() {
                 code === "ACCOUNT_LOCKED" &&
                 typeof details?.remaining_seconds === "number"
             ) {
-                setWarningMessage(
+                setPasswordErrorMessage(
                     t("auth.errors.accountLocked", { seconds: details.remaining_seconds }),
                 );
             } else if (code === "EMAIL_NOT_VERIFIED") {
-                setWarningMessage(t("auth.errors.emailNotVerified"));
+                setEmailErrorMessage(t("auth.errors.emailNotVerified"));
                 setShowResendButton(true);
             } else {
-                setErrorMessage(resolveAuthErrorMessage(t, detail, "auth.errors.loginFallback"));
+                setPasswordErrorMessage(
+                    resolveAuthErrorMessage(t, detail, "auth.errors.loginFallback"),
+                );
             }
         } finally {
             setSubmitting(false);
@@ -184,15 +186,45 @@ export function LoginPage() {
                             type="email"
                             autoComplete="email"
                             value={email}
-                            onValueChange={setEmail}
+                            onValueChange={(value) => {
+                                setEmail(value);
+                                if (emailErrorMessage || resendMessage || showResendButton) {
+                                    setEmailErrorMessage("");
+                                    setResendMessage("");
+                                    setShowResendButton(false);
+                                }
+                            }}
                         />
+                        {emailErrorMessage ? (
+                            <InlineMessage>{emailErrorMessage}</InlineMessage>
+                        ) : null}
+                        {showResendButton ? (
+                            <div className="login-inline-actions">
+                                <Button
+                                    type="button"
+                                    loading={resending}
+                                    onClick={onResendVerification}
+                                >
+                                    {t("auth.actions.resendVerification")}
+                                </Button>
+                            </div>
+                        ) : null}
+                        {resendMessage ? <InlineMessage tone="info">{resendMessage}</InlineMessage> : null}
                         <InputField
                             label={t("login.fields.password")}
                             type="password"
                             autoComplete="current-password"
                             value={password}
-                            onValueChange={setPassword}
+                            onValueChange={(value) => {
+                                setPassword(value);
+                                if (passwordErrorMessage) {
+                                    setPasswordErrorMessage("");
+                                }
+                            }}
                         />
+                        {passwordErrorMessage ? (
+                            <InlineMessage>{passwordErrorMessage}</InlineMessage>
+                        ) : null}
                         <div className="login-remember-options">
                             <FormCheckbox
                                 checked={rememberEmail}
@@ -205,27 +237,6 @@ export function LoginPage() {
                                 label={t("login.rememberMe")}
                             />
                         </div>
-                        {warningMessage ? (
-                            <WarningCard title={t("cards.warningTitle")} message={warningMessage}>
-                                <div className="status-card__actions">
-                                    {showResendButton ? (
-                                        <Button
-                                            type="button"
-                                            loading={resending}
-                                            onClick={onResendVerification}
-                                        >
-                                            {t("auth.actions.resendVerification")}
-                                        </Button>
-                                    ) : null}
-                                    {resendMessage ? (
-                                        <p className="status-card__message">{resendMessage}</p>
-                                    ) : null}
-                                </div>
-                            </WarningCard>
-                        ) : null}
-                        {errorMessage ? (
-                            <ErrorCard title={t("cards.errorTitle")} message={errorMessage} />
-                        ) : null}
                         <Button type="submit" loading={submitting}>
                             {t("login.submitIdle")}
                         </Button>

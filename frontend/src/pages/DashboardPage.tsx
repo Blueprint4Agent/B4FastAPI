@@ -12,6 +12,7 @@ import {
     DataTable,
     DropdownMenu,
     FormCheckbox,
+    InlineMessage,
     InputField,
     KeyValueCard,
     MenuList,
@@ -197,6 +198,16 @@ export function DashboardPage() {
                                     <StatusBadge tone="active">Active</StatusBadge>
                                     <StatusBadge tone="inactive">Inactive</StatusBadge>
                                     <StatusBadge tone="info">Info</StatusBadge>
+                                </div>
+                            </ShowcaseItem>
+                            <ShowcaseItem component="InlineMessage">
+                                <div className="dashboard-catalog__stack">
+                                    <InlineMessage tone="info">
+                                        Name updated successfully.
+                                    </InlineMessage>
+                                    <InlineMessage>
+                                        Failed to update your profile. Please try again.
+                                    </InlineMessage>
                                 </div>
                             </ShowcaseItem>
                             <ShowcaseItem component="DataTable">
