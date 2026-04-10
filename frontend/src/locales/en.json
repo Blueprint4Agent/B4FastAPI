@@ -192,7 +192,8 @@
         "menu": {
             "title": "Settings menu",
             "profile": "Profile",
-            "general": "General"
+            "general": "General",
+            "developers": "Developers"
         },
         "labels": {
             "name": "Name",
@@ -229,6 +230,60 @@
             "languageTitle": "Language",
             "languages": {
                 "en": "English"
+            }
+        },
+        "developers": {
+            "title": "Developers",
+            "subtitle": "Manage API keys for integrations and automation.",
+            "loading": "Loading API keys...",
+            "empty": "No API keys have been created yet.",
+            "createButton": "Create API key",
+            "refreshButton": "Refresh list",
+            "listLoadError": "Failed to load API keys.",
+            "createError": "Failed to create API key. Please try a different name.",
+            "deactivateError": "Failed to deactivate API key.",
+            "enableBlockedInfo": "Revoked API keys cannot be reactivated. Create a new key instead.",
+            "status": {
+                "active": "Active",
+                "inactive": "Inactive"
+            },
+            "columns": {
+                "name": "Name",
+                "prefix": "Prefix",
+                "status": "Status",
+                "createdAt": "Created",
+                "lastUsedAt": "Last used",
+                "enabled": "Enabled",
+                "delete": "Delete"
+            },
+            "actions": {
+                "save": "Save",
+                "cancel": "Cancel",
+                "close": "Close",
+                "deactivate": "Deactivate",
+                "delete": "Delete"
+            },
+            "createModal": {
+                "title": "Create API key",
+                "description": "Set a clear name so your team can identify this key later.",
+                "nameLabel": "API key name",
+                "namePlaceholder": "e.g. Production webhook"
+            },
+            "revealModal": {
+                "title": "Copy API key now",
+                "description": "This secret is shown once and cannot be retrieved again.",
+                "copy": "Copy",
+                "copied": "Copied"
+            },
+            "deactivateModal": {
+                "title": "Delete API key",
+                "description": "You are about to deactivate this API key.",
+                "targetName": "Target key: {{name}}"
+            },
+            "meta": {
+                "requestCount": "Request count",
+                "created": "Created",
+                "lastUsed": "Last used"
             }
         }
     },

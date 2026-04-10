@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oauth Token Login */
+        post: operations["oauth_token_login_api_v1_auth_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -243,10 +260,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Api Keys */
+        get: operations["list_api_keys_api_v1_api_keys_get"];
+        put?: never;
+        /** Create Api Key */
+        post: operations["create_api_key_api_v1_api_keys_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-keys/{api_key_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Api Key */
+        delete: operations["delete_api_key_api_v1_api_keys__api_key_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/api-keys/{api_key_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Api Key Status */
+        patch: operations["update_api_key_status_api_v1_api_keys__api_key_id__status_patch"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** APIKeyCreateForm */
+        APIKeyCreateForm: {
+            /** Name */
+            name: string;
+        };
+        /** APIKeyCreateResponse */
+        APIKeyCreateResponse: {
+            /** Api Key */
+            api_key: string;
+            key: components["schemas"]["APIKeyResponse"];
+        };
+        /** APIKeyErrorDetail */
+        APIKeyErrorDetail: {
+            /**
+             * Error
+             * @example API_KEY_NOT_FOUND
+             * @enum {string}
+             */
+            error: "API_KEY_INVALID" | "API_KEY_USER_MISMATCH" | "API_KEY_CREATE_FAILED" | "API_KEY_NAME_ALREADY_EXISTS" | "API_KEY_NOT_FOUND" | "API_KEY_UPDATE_FAILED";
+            /** Message */
+            message: string;
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** APIKeyErrorResponse */
+        APIKeyErrorResponse: {
+            detail: components["schemas"]["APIKeyErrorDetail"];
+        };
+        /** APIKeyResponse */
+        APIKeyResponse: {
+            /** Id */
+            id: number;
+            /** Name */
+            name: string;
+            /** Key Prefix */
+            key_prefix: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
+        };
+        /** APIKeyStatusUpdateForm */
+        APIKeyStatusUpdateForm: {
+            /** Enabled */
+            enabled: boolean;
+        };
+        /** APIKeysResponse */
+        APIKeysResponse: {
+            /** Items */
+            items: components["schemas"]["APIKeyResponse"][];
+        };
         /** AppConfigResponse */
         AppConfigResponse: {
             /** Api Base Path */
@@ -269,21 +396,7 @@ export interface components {
              * @example INVALID_TOKEN
              * @enum {string}
              */
-            error:
-                | "SIGNUP_FAILED"
-                | "EMAIL_ALREADY_EXISTS"
-                | "INVALID_CREDENTIALS"
-                | "ACCOUNT_LOCKED"
-                | "EMAIL_NOT_VERIFIED"
-                | "EMAIL_DISABLED"
-                | "INVALID_TOKEN"
-                | "USER_NOT_FOUND"
-                | "PROFILE_UPDATE_FAILED"
-                | "OAUTH_PROVIDER_NOT_ENABLED"
-                | "OAUTH_PROVIDER_CONFIG_INVALID"
-                | "OAUTH_IDENTITY_CONFLICT"
-                | "OAUTH_SIGNUP_FAILED"
-                | "OAUTH_PROVIDER_REQUEST_FAILED";
+            error: "SIGNUP_FAILED" | "EMAIL_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "EMAIL_NOT_VERIFIED" | "EMAIL_DISABLED" | "INVALID_TOKEN" | "USER_NOT_FOUND" | "PROFILE_UPDATE_FAILED" | "OAUTH_PROVIDER_NOT_ENABLED" | "OAUTH_PROVIDER_CONFIG_INVALID" | "OAUTH_IDENTITY_CONFLICT" | "OAUTH_SIGNUP_FAILED" | "OAUTH_PROVIDER_REQUEST_FAILED";
             /** Message */
             message: string;
             /** Details */
@@ -294,6 +407,30 @@ export interface components {
         /** AuthErrorResponse */
         AuthErrorResponse: {
             detail: components["schemas"]["AuthErrorDetail"];
+        };
+        /** Body_oauth_token_login_api_v1_auth_token_post */
+        Body_oauth_token_login_api_v1_auth_token_post: {
+            /** Grant Type */
+            grant_type?: string | null;
+            /** Username */
+            username: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Scope
+             * @default
+             */
+            scope: string;
+            /** Client Id */
+            client_id?: string | null;
+            /**
+             * Client Secret
+             * Format: password
+             */
+            client_secret?: string | null;
         };
         /** Body_refresh_token_api_v1_auth_refresh_post */
         Body_refresh_token_api_v1_auth_refresh_post: {
@@ -787,6 +924,110 @@ export interface operations {
                      *       "detail": {
                      *         "error": "OAUTH_PROVIDER_REQUEST_FAILED",
                      *         "message": "OAuth provider request failed."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+        };
+    };
+    oauth_token_login_api_v1_auth_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_oauth_token_login_api_v1_auth_token_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_CREDENTIALS",
+                     *         "message": "Incorrect email or password."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "EMAIL_NOT_VERIFIED",
+                     *         "message": "Email verification is required."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "ACCOUNT_LOCKED",
+                     *         "message": "Account is temporarily locked.",
+                     *         "details": {
+                     *           "remaining_seconds": 120
+                     *         }
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "SIGNUP_FAILED",
+                     *         "message": "Failed to create the user account."
                      *       }
                      *     }
                      */
@@ -1320,6 +1561,210 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_api_keys_api_v1_api_keys_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeysResponse"];
+                };
+            };
+        };
+    };
+    create_api_key_api_v1_api_keys_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyCreateForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreateResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_NAME_ALREADY_EXISTS",
+                     *         "message": "API key name already exists."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_CREATE_FAILED",
+                     *         "message": "Failed to create API key."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_api_key_api_v1_api_keys__api_key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                api_key_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_NOT_FOUND",
+                     *         "message": "API key not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_api_key_status_api_v1_api_keys__api_key_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                api_key_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyStatusUpdateForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_NOT_FOUND",
+                     *         "message": "API key not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_UPDATE_FAILED",
+                     *         "message": "Failed to update API key state."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
                 };
             };
         };

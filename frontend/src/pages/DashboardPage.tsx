@@ -9,16 +9,21 @@ import { useTheme } from "../hooks/useTheme";
 import {
     BrandMark,
     Button,
+    DataTable,
     DropdownMenu,
     FormCheckbox,
     InputField,
     KeyValueCard,
     MenuList,
+    Modal,
+    ModalButton,
     OAuthOptionsCard,
     OAuthProviderButton,
     PanelCard,
     Spinner,
+    StatusBadge,
     ThemeToggleButton,
+    ToggleSwitch,
     ValidationCard,
 } from "../components/ui";
 import { useAuthContext } from "../hooks/useAuth";
@@ -49,10 +54,26 @@ export function DashboardPage() {
     const [sampleInput, setSampleInput] = useState("");
     const [sampleChecked, setSampleChecked] = useState(true);
     const [sampleMenu, setSampleMenu] = useState("profile");
+    const [sampleToggle, setSampleToggle] = useState(true);
+    const [sampleModalOpen, setSampleModalOpen] = useState(false);
     const sampleMenuItems = [
         { key: "profile", label: "Profile", icon: UserRound },
         { key: "general", label: "General", icon: SlidersHorizontal },
         { key: "apiKey", label: "API Key", icon: KeyRound },
+    ];
+    const sampleRows = [
+        {
+            id: 1,
+            keyName: "Production",
+            keyPrefix: "sk_live_a1b2",
+            status: "active",
+        },
+        {
+            id: 2,
+            keyName: "Legacy",
+            keyPrefix: "sk_live_zz99",
+            status: "inactive",
+        },
     ];
 
     return (
@@ -157,6 +178,103 @@ export function DashboardPage() {
                                     onCheckedChange={setSampleChecked}
                                     label="Sample checkbox"
                                 />
+                            </ShowcaseItem>
+                            <ShowcaseItem component="ToggleSwitch">
+                                <ToggleSwitch
+                                    checked={sampleToggle}
+                                    onCheckedChange={setSampleToggle}
+                                    label="Active key"
+                                />
+                            </ShowcaseItem>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-catalog__section-card">
+                        <h3>Data Views</h3>
+                        <div className="dashboard-catalog__stack">
+                            <ShowcaseItem component="StatusBadge">
+                                <div className="dashboard-catalog__badge-row">
+                                    <StatusBadge tone="active">Active</StatusBadge>
+                                    <StatusBadge tone="inactive">Inactive</StatusBadge>
+                                    <StatusBadge tone="info">Info</StatusBadge>
+                                </div>
+                            </ShowcaseItem>
+                            <ShowcaseItem component="DataTable">
+                                <DataTable
+                                    rows={sampleRows}
+                                    rowKey={(row) => row.id}
+                                    emptyText="No records"
+                                    columns={[
+                                        {
+                                            id: "name",
+                                            header: "Name",
+                                            render: (row) => row.keyName,
+                                        },
+                                        {
+                                            id: "prefix",
+                                            header: "Prefix",
+                                            render: (row) => <code>{row.keyPrefix}</code>,
+                                        },
+                                        {
+                                            id: "status",
+                                            header: "Status",
+                                            render: (row) =>
+                                                row.status === "active" ? (
+                                                    <StatusBadge tone="active">Active</StatusBadge>
+                                                ) : (
+                                                    <StatusBadge tone="inactive">
+                                                        Inactive
+                                                    </StatusBadge>
+                                                ),
+                                        },
+                                    ]}
+                                />
+                            </ShowcaseItem>
+                        </div>
+                    </div>
+
+                    <div className="dashboard-catalog__section-card">
+                        <h3>Modal</h3>
+                        <div className="dashboard-catalog__row">
+                            <ShowcaseItem component="Modal + ModalButton">
+                                <ModalButton
+                                    variant="save"
+                                    onClick={() => {
+                                        setSampleModalOpen(true);
+                                    }}
+                                >
+                                    Open modal
+                                </ModalButton>
+                                <Modal
+                                    open={sampleModalOpen}
+                                    title="Sample modal"
+                                    description="Reusable modal with modal buttons."
+                                    onClose={() => {
+                                        setSampleModalOpen(false);
+                                    }}
+                                    footer={
+                                        <>
+                                            <ModalButton
+                                                variant="cancel"
+                                                onClick={() => {
+                                                    setSampleModalOpen(false);
+                                                }}
+                                            >
+                                                Cancel
+                                            </ModalButton>
+                                            <ModalButton
+                                                variant="save"
+                                                onClick={() => {
+                                                    setSampleModalOpen(false);
+                                                }}
+                                            >
+                                                Save
+                                            </ModalButton>
+                                        </>
+                                    }
+                                >
+                                    <p className="muted">This is a modal body content sample.</p>
+                                </Modal>
                             </ShowcaseItem>
                         </div>
                     </div>

@@ -1,0 +1,22 @@
+# feat: developers api key ui components and interaction polish
+
+- scope: frontend
+- changed files:
+  - frontend/src/components/DeveloperApiKeysSection.tsx
+  - frontend/src/components/ui/DataTable.tsx
+  - frontend/src/components/ui/InlineMessage.tsx
+  - frontend/src/components/ui/Modal.tsx
+  - frontend/src/components/ui/ModalButton.tsx
+  - frontend/src/components/ui/StatusBadge.tsx
+  - frontend/src/components/ui/ToggleSwitch.tsx
+  - frontend/src/components/ui/index.ts
+  - frontend/src/pages/SettingsPage.tsx
+  - frontend/src/pages/DashboardPage.tsx
+  - frontend/src/styles/app.css
+  - frontend/src/locales/en.json
+  - frontend/src/api/authApi.ts
+  - frontend/src/api/generated/openapi.ts
+- reason and impact:
+  - add reusable developers UI primitives and wire API key create/list/delete/status flows.
+  - refine modal, toggle, delete, copy, and inline error UX for settings developers page.
+  - register new components in showcase and keep API types synchronized with backend schema.

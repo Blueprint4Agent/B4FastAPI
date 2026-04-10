@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SlidersHorizontal, UserRound } from "lucide-react";
+import { Code2, SlidersHorizontal, UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -12,6 +12,7 @@ import {
     ThemeToggleButton,
     UserAvatar,
 } from "../components/ui";
+import { DeveloperApiKeysSection } from "../components/DeveloperApiKeysSection";
 import { ErrorCard, InfoCard } from "../components/StatusCard";
 import { useAuthContext } from "../hooks/useAuth";
 import { useTheme } from "../hooks/useTheme";
@@ -21,7 +22,7 @@ type SaveFeedback = {
     tone: "error" | "info";
     source: "name" | "photo";
 } | null;
-type SettingsMenuKey = "profile" | "general";
+type SettingsMenuKey = "profile" | "general" | "developers";
 const MAX_PROFILE_PHOTO_SIZE_MB = 8;
 const MAX_PROFILE_PHOTO_SIZE_BYTES = MAX_PROFILE_PHOTO_SIZE_MB * 1024 * 1024;
 
@@ -47,10 +48,12 @@ export function SettingsPage() {
     const [saveFeedback, setSaveFeedback] = useState<SaveFeedback>(null);
 
     const showProfile = activeMenu === "profile";
-    const HeaderIcon = showProfile ? UserRound : SlidersHorizontal;
+    const showDevelopers = activeMenu === "developers";
+    const HeaderIcon = showProfile ? UserRound : showDevelopers ? Code2 : SlidersHorizontal;
     const settingsMenuItems = [
         { key: "profile", label: t("settings.menu.profile"), icon: UserRound },
         { key: "general", label: t("settings.menu.general"), icon: SlidersHorizontal },
+        { key: "developers", label: t("settings.menu.developers"), icon: Code2 },
     ] as const;
     const normalizedNameInput = nameInput.trim();
     const normalizedCurrentName = (user?.name ?? "").trim();
@@ -343,6 +346,27 @@ export function SettingsPage() {
                                     }}
                                 />
                             </aside>
+                        </section>
+                    </>
+                ) : showDevelopers ? (
+                    <>
+                        <header className="settings-content-card__header">
+                            <h1>
+                                <span
+                                    className="settings-content-card__title-icon"
+                                    aria-hidden="true"
+                                >
+                                    <HeaderIcon />
+                                </span>
+                                <span>{t("settings.developers.title")}</span>
+                            </h1>
+                            <p>{t("settings.developers.subtitle")}</p>
+                        </header>
+                        <section
+                            className="settings-general-content"
+                            aria-label={t("settings.developers.title")}
+                        >
+                            <DeveloperApiKeysSection />
                         </section>
                     </>
                 ) : (
