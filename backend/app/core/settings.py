@@ -41,7 +41,7 @@ class Settings(BaseModel):
     DB_PASSWORD: str = os.getenv("DB_PASSWORD", "postgres")
     DATABASE_URL: str | None = None
 
-    REDIS_IN_MEMORY: bool = os.getenv("REDIS_IN_MEMORY", "false").lower() == "true"
+    REDIS_IN_MEMORY: bool = os.getenv("REDIS_IN_MEMORY", "true").lower() == "true"
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
     REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
     REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
