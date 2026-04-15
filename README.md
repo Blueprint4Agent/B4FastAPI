@@ -13,7 +13,7 @@ Included baseline features:
 ## Structure
 
 ```text
-backend/
+src/backend/
   app/
     core/        # settings, DB, Redis
     models/      # SQLAlchemy + API schemas
@@ -21,7 +21,7 @@ backend/
     routers/v1/  # auth endpoints
     utils/       # password/token/cookie helpers
     main.py
-frontend/
+src/frontend/
   src/
     api/         # OpenAPI-generated types + typed HTTP client
     hooks/       # auth/session bootstrap logic
@@ -57,7 +57,7 @@ docker compose --env-file .env up -d
 3. Run backend:
 
 ```bash
-cd backend
+cd src/backend
 pip install -e .
 uvicorn app.main:app --reload --port 8000
 ```
@@ -65,7 +65,7 @@ uvicorn app.main:app --reload --port 8000
 4. Run frontend:
 
 ```bash
-cd frontend
+cd src/frontend
 npm install
 npm run dev
 ```
@@ -77,17 +77,17 @@ npm run dev
 
 ## Environment Notes
 
-- `backend/.env`
+- `src/backend/.env`
     - `DB_DRIVER=sqlite+aiosqlite` for zero-setup local DB
     - switch to `postgresql+asyncpg` for Docker/Postgres mode
     - `REDIS_IN_MEMORY=true` allows backend execution without external Redis
-- `frontend/.env`
+- `src/frontend/.env`
     - `VITE_API_BASE_URL` should point to backend host
 
 ## Frontend OpenAPI Contract
 
 - Source of truth: backend OpenAPI endpoint `http://localhost:8000/openapi.json`
-- Generated file: `frontend/src/api/generated/openapi.ts`
+- Generated file: `src/frontend/src/api/generated/openapi.ts`
 - Primary command:
     - `npm run generate:api`
 - Build behavior:
@@ -117,8 +117,8 @@ Read [`AGENTS.md`](./AGENTS.md) first.
 
 ## Frontend i18n
 
-- i18n bootstrap: `frontend/src/i18n.ts`
-- English locale file: `frontend/src/locales/en.json`
+- i18n bootstrap: `src/frontend/src/i18n.ts`
+- English locale file: `src/frontend/src/locales/en.json`
 - Current default language: `en`
 
 ## Show Case + Agent Workflow
