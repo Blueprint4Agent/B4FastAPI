@@ -566,30 +566,30 @@ a {
     line-height: 1;
 }
 
-.dashboard-catalog {
+.showcase-catalog {
     width: min(72rem, 100%);
     display: grid;
     gap: 0.9rem;
 }
 
-.dashboard-catalog__header {
+.showcase-catalog__header {
     border: 1px solid color-mix(in oklab, var(--panel-border) 88%, transparent 12%);
     border-radius: 1rem;
     background: color-mix(in oklab, var(--panel) 96%, transparent 4%);
     padding: 1rem;
 }
 
-.dashboard-catalog__header h1 {
+.showcase-catalog__header h1 {
     margin: 0;
     font-size: 1.5rem;
 }
 
-.dashboard-catalog__header p {
+.showcase-catalog__header p {
     margin: 0.35rem 0 0;
     color: var(--text-soft);
 }
 
-.dashboard-catalog__group {
+.showcase-catalog__group {
     border: 1px solid color-mix(in oklab, var(--panel-border) 88%, transparent 12%);
     border-radius: 1rem;
     background: color-mix(in oklab, var(--panel) 97%, transparent 3%);
@@ -598,7 +598,7 @@ a {
     gap: 0.7rem;
 }
 
-.dashboard-catalog__group h2 {
+.showcase-catalog__group h2 {
     margin: 0;
     font:
         600 0.95rem/1.1 "Inter",
@@ -607,29 +607,29 @@ a {
     letter-spacing: -0.01em;
 }
 
-.dashboard-catalog__stack {
+.showcase-catalog__stack {
     display: grid;
     gap: 0.55rem;
 }
 
-.dashboard-catalog__row {
+.showcase-catalog__row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 1.05rem;
 }
 
-.dashboard-catalog__cards,
-.dashboard-catalog__components {
+.showcase-catalog__cards,
+.showcase-catalog__components {
     display: grid;
     gap: 1rem;
 }
 
-.dashboard-catalog__panel-demo {
+.showcase-catalog__panel-demo {
     width: min(34rem, 100%);
 }
 
-.dashboard-catalog__section-card {
+.showcase-catalog__section-card {
     border: 1px solid color-mix(in oklab, var(--panel-border) 86%, transparent 14%);
     border-radius: 0.9rem;
     padding: 0.75rem;
@@ -638,7 +638,7 @@ a {
     gap: 0.6rem;
 }
 
-.dashboard-catalog__section-card h3 {
+.showcase-catalog__section-card h3 {
     margin: 0;
     font:
         600 0.86rem/1.1 "Inter",
@@ -671,27 +671,27 @@ a {
     width: 100%;
 }
 
-.dashboard-catalog__badge-row {
+.showcase-catalog__badge-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
 }
 
-.dashboard-catalog .ui-button,
-.dashboard-catalog .oauth-provider-list .ui-button {
+.showcase-catalog .ui-button,
+.showcase-catalog .oauth-provider-list .ui-button {
     width: min(21rem, 100%);
     min-width: 14rem;
     justify-self: start;
 }
 
-.dashboard-catalog__oauth-row {
+.showcase-catalog__oauth-row {
     display: flex;
     flex-wrap: nowrap;
     gap: 0.65rem;
 }
 
-.dashboard-catalog__oauth-row .ui-button {
+.showcase-catalog__oauth-row .ui-button {
     width: 17rem;
     min-width: 17rem;
 }

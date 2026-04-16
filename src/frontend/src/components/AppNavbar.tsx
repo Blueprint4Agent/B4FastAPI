@@ -44,7 +44,7 @@ export function AppNavbar() {
                 <Link
                     to="/show-case"
                     className="app-nav__brand"
-                    aria-label={t("nav.aria.goDashboard")}
+                    aria-label={t("nav.aria.goShowCase")}
                 >
                     <BrandMark className="brand-mark--nav" />
                 </Link>

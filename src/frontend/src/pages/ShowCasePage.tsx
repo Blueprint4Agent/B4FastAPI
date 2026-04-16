@@ -47,7 +47,7 @@ function ShowcaseItem({
     );
 }
 
-export function DashboardPage() {
+export function ShowCasePage() {
     const { t } = useTranslation();
     const { user } = useAuthContext();
     const navigate = useNavigate();
@@ -78,18 +78,18 @@ export function DashboardPage() {
     ];
 
     return (
-        <section className="dashboard-catalog">
-            <header className="dashboard-catalog__header">
-                <h1>{t("dashboard.title")}</h1>
-                <p>{t("dashboard.subtitle")}</p>
+        <section className="showcase-catalog">
+            <header className="showcase-catalog__header">
+                <h1>{t("showCase.title")}</h1>
+                <p>{t("showCase.subtitle")}</p>
             </header>
 
-            <section className="dashboard-catalog__group">
+            <section className="showcase-catalog__group">
                 <h2>Buttons & Components</h2>
-                <div className="dashboard-catalog__components">
-                    <div className="dashboard-catalog__section-card">
+                <div className="showcase-catalog__components">
+                    <div className="showcase-catalog__section-card">
                         <h3>Brand & Theme</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="BrandMark">
                                 <BrandMark />
                             </ShowcaseItem>
@@ -102,9 +102,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Buttons</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="Button">
                                 <Button>Primary button</Button>
                             </ShowcaseItem>
@@ -115,7 +115,7 @@ export function DashboardPage() {
                                 <Button disabled>Disabled button</Button>
                             </ShowcaseItem>
                             <ShowcaseItem component="OAuthProviderButton (google/github)">
-                                <div className="dashboard-catalog__oauth-row">
+                                <div className="showcase-catalog__oauth-row">
                                     <OAuthProviderButton
                                         provider="google"
                                         label="Continue with Google"
@@ -131,9 +131,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Dropdown</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="DropdownMenu">
                                 <DropdownMenu
                                     triggerLabel="Open menu"
@@ -148,9 +148,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Menu</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="MenuList">
                                 <MenuList
                                     items={sampleMenuItems}
@@ -162,9 +162,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Inputs</h3>
-                        <div className="dashboard-catalog__stack">
+                        <div className="showcase-catalog__stack">
                             <ShowcaseItem component="InputField">
                                 <InputField
                                     label="Sample input"
@@ -190,18 +190,18 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Data Views</h3>
-                        <div className="dashboard-catalog__stack">
+                        <div className="showcase-catalog__stack">
                             <ShowcaseItem component="StatusBadge">
-                                <div className="dashboard-catalog__badge-row">
+                                <div className="showcase-catalog__badge-row">
                                     <StatusBadge tone="active">Active</StatusBadge>
                                     <StatusBadge tone="inactive">Inactive</StatusBadge>
                                     <StatusBadge tone="info">Info</StatusBadge>
                                 </div>
                             </ShowcaseItem>
                             <ShowcaseItem component="InlineMessage">
-                                <div className="dashboard-catalog__stack">
+                                <div className="showcase-catalog__stack">
                                     <InlineMessage tone="info">
                                         Name updated successfully.
                                     </InlineMessage>
@@ -244,9 +244,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Modal</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="Modal + ModalButton">
                                 <ModalButton
                                     variant="save"
@@ -290,9 +290,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Spinners</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="Spinner (sm)">
                                 <Spinner size="sm" label="Small spinner" />
                             </ShowcaseItem>
@@ -305,9 +305,9 @@ export function DashboardPage() {
                         </div>
                     </div>
 
-                    <div className="dashboard-catalog__section-card">
+                    <div className="showcase-catalog__section-card">
                         <h3>Pages</h3>
-                        <div className="dashboard-catalog__row">
+                        <div className="showcase-catalog__row">
                             <ShowcaseItem component="LoadingPage">
                                 <Button
                                     type="button"
@@ -326,10 +326,10 @@ export function DashboardPage() {
                 </div>
             </section>
 
-            <section className="dashboard-catalog__group">
+            <section className="showcase-catalog__group">
                 <h2>Cards</h2>
-                <div className="dashboard-catalog__cards">
-                    <ShowcaseItem component="PanelCard" className="dashboard-catalog__panel-demo">
+                <div className="showcase-catalog__cards">
+                    <ShowcaseItem component="PanelCard" className="showcase-catalog__panel-demo">
                         <PanelCard
                             title="Panel Card"
                             subtitle="Generic container card used across auth screens."
@@ -340,15 +340,15 @@ export function DashboardPage() {
                     <ShowcaseItem component="KeyValueCard">
                         <dl className="meta">
                             <KeyValueCard
-                                label={t("dashboard.labels.userId")}
+                                label={t("showCase.labels.userId")}
                                 value={user?.id ?? "-"}
                             />
                             <KeyValueCard
-                                label={t("dashboard.labels.name")}
+                                label={t("showCase.labels.name")}
                                 value={user?.name ?? "-"}
                             />
                             <KeyValueCard
-                                label={t("dashboard.labels.email")}
+                                label={t("showCase.labels.email")}
                                 value={user?.email ?? "-"}
                             />
                         </dl>
@@ -374,7 +374,7 @@ export function DashboardPage() {
                     </ShowcaseItem>
                     <ShowcaseItem component="OAuthOptionsCard">
                         <OAuthOptionsCard title="Option Card">
-                            <div className="dashboard-catalog__stack">
+                            <div className="showcase-catalog__stack">
                                 <Button type="button">Option item 1</Button>
                                 <Button type="button">Option item 2</Button>
                             </div>

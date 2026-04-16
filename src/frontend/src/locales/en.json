@@ -159,9 +159,9 @@
             "fallback": "Verification failed. The link may be expired or invalid."
         }
     },
-    "dashboard": {
-        "title": "Show Case",
-        "subtitle": "Review these components and instruct the Agent which ones to use for your screen.",
+    "showCase": {
+        "title": "ShowCase Page",
+        "subtitle": "This is the ShowCase page. Review these components and instruct the Agent which ones to use for your screen.",
         "labels": {
             "userId": "User ID",
             "name": "Name",
@@ -173,7 +173,7 @@
     "nav": {
         "profileMenu": "Profile menu",
         "pageTitles": {
-            "showCase": "Show Case",
+            "showCase": "ShowCase Page",
             "settings": "Settings",
             "loading": "Loading",
             "notFound": "Not Found 404"
@@ -182,7 +182,7 @@
         "logoutIdle": "Sign out",
         "logoutBusy": "Signing out...",
         "aria": {
-            "goDashboard": "Go to dashboard",
+            "goShowCase": "Go to ShowCase page",
             "openMenu": "Open profile menu"
         }
     },

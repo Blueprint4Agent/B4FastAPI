@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { AppNavbar } from "./components/AppNavbar";
 import { useAuthContext } from "./hooks/useAuth";
 import { useTheme } from "./hooks/useTheme";
-import { DashboardPage } from "./pages/DashboardPage";
+import { ShowCasePage } from "./pages/ShowCasePage";
 import { ForgotPasswordEmailSentPage } from "./pages/ForgotPasswordEmailSentPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -80,7 +80,7 @@ export function App() {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route element={<ProtectedLayout />}>
                 <Route path="/dashboard" element={<Navigate to="/show-case" replace />} />
-                <Route path="/show-case" element={<DashboardPage />} />
+                <Route path="/show-case" element={<ShowCasePage />} />
                 <Route
                     path="/show-case/loading"
                     element={<LoadingPage message="Loading preview..." />}
