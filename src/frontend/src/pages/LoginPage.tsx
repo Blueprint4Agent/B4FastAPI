@@ -41,6 +41,7 @@ export function LoginPage() {
     const [oauthProviders, setOAuthProviders] = useState<
         Array<{ provider: OAuthProvider; start_path: string }>
     >([]);
+    const loginEnabled = appConfig?.login_enabled !== false;
     const emailEnabled = appConfig?.email_enabled === true;
     const oauthEnabled = appConfig?.oauth_enabled === true;
 
@@ -68,7 +69,7 @@ export function LoginPage() {
 
     useEffect(() => {
         const run = async () => {
-            if (!oauthEnabled) {
+            if (!oauthEnabled || !loginEnabled) {
                 setOAuthProviders([]);
                 return;
             }
@@ -80,7 +81,7 @@ export function LoginPage() {
             }
         };
         void run();
-    }, [oauthEnabled]);
+    }, [oauthEnabled, loginEnabled]);
 
     const onSubmit = async (event: FormEvent) => {
         event.preventDefault();
@@ -89,6 +90,12 @@ export function LoginPage() {
         setPasswordErrorMessage("");
         setShowResendButton(false);
         setResendMessage("");
+
+        if (!loginEnabled) {
+            setPasswordErrorMessage(t("auth.errors.loginDisabled"));
+            setSubmitting(false);
+            return;
+        }
 
         if (!email.trim()) {
             setEmailErrorMessage(t("auth.errors.requiredEmail"));
@@ -180,67 +187,75 @@ export function LoginPage() {
             <div className="auth-panel-stack">
                 <BrandMark className="brand-mark--login" />
                 <PanelCard title={t("login.title")} subtitle={t("login.subtitle")}>
-                    <form onSubmit={onSubmit} className="form" noValidate>
-                        <InputField
-                            label={t("login.fields.email")}
-                            type="email"
-                            autoComplete="email"
-                            value={email}
-                            onValueChange={(value) => {
-                                setEmail(value);
-                                if (emailErrorMessage || resendMessage || showResendButton) {
-                                    setEmailErrorMessage("");
-                                    setResendMessage("");
-                                    setShowResendButton(false);
-                                }
-                            }}
-                        />
-                        {emailErrorMessage ? (
-                            <InlineMessage>{emailErrorMessage}</InlineMessage>
-                        ) : null}
-                        {showResendButton ? (
-                            <div className="login-inline-actions">
-                                <Button
-                                    type="button"
-                                    loading={resending}
-                                    onClick={onResendVerification}
-                                >
-                                    {t("auth.actions.resendVerification")}
-                                </Button>
+                    {loginEnabled ? (
+                        <form onSubmit={onSubmit} className="form" noValidate>
+                            <InputField
+                                label={t("login.fields.email")}
+                                type="email"
+                                autoComplete="email"
+                                value={email}
+                                onValueChange={(value) => {
+                                    setEmail(value);
+                                    if (emailErrorMessage || resendMessage || showResendButton) {
+                                        setEmailErrorMessage("");
+                                        setResendMessage("");
+                                        setShowResendButton(false);
+                                    }
+                                }}
+                            />
+                            {emailErrorMessage ? (
+                                <InlineMessage>{emailErrorMessage}</InlineMessage>
+                            ) : null}
+                            {showResendButton ? (
+                                <div className="login-inline-actions">
+                                    <Button
+                                        type="button"
+                                        loading={resending}
+                                        onClick={onResendVerification}
+                                    >
+                                        {t("auth.actions.resendVerification")}
+                                    </Button>
+                                </div>
+                            ) : null}
+                            {resendMessage ? (
+                                <InlineMessage tone="info">{resendMessage}</InlineMessage>
+                            ) : null}
+                            <InputField
+                                label={t("login.fields.password")}
+                                type="password"
+                                autoComplete="current-password"
+                                value={password}
+                                onValueChange={(value) => {
+                                    setPassword(value);
+                                    if (passwordErrorMessage) {
+                                        setPasswordErrorMessage("");
+                                    }
+                                }}
+                            />
+                            {passwordErrorMessage ? (
+                                <InlineMessage>{passwordErrorMessage}</InlineMessage>
+                            ) : null}
+                            <div className="login-remember-options">
+                                <FormCheckbox
+                                    checked={rememberEmail}
+                                    onCheckedChange={setRememberEmail}
+                                    label={t("login.rememberEmail")}
+                                />
+                                <FormCheckbox
+                                    checked={rememberMe}
+                                    onCheckedChange={setRememberMe}
+                                    label={t("login.rememberMe")}
+                                />
                             </div>
-                        ) : null}
-                        {resendMessage ? <InlineMessage tone="info">{resendMessage}</InlineMessage> : null}
-                        <InputField
-                            label={t("login.fields.password")}
-                            type="password"
-                            autoComplete="current-password"
-                            value={password}
-                            onValueChange={(value) => {
-                                setPassword(value);
-                                if (passwordErrorMessage) {
-                                    setPasswordErrorMessage("");
-                                }
-                            }}
-                        />
-                        {passwordErrorMessage ? (
-                            <InlineMessage>{passwordErrorMessage}</InlineMessage>
-                        ) : null}
-                        <div className="login-remember-options">
-                            <FormCheckbox
-                                checked={rememberEmail}
-                                onCheckedChange={setRememberEmail}
-                                label={t("login.rememberEmail")}
-                            />
-                            <FormCheckbox
-                                checked={rememberMe}
-                                onCheckedChange={setRememberMe}
-                                label={t("login.rememberMe")}
-                            />
+                            <Button type="submit" loading={submitting}>
+                                {t("login.submitIdle")}
+                            </Button>
+                        </form>
+                    ) : (
+                        <div className="form">
+                            <InlineMessage>{t("auth.errors.loginDisabled")}</InlineMessage>
                         </div>
-                        <Button type="submit" loading={submitting}>
-                            {t("login.submitIdle")}
-                        </Button>
-                    </form>
+                    )}
                     <p className="muted auth-footer">
                         {t("login.signupPrompt")}{" "}
                         <Link to="/signup" className="text-link">
@@ -255,7 +270,7 @@ export function LoginPage() {
                             </Link>
                         </p>
                     ) : null}
-                    {oauthProviders.length > 0 ? (
+                    {loginEnabled && oauthProviders.length > 0 ? (
                         <OAuthOptionsCard title={t("login.oauth.divider")}>
                             <div className="oauth-provider-list">
                                 {oauthProviders.map((item) => (

@@ -81,6 +81,9 @@ npm run dev
     - `DB_DRIVER=sqlite+aiosqlite` for zero-setup local DB
     - switch to `postgresql+asyncpg` for Docker/Postgres mode
     - `REDIS_IN_MEMORY=true` allows backend execution without external Redis
+    - `LOGIN_ENABLED=false` disables all login entry points (`/api/v1/auth/login`, `/token`, OAuth login)
+    - when `LOGIN_ENABLED=false`, backend also forces `OAUTH_ENABLED=false` and `EMAIL_ENABLED=false` (SMTP disabled)
+    - when `LOGIN_ENABLED=false`, set only `BOOTSTRAP_USER_EMAIL` and `BOOTSTRAP_USER_NAME`; if that user does not exist, backend creates it on startup
 - `src/frontend/.env`
     - `VITE_API_BASE_URL` should point to backend host
 

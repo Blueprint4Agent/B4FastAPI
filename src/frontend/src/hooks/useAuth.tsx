@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 
 import type { User } from "../api/authApi";
 import * as authApi from "../api/authApi";
+import { apiClient } from "../api/http";
+import type { paths } from "../api/generated/openapi";
 import { clearAccessToken, getAccessToken, setAccessToken } from "../store/session";
 
 type AuthContextValue = {
@@ -15,6 +17,7 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+type AppConfig = paths["/config"]["get"]["responses"][200]["content"]["application/json"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -46,6 +49,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // This bootstrap flow is the single place to plug SSO/session policies.
         const bootstrap = async () => {
             try {
+                const { data: appConfig } = await apiClient.GET("/config");
+                const config = appConfig as AppConfig | undefined;
+                if (config?.login_enabled === false) {
+                    if (config.bootstrap_access_token) {
+                        setAccessToken(config.bootstrap_access_token);
+                    } else {
+                        clearAccessToken();
+                    }
+                    setUser(config.bootstrap_user ?? null);
+                    return;
+                }
+
                 const token = getAccessToken();
                 if (token) {
                     try {

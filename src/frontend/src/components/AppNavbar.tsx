@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthContext } from "../hooks/useAuth";
+import { useAppConfig } from "../hooks/useFeatures";
 import { useTheme } from "../hooks/useTheme";
 import { BrandMark, ProfileDropdown } from "./ui";
 
@@ -11,8 +12,10 @@ export function AppNavbar() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user, logout } = useAuthContext();
+    const { data: appConfig } = useAppConfig();
     const { themeMode, setThemeMode } = useTheme();
     const [busy, setBusy] = useState(false);
+    const loginEnabled = appConfig?.login_enabled !== false;
 
     const displayName = user?.name?.trim() || user?.email || "User";
     const avatarLabel = displayName.slice(0, 1).toUpperCase();
@@ -57,6 +60,7 @@ export function AppNavbar() {
                     email={user?.email}
                     onLogout={() => void onLogout()}
                     onChangeTheme={setThemeMode}
+                    showLogout={loginEnabled && Boolean(user)}
                     themeMode={themeMode}
                 />
             </div>

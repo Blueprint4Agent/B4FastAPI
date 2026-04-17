@@ -8,13 +8,19 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from app.core.error import AuthException
 from app.core.database import dispose_db, init_db
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
+from app.models.user import UserResponse
+from app.models.user import Users
 from app.routers.v1 import api_key, auth
+from app.utils.token import create_access_token
 
 logger = logging.getLogger("uvicorn.error")
+BOOTSTRAP_USER: UserResponse | None = None
+BOOTSTRAP_ACCESS_TOKEN: str | None = None
 
 
 class AppConfigResponse(BaseModel):
@@ -24,10 +30,13 @@ class AppConfigResponse(BaseModel):
     email_enabled: bool
     oauth_enabled: bool
     oauth_providers: list[str]
+    bootstrap_user: UserResponse | None = None
+    bootstrap_access_token: str | None = None
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    global BOOTSTRAP_USER, BOOTSTRAP_ACCESS_TOKEN
     if not SETTINGS.OAUTH_ENABLED:
         logger.info("OAuth integration is disabled.")
     else:
@@ -44,6 +53,40 @@ async def lifespan(_app: FastAPI):
 
     await MAIL_SERVICE.initialize()
     await init_db()
+    if not SETTINGS.LOGIN_ENABLED:
+        bootstrap_email = SETTINGS.BOOTSTRAP_USER_EMAIL.strip().lower()
+        bootstrap_name = SETTINGS.BOOTSTRAP_USER_NAME.strip()
+
+        if bootstrap_email and bootstrap_name:
+            bootstrap_user = await Users.get_user_response_by_email(bootstrap_email)
+            if bootstrap_user is None:
+                # Bootstrap user for login-disabled mode.
+                try:
+                    await Users.create_oauth_user(
+                        email=bootstrap_email,
+                        name=bootstrap_name,
+                        provider="bootstrap",
+                        identifier=bootstrap_email,
+                        is_verified=True,
+                    )
+                except AuthException:
+                    # Another startup worker may create it concurrently.
+                    pass
+                bootstrap_user = await Users.get_user_response_by_email(bootstrap_email)
+            BOOTSTRAP_USER = bootstrap_user
+            if bootstrap_user is not None:
+                BOOTSTRAP_ACCESS_TOKEN = create_access_token(
+                    subject=str(bootstrap_user.id),
+                    email=bootstrap_user.email,
+                )
+            else:
+                BOOTSTRAP_ACCESS_TOKEN = None
+        else:
+            BOOTSTRAP_USER = None
+            BOOTSTRAP_ACCESS_TOKEN = None
+    else:
+        BOOTSTRAP_USER = None
+        BOOTSTRAP_ACCESS_TOKEN = None
     try:
         yield
     finally:
@@ -88,11 +131,15 @@ def create_app() -> FastAPI:
     async def config():
         return {
             "api_base_path": "/api/v1",
-            "login_enabled": True,
+            "login_enabled": SETTINGS.LOGIN_ENABLED,
             "frontend_base_path": "",
             "email_enabled": SETTINGS.EMAIL_ENABLED,
             "oauth_enabled": SETTINGS.OAUTH_ENABLED,
             "oauth_providers": SETTINGS.oauth_provider_list if SETTINGS.OAUTH_ENABLED else [],
+            "bootstrap_user": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER,
+            "bootstrap_access_token": None
+            if SETTINGS.LOGIN_ENABLED
+            else BOOTSTRAP_ACCESS_TOKEN,
         }
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])

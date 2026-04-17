@@ -15,6 +15,7 @@ import {
 } from "../components/ui";
 import { DeveloperApiKeysSection } from "../components/DeveloperApiKeysSection";
 import { useAuthContext } from "../hooks/useAuth";
+import { useAppConfig } from "../hooks/useFeatures";
 import { useTheme } from "../hooks/useTheme";
 
 type SaveFeedback = {
@@ -40,12 +41,14 @@ const CONNECTED_OAUTH_PROVIDER_LOGOS: Record<string, { light: string; dark: stri
 export function SettingsPage() {
     const { t, i18n } = useTranslation();
     const { user, updateProfile } = useAuthContext();
+    const { data: appConfig } = useAppConfig();
     const { themeMode, setThemeMode } = useTheme();
     const [activeMenu, setActiveMenu] = useState<SettingsMenuKey>("profile");
     const [nameInput, setNameInput] = useState("");
     const [profileImageInput, setProfileImageInput] = useState<string | null>(null);
     const [saveBusy, setSaveBusy] = useState(false);
     const [saveFeedback, setSaveFeedback] = useState<SaveFeedback>(null);
+    const loginEnabled = appConfig?.login_enabled !== false;
 
     const showProfile = activeMenu === "profile";
     const showDevelopers = activeMenu === "developers";
@@ -260,56 +263,58 @@ export function SettingsPage() {
                                     <p>{user?.email ?? "-"}</p>
                                 </article>
 
-                                <article className="settings-profile-field-card">
-                                    <h2>{t("settings.profile.oauthConnectedTitle")}</h2>
-                                    {connectedOAuthProviders.length > 0 ? (
-                                        <div className="settings-oauth-provider-list">
-                                            {connectedOAuthProviders.map((provider) => (
-                                                <Button
-                                                    key={provider}
-                                                    className="settings-oauth-provider-button"
-                                                    type="button"
-                                                    disabled
-                                                >
-                                                    <span className="settings-oauth-provider-button__content">
-                                                        {CONNECTED_OAUTH_PROVIDER_LOGOS[
-                                                            provider
-                                                        ] ? (
-                                                            <span
-                                                                className="oauth-provider-button__logo-wrap"
-                                                                aria-hidden="true"
-                                                            >
-                                                                <img
-                                                                    src={
-                                                                        CONNECTED_OAUTH_PROVIDER_LOGOS[
-                                                                            provider
-                                                                        ].dark
-                                                                    }
-                                                                    alt=""
-                                                                    className={`oauth-provider-button__logo oauth-provider-button__logo--dark oauth-provider-button__logo--${provider}`}
-                                                                />
-                                                                <img
-                                                                    src={
-                                                                        CONNECTED_OAUTH_PROVIDER_LOGOS[
-                                                                            provider
-                                                                        ].light
-                                                                    }
-                                                                    alt=""
-                                                                    className={`oauth-provider-button__logo oauth-provider-button__logo--light oauth-provider-button__logo--${provider}`}
-                                                                />
+                                {loginEnabled ? (
+                                    <article className="settings-profile-field-card">
+                                        <h2>{t("settings.profile.oauthConnectedTitle")}</h2>
+                                        {connectedOAuthProviders.length > 0 ? (
+                                            <div className="settings-oauth-provider-list">
+                                                {connectedOAuthProviders.map((provider) => (
+                                                    <Button
+                                                        key={provider}
+                                                        className="settings-oauth-provider-button"
+                                                        type="button"
+                                                        disabled
+                                                    >
+                                                        <span className="settings-oauth-provider-button__content">
+                                                            {CONNECTED_OAUTH_PROVIDER_LOGOS[
+                                                                provider
+                                                            ] ? (
+                                                                <span
+                                                                    className="oauth-provider-button__logo-wrap"
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    <img
+                                                                        src={
+                                                                            CONNECTED_OAUTH_PROVIDER_LOGOS[
+                                                                                provider
+                                                                            ].dark
+                                                                        }
+                                                                        alt=""
+                                                                        className={`oauth-provider-button__logo oauth-provider-button__logo--dark oauth-provider-button__logo--${provider}`}
+                                                                    />
+                                                                    <img
+                                                                        src={
+                                                                            CONNECTED_OAUTH_PROVIDER_LOGOS[
+                                                                                provider
+                                                                            ].light
+                                                                        }
+                                                                        alt=""
+                                                                        className={`oauth-provider-button__logo oauth-provider-button__logo--light oauth-provider-button__logo--${provider}`}
+                                                                    />
+                                                                </span>
+                                                            ) : null}
+                                                            <span className="settings-oauth-provider-button__label">
+                                                                {resolveOAuthProviderLabel(provider)}
                                                             </span>
-                                                        ) : null}
-                                                        <span className="settings-oauth-provider-button__label">
-                                                            {resolveOAuthProviderLabel(provider)}
                                                         </span>
-                                                    </span>
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <p>{t("settings.profile.oauthConnectedEmpty")}</p>
-                                    )}
-                                </article>
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p>{t("settings.profile.oauthConnectedEmpty")}</p>
+                                        )}
+                                    </article>
+                                ) : null}
                             </div>
 
                             <aside className="settings-profile-photo-panel">

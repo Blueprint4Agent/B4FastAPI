@@ -334,13 +334,7 @@ export interface components {
              * @example API_KEY_NOT_FOUND
              * @enum {string}
              */
-            error:
-                | "API_KEY_INVALID"
-                | "API_KEY_USER_MISMATCH"
-                | "API_KEY_CREATE_FAILED"
-                | "API_KEY_NAME_ALREADY_EXISTS"
-                | "API_KEY_NOT_FOUND"
-                | "API_KEY_UPDATE_FAILED";
+            error: "API_KEY_INVALID" | "API_KEY_USER_MISMATCH" | "API_KEY_CREATE_FAILED" | "API_KEY_NAME_ALREADY_EXISTS" | "API_KEY_NOT_FOUND" | "API_KEY_UPDATE_FAILED";
             /** Message */
             message: string;
             /** Details */
@@ -394,6 +388,9 @@ export interface components {
             oauth_enabled: boolean;
             /** Oauth Providers */
             oauth_providers: string[];
+            bootstrap_user?: components["schemas"]["UserResponse"] | null;
+            /** Bootstrap Access Token */
+            bootstrap_access_token?: string | null;
         };
         /** AuthErrorDetail */
         AuthErrorDetail: {
@@ -402,21 +399,7 @@ export interface components {
              * @example INVALID_TOKEN
              * @enum {string}
              */
-            error:
-                | "SIGNUP_FAILED"
-                | "EMAIL_ALREADY_EXISTS"
-                | "INVALID_CREDENTIALS"
-                | "ACCOUNT_LOCKED"
-                | "EMAIL_NOT_VERIFIED"
-                | "EMAIL_DISABLED"
-                | "INVALID_TOKEN"
-                | "USER_NOT_FOUND"
-                | "PROFILE_UPDATE_FAILED"
-                | "OAUTH_PROVIDER_NOT_ENABLED"
-                | "OAUTH_PROVIDER_CONFIG_INVALID"
-                | "OAUTH_IDENTITY_CONFLICT"
-                | "OAUTH_SIGNUP_FAILED"
-                | "OAUTH_PROVIDER_REQUEST_FAILED";
+            error: "SIGNUP_FAILED" | "EMAIL_ALREADY_EXISTS" | "INVALID_CREDENTIALS" | "ACCOUNT_LOCKED" | "EMAIL_NOT_VERIFIED" | "LOGIN_DISABLED" | "EMAIL_DISABLED" | "INVALID_TOKEN" | "USER_NOT_FOUND" | "PROFILE_UPDATE_FAILED" | "OAUTH_PROVIDER_NOT_ENABLED" | "OAUTH_PROVIDER_CONFIG_INVALID" | "OAUTH_IDENTITY_CONFLICT" | "OAUTH_SIGNUP_FAILED" | "OAUTH_PROVIDER_REQUEST_FAILED";
             /** Message */
             message: string;
             /** Details */
@@ -765,6 +748,23 @@ export interface operations {
                     "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
             /** @description Internal Server Error */
             500: {
                 headers: {
@@ -815,6 +815,23 @@ export interface operations {
                      *       "detail": {
                      *         "error": "OAUTH_PROVIDER_NOT_ENABLED",
                      *         "message": "The requested OAuth provider is not enabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
                      *       }
                      *     }
                      */
@@ -884,6 +901,23 @@ export interface operations {
                      *       "detail": {
                      *         "error": "INVALID_TOKEN",
                      *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
                      *       }
                      *     }
                      */
@@ -1000,8 +1034,8 @@ export interface operations {
                     /**
                      * @example {
                      *       "detail": {
-                     *         "error": "EMAIL_NOT_VERIFIED",
-                     *         "message": "Email verification is required."
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
                      *       }
                      *     }
                      */
@@ -1104,8 +1138,8 @@ export interface operations {
                     /**
                      * @example {
                      *       "detail": {
-                     *         "error": "EMAIL_NOT_VERIFIED",
-                     *         "message": "Email verification is required."
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
                      *       }
                      *     }
                      */

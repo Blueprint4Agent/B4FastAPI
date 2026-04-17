@@ -46,7 +46,12 @@ from app.utils.token import (
 
 
 class AuthService:
+    def _ensure_login_enabled(self) -> None:
+        if not SETTINGS.LOGIN_ENABLED:
+            raise AuthException(code=AuthErrorCode.LOGIN_DISABLED)
+
     def get_oauth_provider_configs(self) -> list[OAuthProviderConfig]:
+        self._ensure_login_enabled()
         if not SETTINGS.OAUTH_ENABLED:
             return []
 
@@ -196,6 +201,7 @@ class AuthService:
     async def login(
         self, form: LoginForm, request: Request, refresh_session_id: str
     ) -> LoginResponse:
+        self._ensure_login_enabled()
         user_ip = self._get_client_ip(request)
         await self._check_login_limit(user_ip)
 

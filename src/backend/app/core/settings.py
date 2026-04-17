@@ -32,6 +32,9 @@ class Settings(BaseModel):
     )
     LOGIN_FAILED_LIMIT: int = int(os.getenv("LOGIN_FAILED_LIMIT", "5"))
     LOGIN_LOCKED_MINUTES: int = int(os.getenv("LOGIN_LOCKED_MINUTES", "5"))
+    LOGIN_ENABLED: bool = os.getenv("LOGIN_ENABLED", "true").lower() == "true"
+    BOOTSTRAP_USER_EMAIL: str = os.getenv("BOOTSTRAP_USER_EMAIL", "demo@example.com")
+    BOOTSTRAP_USER_NAME: str = os.getenv("BOOTSTRAP_USER_NAME", "Demo User")
 
     DB_DRIVER: str = os.getenv("DB_DRIVER", "sqlite+aiosqlite")
     DB_NAME: str = os.getenv("DB_NAME", "template.db")
@@ -92,6 +95,11 @@ class Settings(BaseModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
+        # When login is globally disabled, auth entry integrations must also stay off.
+        if not self.LOGIN_ENABLED:
+            object.__setattr__(self, "EMAIL_ENABLED", False)
+            object.__setattr__(self, "OAUTH_ENABLED", False)
 
         if self.DB_DRIVER.startswith("sqlite"):
             db_file = self.ROOT_DIR / self.DB_NAME
@@ -185,6 +193,5 @@ class Settings(BaseModel):
                 )
 
         return errors
-
 
 SETTINGS = Settings()

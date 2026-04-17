@@ -15,6 +15,7 @@ type ProfileDropdownProps = {
     email?: string;
     onLogout: () => void;
     onChangeTheme: (mode: ThemeMode) => void;
+    showLogout: boolean;
     themeMode: ThemeMode;
 };
 
@@ -26,6 +27,7 @@ export function ProfileDropdown({
     email,
     onLogout,
     onChangeTheme,
+    showLogout,
     themeMode,
 }: ProfileDropdownProps) {
     const { t } = useTranslation();
@@ -94,18 +96,20 @@ export function ProfileDropdown({
                         </span>
                         <span>{t("nav.settings")}</span>
                     </Link>
-                    <button
-                        type="button"
-                        className="profile-menu__item profile-menu__item--danger"
-                        role="menuitem"
-                        onClick={onLogout}
-                        disabled={busy}
-                    >
-                        <span className="profile-menu__item-icon" aria-hidden="true">
-                            <LogOut />
-                        </span>
-                        <span>{busy ? t("nav.logoutBusy") : t("nav.logoutIdle")}</span>
-                    </button>
+                    {showLogout ? (
+                        <button
+                            type="button"
+                            className="profile-menu__item profile-menu__item--danger"
+                            role="menuitem"
+                            onClick={onLogout}
+                            disabled={busy}
+                        >
+                            <span className="profile-menu__item-icon" aria-hidden="true">
+                                <LogOut />
+                            </span>
+                            <span>{busy ? t("nav.logoutBusy") : t("nav.logoutIdle")}</span>
+                        </button>
+                    ) : null}
                     <ThemeToggleButton
                         className="profile-menu__item"
                         role="menuitem"

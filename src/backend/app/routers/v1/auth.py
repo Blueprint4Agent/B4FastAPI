@@ -55,6 +55,7 @@ async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
     "/oauth/providers",
     response_model=OAuthProvidersResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
         AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
     ),
@@ -70,6 +71,7 @@ async def oauth_providers(service: AuthService = Depends(AuthService)):
 @router.get(
     "/oauth/{provider}/start",
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
         AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
     ),
@@ -91,6 +93,7 @@ async def oauth_start(
     "/oauth/{provider}/callback",
     name="oauth_callback",
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.INVALID_TOKEN,
         AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
         AuthErrorCode.OAUTH_SIGNUP_FAILED,
@@ -163,6 +166,7 @@ async def oauth_callback(
     "/token",
     response_model=LoginResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.INVALID_CREDENTIALS,
         AuthErrorCode.EMAIL_NOT_VERIFIED,
         AuthErrorCode.ACCOUNT_LOCKED,
@@ -190,6 +194,7 @@ async def oauth_token_login(
     "/login",
     response_model=LoginResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.INVALID_CREDENTIALS,
         AuthErrorCode.EMAIL_NOT_VERIFIED,
         AuthErrorCode.ACCOUNT_LOCKED,

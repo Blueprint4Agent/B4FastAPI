@@ -36,6 +36,11 @@ class AuthErrorCode(Enum):
         "Email verification is required.",
         status.HTTP_403_FORBIDDEN,
     )
+    LOGIN_DISABLED = ServiceErrorCode(
+        "LOGIN_DISABLED",
+        "Login is currently disabled.",
+        status.HTTP_403_FORBIDDEN,
+    )
     EMAIL_DISABLED = ServiceErrorCode(
         "EMAIL_DISABLED",
         "Email-based features are disabled.",

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { AppNavbar } from "./components/AppNavbar";
 import { useAuthContext } from "./hooks/useAuth";
+import { useAppConfig } from "./hooks/useFeatures";
 import { useTheme } from "./hooks/useTheme";
 import { ShowCasePage } from "./pages/ShowCasePage";
 import { ForgotPasswordEmailSentPage } from "./pages/ForgotPasswordEmailSentPage";
@@ -17,14 +18,20 @@ import { SignupEmailSentPage } from "./pages/SignupEmailSentPage";
 import { SignupPage } from "./pages/SignupPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 
-function ProtectedLayout() {
+function ProtectedLayout({
+    loginEnabled,
+    configLoading,
+}: {
+    loginEnabled: boolean;
+    configLoading: boolean;
+}) {
     const { user, loading } = useAuthContext();
     const { t } = useTranslation();
 
-    if (loading) {
+    if (loading || configLoading) {
         return <LoadingPage message={t("app.loadingSession")} />;
     }
-    if (!user) {
+    if (loginEnabled && !user) {
         return <Navigate to="/login" replace />;
     }
 
@@ -38,14 +45,20 @@ function ProtectedLayout() {
     );
 }
 
-function NotFoundRoute() {
+function NotFoundRoute({
+    loginEnabled,
+    configLoading,
+}: {
+    loginEnabled: boolean;
+    configLoading: boolean;
+}) {
     const { user, loading } = useAuthContext();
 
-    if (loading) {
+    if (loading || configLoading) {
         return <LoadingPage />;
     }
 
-    if (user) {
+    if (user || !loginEnabled) {
         return (
             <div className="app-shell">
                 <AppNavbar />
@@ -65,11 +78,16 @@ function NotFoundRoute() {
 
 export function App() {
     useTheme();
+    const { data: appConfig, loading: configLoading } = useAppConfig();
+    const loginEnabled = appConfig?.login_enabled !== false;
 
     return (
         <Routes>
             <Route path="/" element={<Navigate to="/show-case" replace />} />
-            <Route path="/login" element={<LoginPage />} />
+            <Route
+                path="/login"
+                element={loginEnabled ? <LoginPage /> : <Navigate to="/show-case" replace />}
+            />
             <Route path="/loading" element={<LoadingPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/signup/email-sent" element={<SignupEmailSentPage />} />
@@ -78,7 +96,7 @@ export function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/reset-password/success" element={<ResetPasswordSuccessPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route element={<ProtectedLayout />}>
+            <Route element={<ProtectedLayout loginEnabled={loginEnabled} configLoading={configLoading} />}>
                 <Route path="/dashboard" element={<Navigate to="/show-case" replace />} />
                 <Route path="/show-case" element={<ShowCasePage />} />
                 <Route
@@ -88,7 +106,10 @@ export function App() {
                 <Route path="/show-case/404" element={<ShowCaseNotFoundPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Route>
-            <Route path="*" element={<NotFoundRoute />} />
+            <Route
+                path="*"
+                element={<NotFoundRoute loginEnabled={loginEnabled} configLoading={configLoading} />}
+            />
         </Routes>
     );
 }
