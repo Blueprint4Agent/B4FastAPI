@@ -8,13 +8,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.core.error import AuthException
 from app.core.database import dispose_db, init_db
+from app.core.error import AuthException
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
-from app.models.user import UserResponse
-from app.models.user import Users
+from app.models.user import UserResponse, Users
 from app.routers.v1 import api_key, auth
 from app.utils.token import create_access_token
 
@@ -137,9 +136,7 @@ def create_app() -> FastAPI:
             "oauth_enabled": SETTINGS.OAUTH_ENABLED,
             "oauth_providers": SETTINGS.oauth_provider_list if SETTINGS.OAUTH_ENABLED else [],
             "bootstrap_user": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER,
-            "bootstrap_access_token": None
-            if SETTINGS.LOGIN_ENABLED
-            else BOOTSTRAP_ACCESS_TOKEN,
+            "bootstrap_access_token": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_ACCESS_TOKEN,
         }
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])

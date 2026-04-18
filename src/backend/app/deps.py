@@ -104,8 +104,6 @@ async def get_current_user(
         )
 
     if token_user is not None and api_key_user is not None and token_user.id != api_key_user.id:
-        raise service_exception_to_http(
-            APIKeyException(code=APIKeyErrorCode.API_KEY_USER_MISMATCH)
-        )
+        raise service_exception_to_http(APIKeyException(code=APIKeyErrorCode.API_KEY_USER_MISMATCH))
 
     return token_user or api_key_user

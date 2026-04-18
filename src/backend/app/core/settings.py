@@ -194,4 +194,5 @@ class Settings(BaseModel):
 
         return errors
 
+
 SETTINGS = Settings()
