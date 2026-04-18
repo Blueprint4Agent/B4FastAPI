@@ -1,19 +1,19 @@
-import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 
 import { AppNavbar } from "./components/AppNavbar";
 import { useAuthContext } from "./hooks/useAuth";
 import { useAppConfig } from "./hooks/useFeatures";
 import { useTheme } from "./hooks/useTheme";
-import { ShowCasePage } from "./pages/ShowCasePage";
 import { ForgotPasswordEmailSentPage } from "./pages/ForgotPasswordEmailSentPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { LoginPage } from "./pages/LoginPage";
 import { LoadingPage } from "./pages/LoadingPage";
+import { LoginPage } from "./pages/LoginPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ResetPasswordSuccessPage } from "./pages/ResetPasswordSuccessPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { ShowCaseNotFoundPage } from "./pages/ShowCaseNotFoundPage";
+import { ShowCasePage } from "./pages/ShowCasePage";
 import { SignupEmailSentPage } from "./pages/SignupEmailSentPage";
 import { SignupPage } from "./pages/SignupPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -96,7 +96,11 @@ export function App() {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/reset-password/success" element={<ResetPasswordSuccessPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route element={<ProtectedLayout loginEnabled={loginEnabled} configLoading={configLoading} />}>
+            <Route
+                element={
+                    <ProtectedLayout loginEnabled={loginEnabled} configLoading={configLoading} />
+                }
+            >
                 <Route path="/dashboard" element={<Navigate to="/show-case" replace />} />
                 <Route path="/show-case" element={<ShowCasePage />} />
                 <Route
@@ -108,7 +112,9 @@ export function App() {
             </Route>
             <Route
                 path="*"
-                element={<NotFoundRoute loginEnabled={loginEnabled} configLoading={configLoading} />}
+                element={
+                    <NotFoundRoute loginEnabled={loginEnabled} configLoading={configLoading} />
+                }
             />
         </Routes>
     );

@@ -87,9 +87,7 @@ export function DeveloperApiKeysSection() {
                                     <div className="developer-key-card__identity">
                                         <div className="developer-key-card__title-row">
                                             <h3>{item.name}</h3>
-                                            <StatusBadge
-                                                tone={isActive ? "active" : "inactive"}
-                                            >
+                                            <StatusBadge tone={isActive ? "active" : "inactive"}>
                                                 {isActive
                                                     ? t("settings.developers.status.active")
                                                     : t("settings.developers.status.inactive")}
@@ -116,7 +114,9 @@ export function DeveloperApiKeysSection() {
                                                     })
                                                     .catch(() => {
                                                         setErrorMessage(
-                                                            t("settings.developers.deactivateError"),
+                                                            t(
+                                                                "settings.developers.deactivateError",
+                                                            ),
                                                         );
                                                     })
                                                     .finally(() => {

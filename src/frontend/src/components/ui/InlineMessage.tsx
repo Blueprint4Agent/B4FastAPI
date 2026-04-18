@@ -8,4 +8,3 @@ type InlineMessageProps = {
 export function InlineMessage({ children, tone = "error" }: InlineMessageProps) {
     return <p className={`ui-inline-message ui-inline-message--${tone}`}>{children}</p>;
 }
-

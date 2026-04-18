@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
 import { Code2, SlidersHorizontal, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { DeveloperApiKeysSection } from "../components/DeveloperApiKeysSection";
 import {
     AvatarUploadField,
     Button,
@@ -13,7 +14,6 @@ import {
     ThemeToggleButton,
     UserAvatar,
 } from "../components/ui";
-import { DeveloperApiKeysSection } from "../components/DeveloperApiKeysSection";
 import { useAuthContext } from "../hooks/useAuth";
 import { useAppConfig } from "../hooks/useFeatures";
 import { useTheme } from "../hooks/useTheme";
@@ -252,7 +252,9 @@ export function SettingsPage() {
                                         {saveFeedback?.source === "name" &&
                                         saveFeedback?.tone === "error" ? (
                                             <div className="settings-feedback settings-feedback--name">
-                                                <InlineMessage>{saveFeedback.message}</InlineMessage>
+                                                <InlineMessage>
+                                                    {saveFeedback.message}
+                                                </InlineMessage>
                                             </div>
                                         ) : null}
                                     </div>
@@ -304,7 +306,9 @@ export function SettingsPage() {
                                                                 </span>
                                                             ) : null}
                                                             <span className="settings-oauth-provider-button__label">
-                                                                {resolveOAuthProviderLabel(provider)}
+                                                                {resolveOAuthProviderLabel(
+                                                                    provider,
+                                                                )}
                                                             </span>
                                                         </span>
                                                     </Button>

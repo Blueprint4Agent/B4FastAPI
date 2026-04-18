@@ -71,16 +71,16 @@ export function DataTable<T>({
                                     className={rowClassName}
                                     onClick={onRowClick ? () => onRowClick(row) : undefined}
                                 >
-                                {columns.map((column) => (
-                                    <td
-                                        key={column.id}
-                                        className={`ui-data-table__cell ui-data-table__cell--${
-                                            column.align ?? "left"
-                                        }${column.cellClassName ? ` ${column.cellClassName}` : ""}`}
-                                    >
-                                        {column.render(row)}
-                                    </td>
-                                ))}
+                                    {columns.map((column) => (
+                                        <td
+                                            key={column.id}
+                                            className={`ui-data-table__cell ui-data-table__cell--${
+                                                column.align ?? "left"
+                                            }${column.cellClassName ? ` ${column.cellClassName}` : ""}`}
+                                        >
+                                            {column.render(row)}
+                                        </td>
+                                    ))}
                                 </tr>
                             );
                         })
