@@ -5,6 +5,7 @@ import secrets
 from sqlalchemy.exc import IntegrityError
 
 from app.core.error import APIKeyErrorCode, APIKeyException
+from app.core.logging import get_logger
 from app.core.settings import SETTINGS
 from app.models.api_key import (
     APIKeyCreateForm,
@@ -18,10 +19,12 @@ from app.models.api_key import (
 API_KEY_PREFIX = "sk_live_"
 API_KEY_SECRET_BYTES = 32
 API_KEY_VISIBLE_PREFIX_LENGTH = 12
+logger = get_logger("app.service.api_key")
 
 
 class APIKeyService:
     async def create_api_key(self, *, user_id: int, form: APIKeyCreateForm) -> APIKeyCreateResponse:
+        logger.info("Creating API key (user_id=%s, name=%s).", user_id, form.name.strip())
         raw_api_key = self._generate_api_key()
         key_hash = self._hash_api_key(raw_api_key)
         key_prefix = raw_api_key[:API_KEY_VISIBLE_PREFIX_LENGTH]
@@ -35,19 +38,28 @@ class APIKeyService:
         except IntegrityError as error:
             message = str(error.orig).lower() if getattr(error, "orig", None) else ""
             if "uq_api_keys_user_name" in message or "api_keys.user_id, api_keys.name" in message:
+                logger.debug("API key create rejected: duplicate name (user_id=%s).", user_id)
                 raise APIKeyException(code=APIKeyErrorCode.API_KEY_NAME_ALREADY_EXISTS) from error
+            logger.debug("API key create failed (user_id=%s).", user_id)
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_CREATE_FAILED) from error
 
+        logger.info("API key created (user_id=%s, api_key_id=%s).", user_id, created.id)
         return APIKeyCreateResponse(api_key=raw_api_key, key=created)
 
     async def list_api_keys(self, *, user_id: int) -> APIKeysResponse:
         keys = await APIKeys.list_api_keys(user_id=user_id)
+        logger.debug("Listed API keys (user_id=%s, count=%s).", user_id, len(keys))
         return APIKeysResponse(items=keys)
 
     async def delete_api_key(self, *, user_id: int, api_key_id: int) -> APIKeyResponse:
+        logger.info("Deleting API key (user_id=%s, api_key_id=%s).", user_id, api_key_id)
         deleted = await APIKeys.delete_api_key(user_id=user_id, api_key_id=api_key_id)
         if deleted is None:
+            logger.debug(
+                "API key delete failed: not found (user_id=%s, api_key_id=%s).", user_id, api_key_id
+            )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
+        logger.info("API key deleted (user_id=%s, api_key_id=%s).", user_id, api_key_id)
         return deleted
 
     async def update_api_key_status(
@@ -57,13 +69,30 @@ class APIKeyService:
         api_key_id: int,
         form: APIKeyStatusUpdateForm,
     ) -> APIKeyResponse:
+        logger.info(
+            "Updating API key status (user_id=%s, api_key_id=%s, enabled=%s).",
+            user_id,
+            api_key_id,
+            form.enabled,
+        )
         updated = await APIKeys.set_api_key_enabled(
             user_id=user_id,
             api_key_id=api_key_id,
             enabled=form.enabled,
         )
         if updated is None:
+            logger.debug(
+                "API key status update failed: not found (user_id=%s, api_key_id=%s).",
+                user_id,
+                api_key_id,
+            )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
+        logger.info(
+            "API key status updated (user_id=%s, api_key_id=%s, enabled=%s).",
+            user_id,
+            api_key_id,
+            updated.enabled,
+        )
         return updated
 
     def _generate_api_key(self) -> str:

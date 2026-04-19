@@ -11,6 +11,7 @@ from fastapi import Request
 from sqlalchemy.exc import IntegrityError
 
 from app.core.error import AuthErrorCode, AuthException
+from app.core.logging import get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
@@ -44,10 +45,13 @@ from app.utils.token import (
     verify_refresh_token,
 )
 
+logger = get_logger("app.service.auth")
+
 
 class AuthService:
     def _ensure_login_enabled(self) -> None:
         if not SETTINGS.LOGIN_ENABLED:
+            logger.debug("Blocked request because login is disabled.")
             raise AuthException(code=AuthErrorCode.LOGIN_DISABLED)
 
     def get_oauth_provider_configs(self) -> list[OAuthProviderConfig]:
@@ -92,6 +96,7 @@ class AuthService:
             timedelta(minutes=SETTINGS.OAUTH_STATE_EXPIRE_MINUTES),
             provider.value,
         )
+        logger.debug("OAuth state created (provider=%s).", provider.value)
         return state
 
     async def consume_oauth_state(self, state: str) -> OAuthProvider | None:
@@ -102,8 +107,10 @@ class AuthService:
             return None
         await redis.delete(key)
         try:
+            logger.debug("OAuth state consumed (provider=%s).", provider_value)
             return OAuthProvider(provider_value)
         except ValueError:
+            logger.debug("OAuth state consumed with unsupported provider value.")
             return None
 
     async def build_oauth_authorization_url(
@@ -145,6 +152,9 @@ class AuthService:
     ) -> LoginResponse:
         consumed_provider = await self.consume_oauth_state(state)
         if consumed_provider is None or consumed_provider != provider:
+            logger.debug(
+                "OAuth callback rejected due to invalid state (provider=%s).", provider.value
+            )
             raise AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
                 message="Invalid OAuth state.",
@@ -169,6 +179,12 @@ class AuthService:
             user_agent=request.headers.get("user-agent"),
             login_time=datetime.now(UTC),
         )
+        logger.info(
+            "OAuth login succeeded (provider=%s, user_id=%s, email=%s).",
+            provider.value,
+            user.id,
+            mask_email(user.email),
+        )
 
         issued_access_token, refresh_token = await self._issue_session_tokens(
             user_id=user.id,
@@ -184,6 +200,7 @@ class AuthService:
         )
 
     async def signup(self, form: SignupForm) -> UserResponse:
+        logger.info("Signup attempt (email=%s).", mask_email(form.email))
         try:
             user = await Users.create_signup_user(
                 email=form.email,
@@ -192,10 +209,12 @@ class AuthService:
                 is_verified=not SETTINGS.EMAIL_ENABLED,
             )
         except IntegrityError as error:
+            logger.debug("Signup failed due to integrity error (email=%s).", mask_email(form.email))
             raise AuthException(code=AuthErrorCode.SIGNUP_FAILED) from error
 
         if SETTINGS.EMAIL_ENABLED:
             await self._send_verification_email(user.id, user.email, user.name)
+        logger.info("Signup completed (user_id=%s, verified=%s).", user.id, user.is_verified)
         return user
 
     async def login(
@@ -203,12 +222,19 @@ class AuthService:
     ) -> LoginResponse:
         self._ensure_login_enabled()
         user_ip = self._get_client_ip(request)
+        logger.debug("Login attempt received (email=%s, ip=%s).", mask_email(form.email), user_ip)
         await self._check_login_limit(user_ip)
 
         user = await Users.get_auth_user_by_email(form.email)
 
         if user is None or not user.password_hash:
             remaining_attempts = await self._register_login_failure(user_ip)
+            logger.debug(
+                "Login failed: invalid credentials (email=%s, ip=%s, remaining_attempts=%s).",
+                mask_email(form.email),
+                user_ip,
+                remaining_attempts,
+            )
             raise AuthException(
                 code=AuthErrorCode.INVALID_CREDENTIALS,
                 details={"remaining_attempts": remaining_attempts},
@@ -216,12 +242,19 @@ class AuthService:
 
         if not verify_password(form.password, user.password_hash):
             remaining_attempts = await self._register_login_failure(user_ip)
+            logger.debug(
+                "Login failed: invalid password (email=%s, ip=%s, remaining_attempts=%s).",
+                mask_email(form.email),
+                user_ip,
+                remaining_attempts,
+            )
             raise AuthException(
                 code=AuthErrorCode.INVALID_CREDENTIALS,
                 details={"remaining_attempts": remaining_attempts},
             )
 
         if SETTINGS.EMAIL_ENABLED and not user.is_verified:
+            logger.debug("Login blocked: email not verified (user_id=%s).", user.id)
             raise AuthException(code=AuthErrorCode.EMAIL_NOT_VERIFIED)
 
         await self._reset_login_fail_count(user_ip)
@@ -233,6 +266,7 @@ class AuthService:
             user_agent=request.headers.get("user-agent"),
             login_time=datetime.now(UTC),
         )
+        logger.info("Login succeeded (user_id=%s, ip=%s).", user.id, user_ip)
 
         access_token, refresh_token = await self._issue_session_tokens(
             user_id=user.id,
@@ -250,6 +284,7 @@ class AuthService:
 
     async def logout(self, user_id: int) -> None:
         await delete_refresh_token(user_id)
+        logger.info("Logout completed (user_id=%s).", user_id)
 
     async def refresh_access_token(
         self,
@@ -260,10 +295,12 @@ class AuthService:
     ) -> RefreshResponse:
         is_valid = await verify_refresh_token(user_id, refresh_session_id, refresh_token)
         if not is_valid:
+            logger.debug("Refresh rejected: invalid token (user_id=%s).", user_id)
             raise AuthException(code=AuthErrorCode.INVALID_TOKEN)
 
         user = await Users.get_auth_user_by_id(user_id)
         if user is None:
+            logger.debug("Refresh rejected: user not found (user_id=%s).", user_id)
             raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
 
         access_token = create_access_token(
@@ -277,6 +314,7 @@ class AuthService:
             refresh_token,
             remember_me=remember_me,
         )
+        logger.debug("Refresh token rotated (user_id=%s, remember_me=%s).", user_id, remember_me)
 
         return RefreshResponse(
             access_token=access_token,
@@ -414,6 +452,9 @@ class AuthService:
 
     async def _resolve_oauth_user(self, profile: OAuthIdentityProfile):
         if not profile.email_verified:
+            logger.debug(
+                "OAuth profile rejected: unverified email (provider=%s).", profile.provider.value
+            )
             raise AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
                 message="OAuth email is not verified.",
@@ -424,6 +465,7 @@ class AuthService:
             identifier=profile.provider_user_id,
         )
         if auth_user is not None:
+            logger.debug("OAuth identity matched existing user (user_id=%s).", auth_user.id)
             return auth_user
 
         existing_user = await Users.get_user_response_by_email(profile.email)
@@ -434,12 +476,22 @@ class AuthService:
                 identifier=profile.provider_user_id,
             )
             if not linked:
+                logger.debug(
+                    "OAuth identity conflict (provider=%s, email=%s).",
+                    profile.provider.value,
+                    mask_email(profile.email),
+                )
                 raise AuthException(
                     code=AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
                 )
             linked_user = await Users.get_auth_user_by_id(existing_user.id)
             if linked_user is None:
                 raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+            logger.info(
+                "OAuth identity linked to existing user (provider=%s, user_id=%s).",
+                profile.provider.value,
+                existing_user.id,
+            )
             return linked_user
 
         try:
@@ -451,6 +503,11 @@ class AuthService:
                 is_verified=profile.email_verified,
             )
         except IntegrityError as error:
+            logger.debug(
+                "OAuth signup failed due to integrity error (provider=%s, email=%s).",
+                profile.provider.value,
+                mask_email(profile.email),
+            )
             raise AuthException(
                 code=AuthErrorCode.OAUTH_SIGNUP_FAILED,
             ) from error
@@ -461,6 +518,9 @@ class AuthService:
         )
         if created_user is None:
             raise AuthException(code=AuthErrorCode.OAUTH_SIGNUP_FAILED)
+        logger.info(
+            "OAuth user created (provider=%s, user_id=%s).", profile.provider.value, created_user.id
+        )
         return created_user
 
     async def _http_request_json(
@@ -481,6 +541,7 @@ class AuthService:
             raw = await asyncio.to_thread(_do_request)
             payload = json.loads(raw)
         except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError) as error:
+            logger.debug("OAuth provider request failed (method=%s, url=%s).", method, url)
             raise AuthException(
                 code=AuthErrorCode.OAUTH_PROVIDER_REQUEST_FAILED,
                 message="OAuth provider request failed.",
@@ -510,6 +571,7 @@ class AuthService:
     async def verify_email(self, token: str) -> UserResponse:
         user_id = await consume_email_verification_token(token)
         if user_id is None:
+            logger.debug("Email verification failed: token invalid or expired.")
             raise AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
                 message="Invalid or expired email verification token.",
@@ -518,29 +580,42 @@ class AuthService:
         user = await Users.mark_email_verified(user_id)
         if user is None:
             raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+        logger.info("Email verified (user_id=%s).", user.id)
         return user
 
     async def resend_verification_email(self, email: str) -> None:
         if not SETTINGS.EMAIL_ENABLED:
+            logger.debug("Resend verification skipped because email integration is disabled.")
             return
         user = await Users.get_auth_user_by_email(email)
         if user is None:
+            logger.debug(
+                "Resend verification skipped: user not found (email=%s).", mask_email(email)
+            )
             return
         if user.is_verified:
+            logger.debug("Resend verification skipped: already verified (user_id=%s).", user.id)
             return
         await self._send_verification_email(user.id, user.email, user.name)
+        logger.info("Verification email queued (user_id=%s).", user.id)
 
     async def request_password_reset(self, email: str) -> None:
         if not SETTINGS.EMAIL_ENABLED:
+            logger.debug("Password reset rejected because email integration is disabled.")
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
 
         user = await Users.get_auth_user_by_email(email)
         if user is None:
+            logger.debug(
+                "Password reset request ignored for unknown email (%s).", mask_email(email)
+            )
             return
 
         await self._send_password_reset_email(user.id, user.email, user.name)
+        logger.info("Password reset email queued (user_id=%s).", user.id)
 
     async def update_profile(self, user_id: int, form: UpdateProfileForm) -> UserResponse:
+        logger.debug("Profile update attempt (user_id=%s).", user_id)
         user = await Users.update_user_profile(
             user_id=user_id,
             name=form.name,
@@ -549,15 +624,19 @@ class AuthService:
             update_profile_image_url="profile_image_url" in form.model_fields_set,
         )
         if user is None:
+            logger.debug("Profile update failed (user_id=%s).", user_id)
             raise AuthException(code=AuthErrorCode.PROFILE_UPDATE_FAILED)
+        logger.info("Profile update completed (user_id=%s).", user_id)
         return user
 
     async def reset_password(self, token: str, password: str) -> None:
         if not SETTINGS.EMAIL_ENABLED:
+            logger.debug("Password reset rejected because email integration is disabled.")
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
 
         user_id = await consume_password_reset_token(token)
         if user_id is None:
+            logger.debug("Password reset failed: token invalid or expired.")
             raise AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
                 message="Invalid or expired password reset token.",
@@ -568,6 +647,7 @@ class AuthService:
             raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
 
         await delete_refresh_token(user_id)
+        logger.info("Password reset completed (user_id=%s).", user_id)
 
     async def _check_login_limit(self, user_ip: str) -> None:
         redis = await RedisManager.get_client()
@@ -576,6 +656,11 @@ class AuthService:
 
         if fails and int(fails) >= SETTINGS.LOGIN_FAILED_LIMIT:
             remaining_seconds = max(0, await redis.ttl(key))
+            logger.debug(
+                "Account locked by login-fail limit (ip=%s, remaining_seconds=%s).",
+                user_ip,
+                remaining_seconds,
+            )
             raise AuthException(
                 code=AuthErrorCode.ACCOUNT_LOCKED,
                 details={"remaining_seconds": remaining_seconds},
@@ -590,9 +675,20 @@ class AuthService:
             await redis.expire(key, timedelta(minutes=SETTINGS.LOGIN_LOCKED_MINUTES))
 
         remaining_attempts = max(0, SETTINGS.LOGIN_FAILED_LIMIT - count)
+        logger.debug(
+            "Login failure count incremented (ip=%s, count=%s, remaining_attempts=%s).",
+            user_ip,
+            count,
+            remaining_attempts,
+        )
 
         if remaining_attempts <= 0:
             remaining_seconds = max(0, await redis.ttl(key))
+            logger.debug(
+                "Account locked after login failures (ip=%s, remaining_seconds=%s).",
+                user_ip,
+                remaining_seconds,
+            )
             raise AuthException(
                 code=AuthErrorCode.ACCOUNT_LOCKED,
                 details={"remaining_seconds": remaining_seconds},

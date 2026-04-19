@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.core.database import dispose_db, init_db
 from app.core.error import AuthException
+from app.core.logging import get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
@@ -17,7 +18,7 @@ from app.models.user import UserResponse, Users
 from app.routers.v1 import api_key, auth
 from app.utils.token import create_access_token
 
-logger = logging.getLogger("uvicorn.error")
+logger = get_logger("app.main")
 BOOTSTRAP_USER: UserResponse | None = None
 BOOTSTRAP_ACCESS_TOKEN: str | None = None
 
@@ -72,17 +73,30 @@ async def lifespan(_app: FastAPI):
                     # Another startup worker may create it concurrently.
                     pass
                 bootstrap_user = await Users.get_user_response_by_email(bootstrap_email)
+                logger.info(
+                    "Bootstrap user created (email=%s).",
+                    mask_email(bootstrap_email),
+                )
+            else:
+                logger.info(
+                    "Bootstrap user found (email=%s).",
+                    mask_email(bootstrap_email),
+                )
             BOOTSTRAP_USER = bootstrap_user
             if bootstrap_user is not None:
                 BOOTSTRAP_ACCESS_TOKEN = create_access_token(
                     subject=str(bootstrap_user.id),
                     email=bootstrap_user.email,
                 )
+                logger.info("Bootstrap access token issued (user_id=%s).", bootstrap_user.id)
             else:
                 BOOTSTRAP_ACCESS_TOKEN = None
         else:
             BOOTSTRAP_USER = None
             BOOTSTRAP_ACCESS_TOKEN = None
+            logger.warning(
+                "Login is disabled but bootstrap user email/name is missing; bootstrap mode unavailable."
+            )
     else:
         BOOTSTRAP_USER = None
         BOOTSTRAP_ACCESS_TOKEN = None
@@ -95,6 +109,14 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     static_dist_dir = (Path(__file__).resolve().parent / "static" / "dist").resolve()
+    log_level_name = SETTINGS.LOG_LEVEL.upper()
+    log_level_value = logging.getLevelName(log_level_name)
+    if not isinstance(log_level_value, int):
+        log_level_name = "INFO"
+        log_level_value = logging.INFO
+
+    logging.getLogger("uvicorn.error").setLevel(log_level_value)
+    logging.getLogger("uvicorn.access").setLevel(log_level_value)
 
     app = FastAPI(
         title=SETTINGS.APP_NAME,
@@ -104,6 +126,8 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if SETTINGS.SWAGGER_ENABLED else None,
         openapi_url="/openapi.json" if SETTINGS.SWAGGER_ENABLED else None,
     )
+
+    logger.info("App log level set to %s.", log_level_name)
 
     app.add_middleware(
         CORSMiddleware,
@@ -116,7 +140,13 @@ def create_app() -> FastAPI:
     @app.exception_handler(Exception)
     async def default_exception_handler(_request, _exc):
         if isinstance(_exc, HTTPException):
+            logger.error(
+                "HTTP exception handled globally (status=%s, detail=%s).",
+                _exc.status_code,
+                _exc.detail,
+            )
             return JSONResponse(status_code=_exc.status_code, content={"detail": _exc.detail})
+        logger.exception("Unhandled server exception.")
         return JSONResponse(
             status_code=500,
             content={"error": "INTERNAL_ERROR", "message": "An unexpected error occurred."},

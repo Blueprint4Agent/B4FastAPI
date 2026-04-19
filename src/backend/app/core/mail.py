@@ -1,15 +1,14 @@
 import asyncio
-import logging
 import smtplib
 from dataclasses import dataclass
 from email.message import EmailMessage
 from urllib.parse import urljoin
 
+from app.core.logging import get_logger, mask_email
 from app.core.mail_templates import build_password_reset_email, build_verification_email
 from app.core.settings import SETTINGS, Settings
 
-# Use uvicorn's error logger so service logs are visible in standard server output.
-logger = logging.getLogger("uvicorn.error")
+logger = get_logger("app.mail")
 
 
 @dataclass(frozen=True)
@@ -39,7 +38,7 @@ class NullMailProvider(MailProvider):
         return
 
     async def send(self, message: MailMessage) -> None:
-        logger.info("Email disabled. Skip sending email to %s.", message.to_email)
+        logger.info("Email disabled. Skip sending email to %s.", mask_email(message.to_email))
 
 
 class SMTPMailProvider(MailProvider):
@@ -142,12 +141,14 @@ class MailService:
             text_body=content.text,
             html_body=content.html,
         )
-        logger.info("Attempting signup verification email delivery to %s.", to_email)
+        logger.info("Attempting signup verification email delivery to %s.", mask_email(to_email))
         try:
             await self._provider.send(message)
-            logger.info("Signup verification email delivered to %s.", to_email)
+            logger.info("Signup verification email delivered to %s.", mask_email(to_email))
         except Exception:
-            logger.exception("Failed to send signup verification email to %s.", to_email)
+            logger.exception(
+                "Failed to send signup verification email to %s.", mask_email(to_email)
+            )
 
     async def send_password_reset_email(
         self, *, to_email: str, user_name: str, link: str = ""
@@ -170,12 +171,12 @@ class MailService:
             text_body=content.text,
             html_body=content.html,
         )
-        logger.info("Attempting password reset email delivery to %s.", to_email)
+        logger.info("Attempting password reset email delivery to %s.", mask_email(to_email))
         try:
             await self._provider.send(message)
-            logger.info("Password reset email delivered to %s.", to_email)
+            logger.info("Password reset email delivered to %s.", mask_email(to_email))
         except Exception:
-            logger.exception("Failed to send password reset email to %s.", to_email)
+            logger.exception("Failed to send password reset email to %s.", mask_email(to_email))
 
     def _resolve_link(self, *, path: str, link: str) -> str:
         explicit_link = link.strip()

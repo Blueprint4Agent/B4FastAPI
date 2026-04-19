@@ -14,6 +14,7 @@ class Settings(BaseModel):
 
     APP_NAME: str = os.getenv("APP_NAME", "Blueprint4FastAPI API")
     APP_ENV: str = os.getenv("APP_ENV", "local")
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
     APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5173")
     SWAGGER_ENABLED: bool = os.getenv("SWAGGER_ENABLED", "true").lower() == "true"

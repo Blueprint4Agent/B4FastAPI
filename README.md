@@ -78,6 +78,7 @@ npm run dev
 ## Environment Notes
 
 - `src/backend/.env`
+    - `LOG_LEVEL=INFO` controls backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`)
     - `DB_DRIVER=sqlite+aiosqlite` for zero-setup local DB
     - switch to `postgresql+asyncpg` for Docker/Postgres mode
     - `REDIS_IN_MEMORY=true` allows backend execution without external Redis

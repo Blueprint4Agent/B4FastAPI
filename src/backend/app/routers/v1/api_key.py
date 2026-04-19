@@ -6,6 +6,7 @@ from app.core.error import (
     api_key_error_responses,
     service_exception_to_http,
 )
+from app.core.logging import get_logger
 from app.deps import get_current_user
 from app.models.api_key import (
     APIKeyCreateForm,
@@ -18,6 +19,7 @@ from app.models.user import UserResponse
 from app.services.api_key import APIKeyService
 
 router = APIRouter()
+logger = get_logger("app.router.api_key")
 
 
 @router.post(
@@ -36,6 +38,9 @@ async def create_api_key(
     try:
         return await service.create_api_key(user_id=current_user.id, form=form)
     except APIKeyException as error:
+        logger.error(
+            "API key create failed (user_id=%s, code=%s).", current_user.id, error.code.error
+        )
         raise service_exception_to_http(error) from error
 
 
@@ -44,7 +49,9 @@ async def list_api_keys(
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
 ):
-    return await service.list_api_keys(user_id=current_user.id)
+    keys = await service.list_api_keys(user_id=current_user.id)
+    logger.debug("API key list fetched (user_id=%s, count=%s).", current_user.id, len(keys.items))
+    return keys
 
 
 @router.delete(
@@ -60,6 +67,12 @@ async def delete_api_key(
     try:
         return await service.delete_api_key(user_id=current_user.id, api_key_id=api_key_id)
     except APIKeyException as error:
+        logger.error(
+            "API key delete failed (user_id=%s, api_key_id=%s, code=%s).",
+            current_user.id,
+            api_key_id,
+            error.code.error,
+        )
         raise service_exception_to_http(error) from error
 
 
@@ -84,4 +97,10 @@ async def update_api_key_status(
             form=form,
         )
     except APIKeyException as error:
+        logger.error(
+            "API key status update failed (user_id=%s, api_key_id=%s, code=%s).",
+            current_user.id,
+            api_key_id,
+            error.code.error,
+        )
         raise service_exception_to_http(error) from error

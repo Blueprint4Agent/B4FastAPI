@@ -10,6 +10,7 @@ from app.core.error import (
     auth_error_responses,
     service_exception_to_http,
 )
+from app.core.logging import get_logger, mask_email
 from app.core.settings import SETTINGS
 from app.deps import get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
@@ -34,6 +35,7 @@ from app.utils.cookies import clear_refresh_cookies, get_refresh_cookie_value, s
 from app.utils.token import create_refresh_session_id, get_refresh_session
 
 router = APIRouter()
+logger = get_logger("app.router.auth")
 
 
 @router.post(
@@ -48,6 +50,7 @@ async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
     try:
         return await service.signup(form)
     except AuthException as error:
+        logger.error("Signup failed (code=%s).", error.code.error)
         raise service_exception_to_http(error) from error
 
 
@@ -63,8 +66,10 @@ async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
 async def oauth_providers(service: AuthService = Depends(AuthService)):
     try:
         providers = service.get_oauth_provider_public_configs()
+        logger.debug("OAuth providers fetched (count=%s).", len(providers))
         return OAuthProvidersResponse(providers=providers)
     except AuthException as error:
+        logger.error("OAuth provider listing failed (code=%s).", error.code.error)
         raise service_exception_to_http(error) from error
 
 
@@ -86,6 +91,7 @@ async def oauth_start(
         authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
         return RedirectResponse(url=authorization_url, status_code=307)
     except AuthException as error:
+        logger.error("OAuth start failed (provider=%s, code=%s).", provider.value, error.code.error)
         raise service_exception_to_http(error) from error
 
 
@@ -109,6 +115,9 @@ async def oauth_callback(
     service: AuthService = Depends(AuthService),
 ):
     if error:
+        logger.error(
+            "OAuth callback returned provider error (provider=%s, error=%s).", provider, error
+        )
         failure_query = urlencode({"error": error})
         failure_url = urljoin(
             f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
@@ -117,6 +126,7 @@ async def oauth_callback(
         return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
 
     if not code or not state:
+        logger.error("OAuth callback missing required params (provider=%s).", provider.value)
         raise service_exception_to_http(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
@@ -135,6 +145,11 @@ async def oauth_callback(
             refresh_session_id=refresh_session_id,
         )
     except AuthException as auth_error:
+        logger.error(
+            "OAuth callback login failed (provider=%s, code=%s).",
+            provider.value,
+            auth_error.code.error,
+        )
         failure_query = urlencode(
             {
                 "error": auth_error.code.error,
@@ -187,6 +202,9 @@ async def oauth_token_login(
     try:
         return await service.login(form, request, refresh_session_id=refresh_session_id)
     except AuthException as error:
+        logger.error(
+            "Token login failed (email=%s, code=%s).", mask_email(form.email), error.code.error
+        )
         raise service_exception_to_http(error) from error
 
 
@@ -211,6 +229,7 @@ async def login(
     try:
         token_payload = await service.login(form, request, refresh_session_id=refresh_session_id)
     except AuthException as error:
+        logger.error("Login failed (email=%s, code=%s).", mask_email(form.email), error.code.error)
         raise service_exception_to_http(error) from error
 
     set_refresh_cookies(
@@ -241,6 +260,9 @@ async def update_me(
     try:
         return await service.update_profile(user_id=current_user.id, form=form)
     except AuthException as error:
+        logger.error(
+            "Profile update failed (user_id=%s, code=%s).", current_user.id, error.code.error
+        )
         raise service_exception_to_http(error) from error
 
 
@@ -287,6 +309,7 @@ async def refresh_token(
 
     if not refresh_token_value or not session_id_value or user_id_value is None:
         clear_refresh_cookies(response)
+        logger.error("Refresh token request missing required values.")
         raise service_exception_to_http(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
@@ -304,7 +327,9 @@ async def refresh_token(
     except (AuthException, ValueError) as error:
         clear_refresh_cookies(response)
         if isinstance(error, AuthException):
+            logger.error("Refresh token failed (code=%s).", error.code.error)
             raise service_exception_to_http(error) from error
+        logger.error("Refresh token failed due to invalid payload.")
         raise service_exception_to_http(
             AuthException(
                 code=AuthErrorCode.INVALID_TOKEN,
@@ -338,6 +363,7 @@ async def verify_email(
         user = await service.verify_email(form.token)
         return VerifyEmailResponse(message="Email verified successfully.", user=user)
     except AuthException as error:
+        logger.error("Email verification failed (code=%s).", error.code.error)
         raise service_exception_to_http(error) from error
 
 
@@ -356,6 +382,11 @@ async def resend_verification_email(
             message="If an unverified account exists, a verification email has been sent.",
         )
     except AuthException as error:
+        logger.error(
+            "Resend verification failed (email=%s, code=%s).",
+            mask_email(form.email),
+            error.code.error,
+        )
         raise service_exception_to_http(error) from error
 
 
@@ -377,6 +408,11 @@ async def forgot_password(
             message="If the account exists, a password reset email has been sent.",
         )
     except AuthException as error:
+        logger.error(
+            "Password reset request failed (email=%s, code=%s).",
+            mask_email(form.email),
+            error.code.error,
+        )
         raise service_exception_to_http(error) from error
 
 
@@ -397,4 +433,5 @@ async def reset_password(
         await service.reset_password(form.token, form.password)
         return ResetPasswordResponse(message="Password reset completed successfully.")
     except AuthException as error:
+        logger.error("Password reset failed (code=%s).", error.code.error)
         raise service_exception_to_http(error) from error
