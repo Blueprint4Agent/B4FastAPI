@@ -31,8 +31,8 @@ from app.models.user import (
     VerifyEmailResponse,
 )
 from app.services.auth import AuthService
-from app.utils.cookies import clear_refresh_cookies, get_refresh_cookie_value, set_refresh_cookies
-from app.utils.token import create_refresh_session_id, get_refresh_session
+from app.utils.cookies import clear_refresh_cookies, set_refresh_cookies
+from app.utils.token import create_refresh_session_id
 
 router = APIRouter()
 logger = get_logger("app.router.auth")
@@ -46,7 +46,7 @@ logger = get_logger("app.router.auth")
         AuthErrorCode.SIGNUP_FAILED,
     ),
 )
-async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
+async def signup(form: SignupForm, service: AuthService = Depends(AuthService)) -> UserResponse:
     try:
         return await service.signup(form)
     except AuthException as error:
@@ -63,7 +63,7 @@ async def signup(form: SignupForm, service: AuthService = Depends(AuthService)):
         AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
     ),
 )
-async def oauth_providers(service: AuthService = Depends(AuthService)):
+async def oauth_providers(service: AuthService = Depends(AuthService)) -> OAuthProvidersResponse:
     try:
         providers = service.get_oauth_provider_public_configs()
         logger.debug("OAuth providers fetched (count=%s).", len(providers))
@@ -85,7 +85,7 @@ async def oauth_start(
     provider: OAuthProvider,
     request: Request,
     service: AuthService = Depends(AuthService),
-):
+) -> RedirectResponse:
     try:
         redirect_uri = str(request.url_for("oauth_callback", provider=provider.value))
         authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
@@ -100,7 +100,10 @@ async def oauth_start(
     name="oauth_callback",
     responses=auth_error_responses(
         AuthErrorCode.LOGIN_DISABLED,
+        AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
+        AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
         AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.USER_NOT_FOUND,
         AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
         AuthErrorCode.OAUTH_SIGNUP_FAILED,
         AuthErrorCode.OAUTH_PROVIDER_REQUEST_FAILED,
@@ -113,7 +116,8 @@ async def oauth_callback(
     state: str | None = Query(default=None),
     error: str | None = Query(default=None),
     service: AuthService = Depends(AuthService),
-):
+) -> RedirectResponse:
+    # Provider-side errors are returned as a frontend redirect, not raised as API JSON errors.
     if error:
         logger.error(
             "OAuth callback returned provider error (provider=%s, error=%s).", provider, error
@@ -125,26 +129,29 @@ async def oauth_callback(
         )
         return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
 
-    if not code or not state:
-        logger.error("OAuth callback missing required params (provider=%s).", provider.value)
-        raise service_exception_to_http(
-            AuthException(
-                code=AuthErrorCode.INVALID_TOKEN,
-                message="OAuth callback requires code and state.",
-            )
+    # OAuth callback contract requires both authorization code and state.
+    try:
+        code_value, state_value = service.require_oauth_callback_params(
+            provider=provider,
+            code=code,
+            state=state,
         )
+    except AuthException as callback_error:
+        logger.error("OAuth callback missing required params (provider=%s).", provider.value)
+        raise service_exception_to_http(callback_error) from callback_error
 
     refresh_session_id = create_refresh_session_id()
     try:
         token_payload = await service.oauth_callback_login(
             provider=provider,
-            code=code,
-            state=state,
+            code=code_value,
+            state=state_value,
             redirect_uri=str(request.url_for("oauth_callback", provider=provider.value)),
             request=request,
             refresh_session_id=refresh_session_id,
         )
     except AuthException as auth_error:
+        # Domain failures are propagated to frontend with code/message query parameters.
         logger.error(
             "OAuth callback login failed (provider=%s, code=%s).",
             provider.value,
@@ -185,14 +192,13 @@ async def oauth_callback(
         AuthErrorCode.INVALID_CREDENTIALS,
         AuthErrorCode.EMAIL_NOT_VERIFIED,
         AuthErrorCode.ACCOUNT_LOCKED,
-        AuthErrorCode.SIGNUP_FAILED,
     ),
 )
 async def oauth_token_login(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     service: AuthService = Depends(AuthService),
-):
+) -> LoginResponse:
     refresh_session_id = create_refresh_session_id()
     form = LoginForm(
         email=form_data.username,
@@ -216,7 +222,6 @@ async def oauth_token_login(
         AuthErrorCode.INVALID_CREDENTIALS,
         AuthErrorCode.EMAIL_NOT_VERIFIED,
         AuthErrorCode.ACCOUNT_LOCKED,
-        AuthErrorCode.SIGNUP_FAILED,
     ),
 )
 async def login(
@@ -224,7 +229,7 @@ async def login(
     response: Response,
     form: LoginForm,
     service: AuthService = Depends(AuthService),
-):
+) -> LoginResponse:
     refresh_session_id = create_refresh_session_id()
     try:
         token_payload = await service.login(form, request, refresh_session_id=refresh_session_id)
@@ -243,7 +248,7 @@ async def login(
 
 
 @router.get("/me", response_model=UserResponse)
-async def me(current_user: UserResponse = Depends(get_current_user)):
+async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
     return current_user
 
 
@@ -256,7 +261,7 @@ async def update_me(
     form: UpdateProfileForm,
     current_user: UserResponse = Depends(get_current_user),
     service: AuthService = Depends(AuthService),
-):
+) -> UserResponse:
     try:
         return await service.update_profile(user_id=current_user.id, form=form)
     except AuthException as error:
@@ -271,7 +276,7 @@ async def logout(
     response: Response,
     current_user: UserResponse = Depends(get_current_user),
     service: AuthService = Depends(AuthService),
-):
+) -> dict[str, str]:
     await service.logout(current_user.id)
     clear_refresh_cookies(response)
     return {"message": "Successfully logged out."}
@@ -292,50 +297,18 @@ async def refresh_token(
     user_id: int | None = Body(default=None, embed=True),
     session_id: str | None = Body(default=None, embed=True),
     service: AuthService = Depends(AuthService),
-):
-    cookie_token, cookie_session_id = get_refresh_cookie_value(request)
-    refresh_token_value = refresh_token or cookie_token
-    session_id_value = session_id or cookie_session_id
-    user_id_value = user_id
-    remember_me = False
-
-    if session_id_value:
-        session = await get_refresh_session(session_id_value)
-        if session is not None:
-            session_user_id, session_remember_me = session
-            remember_me = session_remember_me
-            if user_id_value is None:
-                user_id_value = session_user_id
-
-    if not refresh_token_value or not session_id_value or user_id_value is None:
-        clear_refresh_cookies(response)
-        logger.error("Refresh token request missing required values.")
-        raise service_exception_to_http(
-            AuthException(
-                code=AuthErrorCode.INVALID_TOKEN,
-                message="Refresh token, session_id, and user_id are required.",
-            )
-        )
-
+) -> RefreshResponse:
     try:
-        token_payload = await service.refresh_access_token(
-            user_id=int(user_id_value),
-            refresh_session_id=session_id_value,
-            refresh_token=refresh_token_value,
-            remember_me=remember_me,
+        token_payload, session_id_value, remember_me = await service.refresh_with_request_context(
+            request=request,
+            refresh_token=refresh_token,
+            user_id=user_id,
+            session_id=session_id,
         )
-    except (AuthException, ValueError) as error:
+    except AuthException as error:
         clear_refresh_cookies(response)
-        if isinstance(error, AuthException):
-            logger.error("Refresh token failed (code=%s).", error.code.error)
-            raise service_exception_to_http(error) from error
-        logger.error("Refresh token failed due to invalid payload.")
-        raise service_exception_to_http(
-            AuthException(
-                code=AuthErrorCode.INVALID_TOKEN,
-                message="Invalid refresh token payload.",
-            )
-        ) from error
+        logger.error("Refresh token failed (code=%s).", error.code.error)
+        raise service_exception_to_http(error) from error
 
     set_refresh_cookies(
         response=response,
@@ -358,7 +331,7 @@ async def refresh_token(
 async def verify_email(
     form: VerifyEmailForm,
     service: AuthService = Depends(AuthService),
-):
+) -> VerifyEmailResponse:
     try:
         user = await service.verify_email(form.token)
         return VerifyEmailResponse(message="Email verified successfully.", user=user)
@@ -370,12 +343,11 @@ async def verify_email(
 @router.post(
     "/resend-verification",
     response_model=ResendVerificationResponse,
-    responses=auth_error_responses(AuthErrorCode.SIGNUP_FAILED),
 )
 async def resend_verification_email(
     form: ResendVerificationForm,
     service: AuthService = Depends(AuthService),
-):
+) -> ResendVerificationResponse:
     try:
         await service.resend_verification_email(form.email)
         return ResendVerificationResponse(
@@ -395,13 +367,12 @@ async def resend_verification_email(
     response_model=ForgotPasswordResponse,
     responses=auth_error_responses(
         AuthErrorCode.EMAIL_DISABLED,
-        AuthErrorCode.SIGNUP_FAILED,
     ),
 )
 async def forgot_password(
     form: ForgotPasswordForm,
     service: AuthService = Depends(AuthService),
-):
+) -> ForgotPasswordResponse:
     try:
         await service.request_password_reset(form.email)
         return ForgotPasswordResponse(
@@ -428,7 +399,7 @@ async def forgot_password(
 async def reset_password(
     form: ResetPasswordForm,
     service: AuthService = Depends(AuthService),
-):
+) -> ResetPasswordResponse:
     try:
         await service.reset_password(form.token, form.password)
         return ResetPasswordResponse(message="Password reset completed successfully.")

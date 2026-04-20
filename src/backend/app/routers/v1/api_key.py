@@ -34,7 +34,7 @@ async def create_api_key(
     form: APIKeyCreateForm,
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
-):
+) -> APIKeyCreateResponse:
     try:
         return await service.create_api_key(user_id=current_user.id, form=form)
     except APIKeyException as error:
@@ -48,7 +48,7 @@ async def create_api_key(
 async def list_api_keys(
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
-):
+) -> APIKeysResponse:
     keys = await service.list_api_keys(user_id=current_user.id)
     logger.debug("API key list fetched (user_id=%s, count=%s).", current_user.id, len(keys.items))
     return keys
@@ -63,7 +63,7 @@ async def delete_api_key(
     api_key_id: int,
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
-):
+) -> APIKeyResponse:
     try:
         return await service.delete_api_key(user_id=current_user.id, api_key_id=api_key_id)
     except APIKeyException as error:
@@ -89,7 +89,7 @@ async def update_api_key_status(
     form: APIKeyStatusUpdateForm,
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
-):
+) -> APIKeyResponse:
     try:
         return await service.update_api_key_status(
             user_id=current_user.id,

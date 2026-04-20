@@ -4,8 +4,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
-from urllib.request import Request as URLRequest
-from urllib.request import urlopen
+from urllib.request import Request as URLRequest, urlopen
 
 from fastapi import Request
 from sqlalchemy.exc import IntegrityError
@@ -30,6 +29,7 @@ from app.models.user import (
     UserResponse,
     Users,
 )
+from app.utils.cookies import get_refresh_cookie_value
 from app.utils.security import hash_password, verify_password
 from app.utils.token import (
     consume_email_verification_token,
@@ -39,6 +39,7 @@ from app.utils.token import (
     create_password_reset_token,
     create_refresh_token,
     delete_refresh_token,
+    get_refresh_session,
     store_email_verification_token,
     store_password_reset_token,
     store_refresh_token,
@@ -199,6 +200,20 @@ class AuthService:
             user=user.as_user_response(),
         )
 
+    def require_oauth_callback_params(
+        self,
+        *,
+        provider: OAuthProvider,
+        code: str | None,
+        state: str | None,
+    ) -> tuple[str, str]:
+        if not code or not state:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message=f"OAuth callback requires code and state (provider={provider.value}).",
+            )
+        return code, state
+
     async def signup(self, form: SignupForm) -> UserResponse:
         logger.info("Signup attempt (email=%s).", mask_email(form.email))
         try:
@@ -321,6 +336,49 @@ class AuthService:
             refresh_token=refresh_token,
             token_type="bearer",
         )
+
+    async def refresh_with_request_context(
+        self,
+        *,
+        request: Request,
+        refresh_token: str | None,
+        user_id: int | None,
+        session_id: str | None,
+    ) -> tuple[RefreshResponse, str, bool]:
+        cookie_token, cookie_session_id = get_refresh_cookie_value(request)
+        refresh_token_value = refresh_token or cookie_token
+        session_id_value = session_id or cookie_session_id
+        user_id_value = user_id
+        remember_me = False
+
+        if session_id_value:
+            session = await get_refresh_session(session_id_value)
+            if session is not None:
+                session_user_id, session_remember_me = session
+                remember_me = session_remember_me
+                if user_id_value is None:
+                    user_id_value = session_user_id
+
+        if not refresh_token_value or not session_id_value or user_id_value is None:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="Refresh token, session_id, and user_id are required.",
+            )
+
+        try:
+            token_payload = await self.refresh_access_token(
+                user_id=int(user_id_value),
+                refresh_session_id=session_id_value,
+                refresh_token=refresh_token_value,
+                remember_me=remember_me,
+            )
+        except ValueError as error:
+            raise AuthException(
+                code=AuthErrorCode.INVALID_TOKEN,
+                message="Invalid refresh token payload.",
+            ) from error
+
+        return token_payload, session_id_value, remember_me
 
     async def _issue_session_tokens(
         self,
