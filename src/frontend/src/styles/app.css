@@ -1361,8 +1361,11 @@ html[data-theme="dark"] .ui-toggle__track--on {
     font-size: 0.85rem;
 }
 
-.developer-delete-inline-btn {
+.developer-delete-inline-btn.ui-button {
     justify-self: end;
+    width: auto;
+    min-width: 0;
+    height: 2rem;
     min-height: 2rem;
     border-radius: 999px;
     border: 1px solid rgba(186, 66, 66, 0.35);
@@ -1372,11 +1375,16 @@ html[data-theme="dark"] .ui-toggle__track--on {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    cursor: pointer;
     font:
         600 0.85rem/1 "Inter",
         system-ui,
         sans-serif;
+}
+
+.developer-delete-inline-btn.ui-button .ui-button__content {
+    width: 100%;
+    justify-content: center;
+    gap: 0.35rem;
 }
 
 .developer-delete-inline-btn svg {
@@ -1384,7 +1392,7 @@ html[data-theme="dark"] .ui-toggle__track--on {
     height: 0.9rem;
 }
 
-.developer-delete-inline-btn:hover {
+.developer-delete-inline-btn.ui-button:hover {
     background: rgba(186, 66, 66, 0.14);
 }
 
@@ -1401,37 +1409,44 @@ html[data-theme="dark"] .ui-toggle__track--on {
     word-break: break-all;
 }
 
-.developer-section__secret-wrap {
+.copy-field {
     position: relative;
 }
 
-.developer-section__secret-input {
+.copy-field__input {
     width: 100%;
     padding-right: 3rem;
+    min-height: 2.7rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--input-border);
+    background: var(--input-bg);
+    color: var(--text);
+    padding-left: 0.85rem;
     font:
         600 0.82rem/1.35 "Inter",
         system-ui,
         sans-serif;
 }
 
-.developer-section__secret-copy-btn {
+.copy-field__button.ui-button {
     position: absolute;
     top: 50%;
     right: 0.45rem;
     transform: translateY(-50%);
     width: 2rem;
     height: 2rem;
+    min-height: 2rem;
+    padding: 0;
     border-radius: 0.6rem;
     border: 1px solid color-mix(in oklab, var(--panel-border) 82%, transparent 18%);
     background: color-mix(in oklab, var(--input-bg) 84%, transparent 16%);
     color: var(--text);
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
-.developer-section__secret-copy-btn svg {
+.copy-field__button svg {
     width: 0.95rem;
     height: 0.95rem;
 }

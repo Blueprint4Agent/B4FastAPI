@@ -1,22 +1,22 @@
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
 
-import { AppNavbar } from "./components/AppNavbar";
+import { AppNavbar } from "./components/layout/AppNavbar";
 import { useAuthContext } from "./hooks/useAuth";
 import { useAppConfig } from "./hooks/useFeatures";
 import { useTheme } from "./hooks/useTheme";
-import { ForgotPasswordEmailSentPage } from "./pages/ForgotPasswordEmailSentPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
-import { LoadingPage } from "./pages/LoadingPage";
-import { LoginPage } from "./pages/LoginPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { ResetPasswordSuccessPage } from "./pages/ResetPasswordSuccessPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { ShowCaseNotFoundPage } from "./pages/ShowCaseNotFoundPage";
-import { ShowCasePage } from "./pages/ShowCasePage";
-import { SignupEmailSentPage } from "./pages/SignupEmailSentPage";
-import { SignupPage } from "./pages/SignupPage";
-import { VerifyEmailPage } from "./pages/VerifyEmailPage";
+import { ForgotPasswordEmailSentPage } from "./pages/login/ForgotPasswordEmailSentPage";
+import { ForgotPasswordPage } from "./pages/login/ForgotPasswordPage";
+import { LoginPage } from "./pages/login/LoginPage";
+import { ResetPasswordPage } from "./pages/login/ResetPasswordPage";
+import { ResetPasswordSuccessPage } from "./pages/login/ResetPasswordSuccessPage";
+import { SignupEmailSentPage } from "./pages/login/SignupEmailSentPage";
+import { SignupPage } from "./pages/login/SignupPage";
+import { VerifyEmailPage } from "./pages/login/VerifyEmailPage";
+import { LoadingPage } from "./pages/main/LoadingPage";
+import { ShowCaseNotFoundPage } from "./pages/main/ShowCaseNotFoundPage";
+import { ShowCasePage } from "./pages/main/ShowCasePage";
+import { SettingsPage } from "./pages/settings/SettingsPage";
 
 function ProtectedLayout({
     loginEnabled,

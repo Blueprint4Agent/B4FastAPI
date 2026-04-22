@@ -1,27 +1,24 @@
 import { useEffect, useState } from "react";
 
-import { apiClient } from "../api/http";
-import type { paths } from "../api/generated/openapi";
-
-type AppConfig = paths["/config"]["get"]["responses"][200]["content"]["application/json"];
+import type { AppConfig } from "../api/config/configApi";
+import { useConfigApi } from "./api/config/useConfigApi";
 
 export function useAppConfig() {
+    const { getConfig } = useConfigApi();
     const [data, setData] = useState<AppConfig | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const run = async () => {
             try {
-                const { data: payload, error } = await apiClient.GET("/config");
-                if (!error && payload) {
-                    setData(payload);
-                }
+                const payload = await getConfig();
+                setData(payload);
             } finally {
                 setLoading(false);
             }
         };
         void run();
-    }, []);
+    }, [getConfig]);
 
     return { data, loading };
 }

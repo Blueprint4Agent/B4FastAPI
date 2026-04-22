@@ -1,9 +1,17 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 
-import type { User } from "../api/authApi";
-import * as authApi from "../api/authApi";
-import { apiClient } from "../api/http";
-import type { paths } from "../api/generated/openapi";
+import type { User } from "../api/auth/authApi";
+import type { AppConfig } from "../api/config/configApi";
+import { useAuthApi } from "./api/auth/useAuthApi";
+import { useConfigApi } from "./api/config/useConfigApi";
 import { clearAccessToken, getAccessToken, setAccessToken } from "../store/session";
 
 type AuthContextValue = {
@@ -17,23 +25,31 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-type AppConfig = paths["/config"]["get"]["responses"][200]["content"]["application/json"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const { getConfig } = useConfigApi();
+    const {
+        refresh: refreshAuth,
+        me,
+        login: loginAuth,
+        signup: signupAuth,
+        updateMe,
+        logout: logoutAuth,
+    } = useAuthApi();
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const refreshInFlightRef = useRef<Promise<void> | null>(null);
 
-    const refreshSession = async () => {
+    const refreshSession = useCallback(async () => {
         if (refreshInFlightRef.current) {
             return refreshInFlightRef.current;
         }
 
         const refreshTask = (async () => {
-            const refreshResult = await authApi.refresh();
+            const refreshResult = await refreshAuth();
             setAccessToken(refreshResult.access_token);
-            const me = await authApi.me();
-            setUser(me);
+            const nextUser = await me();
+            setUser(nextUser);
         })();
 
         refreshInFlightRef.current = refreshTask;
@@ -42,15 +58,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } finally {
             refreshInFlightRef.current = null;
         }
-    };
+    }, [me, refreshAuth]);
 
     useEffect(() => {
         // Agent customization note:
         // This bootstrap flow is the single place to plug SSO/session policies.
         const bootstrap = async () => {
             try {
-                const { data: appConfig } = await apiClient.GET("/config");
-                const config = appConfig as AppConfig | undefined;
+                const config = (await getConfig()) as AppConfig | undefined;
                 if (config?.login_enabled === false) {
                     if (config.bootstrap_access_token) {
                         setAccessToken(config.bootstrap_access_token);
@@ -64,8 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const token = getAccessToken();
                 if (token) {
                     try {
-                        const me = await authApi.me();
-                        setUser(me);
+                        const nextUser = await me();
+                        setUser(nextUser);
                         return;
                     } catch {
                         clearAccessToken();
@@ -82,27 +97,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
 
         void bootstrap();
-    }, []);
+    }, [getConfig, me, refreshSession]);
 
     const value = useMemo<AuthContextValue>(
         () => ({
             user,
             loading,
             login: async (input) => {
-                const payload = await authApi.login(input);
+                const payload = await loginAuth(input);
                 setAccessToken(payload.access_token);
                 setUser(payload.user);
             },
             signup: async (input) => {
-                await authApi.signup(input);
+                await signupAuth(input);
             },
             updateProfile: async (input) => {
-                const nextUser = await authApi.updateMe(input);
+                const nextUser = await updateMe(input);
                 setUser(nextUser);
             },
             logout: async () => {
                 try {
-                    await authApi.logout();
+                    await logoutAuth();
                 } finally {
                     clearAccessToken();
                     setUser(null);
@@ -110,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             },
             refreshSession,
         }),
-        [loading, user],
+        [loading, loginAuth, logoutAuth, refreshSession, signupAuth, updateMe, user],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

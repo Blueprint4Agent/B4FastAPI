@@ -242,8 +242,17 @@
             "refreshButton": "Refresh list",
             "listLoadError": "Failed to load API keys.",
             "createError": "Failed to create API key. Please try a different name.",
+            "updateError": "Failed to update API key status.",
             "deactivateError": "Failed to deactivate API key.",
             "enableBlockedInfo": "Revoked API keys cannot be reactivated. Create a new key instead.",
+            "errors": {
+                "apiKeyInvalid": "Invalid API key request.",
+                "userMismatch": "This API key does not belong to the current user.",
+                "createFailed": "Failed to create API key. Please try again.",
+                "nameAlreadyExists": "An API key with this name already exists.",
+                "notFound": "The requested API key does not exist.",
+                "updateFailed": "Failed to update API key."
+            },
             "status": {
                 "active": "Active",
                 "inactive": "Inactive"
@@ -282,6 +291,7 @@
                 "targetName": "Target key: {{name}}"
             },
             "meta": {
+                "accessKey": "Access key",
                 "requestCount": "Request count",
                 "created": "Created",
                 "lastUsed": "Last used"
