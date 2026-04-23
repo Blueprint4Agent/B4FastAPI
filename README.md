@@ -1,36 +1,32 @@
 # Blueprint4FastAPI
 
-Blueprint4FastAPI is an internal project within the **BluePrint4Agent** organization.
+Blueprint4FastAPI is a full-stack template with:
 
-This repository is a trimmed template focused on agent-driven customization patterns.
+- Backend: FastAPI + SQLAlchemy + Alembic + Redis
+- Frontend: React + TypeScript + OpenAPI-generated API types
+- Monolithic static serving support (frontend build copied into backend static path)
 
-Included baseline features:
+## Documentation Entry
 
-- Signup and authentication login
-- JWT access token + Redis-backed refresh token rotation
-- Initial project setup support (`.env`, DB, Redis)
+1. Agent/workflow rules: `AGENTS.md`
+2. Backend engineering rules: `src/backend/BACKEND.md`
+3. Frontend engineering rules: `src/frontend/FRONTEND.md`
+4. Backend quick guide: `src/backend/README.md`
+5. Frontend quick guide: `src/frontend/README.md`
 
-## Structure
+## Repository Layout
 
 ```text
-src/backend/
-  app/
-    core/        # settings, DB, Redis
-    models/      # SQLAlchemy + API schemas
-    services/    # auth business logic
-    routers/v1/  # auth endpoints
-    utils/       # password/token/cookie helpers
-    main.py
+src/
+  backend/
+  frontend/
 docker/
-  docker-compose.yml  # Postgres + Redis
 scripts/
-  bootstrap.ps1
-  bootstrap.sh
 ```
 
 ## Quick Start
 
-1. Bootstrap env files.
+1. Bootstrap env files:
 
 ```bash
 pwsh ./scripts/bootstrap.ps1
@@ -42,7 +38,7 @@ or
 bash ./scripts/bootstrap.sh
 ```
 
-2. (Optional) Run local infra:
+2. (Optional) Start local Postgres/Redis:
 
 ```bash
 cd docker
@@ -53,36 +49,37 @@ docker compose --env-file .env up -d
 
 ```bash
 cd src/backend
-pip install -e .
-uvicorn app.main:app --reload --port 8000
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
-4. Open:
+4. Run frontend:
 
-- API docs: `http://localhost:8000/docs`
+```bash
+cd src/frontend
+npm ci
+npm run dev
+```
 
-## Environment Notes
+5. Open:
 
-- `src/backend/.env`
-    - `LOG_LEVEL=INFO` controls backend log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`)
-    - `DB_DRIVER=sqlite+aiosqlite` for zero-setup local DB
-    - switch to `postgresql+asyncpg` for Docker/Postgres mode
-    - `REDIS_IN_MEMORY=true` allows backend execution without external Redis
-    - `LOGIN_ENABLED=false` disables all login entry points (`/api/v1/auth/login`, `/token`, OAuth login)
-    - when `LOGIN_ENABLED=false`, backend also forces `OAUTH_ENABLED=false` and `EMAIL_ENABLED=false` (SMTP disabled)
-    - when `LOGIN_ENABLED=false`, set only `BOOTSTRAP_USER_EMAIL` and `BOOTSTRAP_USER_NAME`; if that user does not exist, backend creates it on startup
+- Backend API docs: `http://localhost:8000/docs`
+- Frontend app (Vite): `http://localhost:5173`
 
-## API Endpoints
+## Build
 
-- `POST /api/v1/auth/signup`
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me`
-- `POST /api/v1/auth/refresh`
-- `POST /api/v1/auth/logout`
-- `GET /ping`
-- `GET /config`
+Backend:
 
-## Agent-Focused Entry Guide
+```bash
+cd src/backend
+uv run ruff check . --fix
+uv run ruff format .
+```
 
-1. Read [`AGENTS.md`](./AGENTS.md) first.
-2. For backend work, follow [`src/backend/BACKEND.md`](./src/backend/BACKEND.md).
+Frontend:
+
+```bash
+cd src/frontend
+npm run format
+npm run build
+```

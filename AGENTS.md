@@ -1,22 +1,24 @@
 # Agent Guide
 
-This file is the root entry point for agent work in this repository.
+Read this file first, then move to the domain guide for your task.
 
-## 0) Required Read Order
+## Required Read Order
 
-1. Read this file (`AGENTS.md`) first.
-2. For backend tasks, read `src/backend/BACKEND.md` before editing code.
-
-## 1) Active Domain
-
-- This repository currently uses backend domain guidance as the primary implementation standard.
-- Frontend-specific guide is not active in this repository at this time.
-
-## 2) Documentation Sync (Required)
-
-- After implementation, if behavior/structure/rules changed, update related docs in the same work cycle.
-- Minimum check targets:
 1. `AGENTS.md`
-2. `README.md`
-3. `src/backend/BACKEND.md` (for backend changes)
-- Do not leave code changes merged while guide documents remain outdated.
+2. Backend task: `src/backend/BACKEND.md`
+3. Frontend task: `src/frontend/FRONTEND.md`
+
+## Documentation Sync
+
+If implementation changes behavior, structure, or rules, update related docs in the same work cycle.
+
+## Worklog Policy (Required)
+
+1. Every commit must include a matching worklog entry file under `worklog/`.
+2. Worklog filename format: `<number>-<short-kebab-title>.md`.
+3. Worklog must record at least:
+   - commit title
+   - changed file scope
+   - reason
+   - impact
+4. Do not finalize a commit without updating/adding its worklog entry.
