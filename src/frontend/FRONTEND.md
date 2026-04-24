@@ -78,6 +78,23 @@ flowchart LR
 - Prefer precise domain types imported from generated OpenAPI schemas.
 - Public utilities, hooks, and API wrappers should always declare explicit input/output types.
 
+## 2.1) Type Declaration Convention
+
+- Naming/approach used in this project:
+
+1. Strict TypeScript
+2. Explicit typing
+3. Contract-first typing (generated OpenAPI types first)
+
+- Declaration rules:
+
+1. Prefer `type` aliases by default.
+2. Use `interface` only when extension/implementation semantics are clearly required.
+3. Props types must use `XxxProps` naming.
+4. API-related local types must use clear suffixes such as `Request`, `Response`, `ErrorDetail`.
+5. Keep domain-local types near the domain module; avoid broad global type dumping.
+6. Do not introduce `any` without a concrete reason and fallback plan.
+
 ## 3) API Contract Rule (`generate:api`, Required)
 
 - Backend OpenAPI is the source of truth for API contracts.
