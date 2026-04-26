@@ -21,6 +21,11 @@ Default local URL:
 
 - `http://localhost:5173`
 
+API base URL behavior:
+
+- If `VITE_API_BASE_URL` is set, frontend uses that value.
+- If not set, frontend defaults to current page origin (same-origin), useful for backend static serving mode.
+
 ## 3) API Type Generation
 
 Frontend API contracts are generated from backend OpenAPI:
