@@ -17,6 +17,7 @@ dependencies = [
     "redis[hiredis]>=5.0.0",
     "fakeredis>=2.23.0",
     "python-multipart>=0.0.26",
+    "greenlet>=3.0.0",
 ]
 
 [dependency-groups]
