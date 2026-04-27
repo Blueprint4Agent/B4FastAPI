@@ -87,11 +87,12 @@ class APIKeyService:
                 api_key_id,
             )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
+        is_enabled = updated.revoked_at is None
         logger.info(
             "API key status updated (user_id=%s, api_key_id=%s, enabled=%s).",
             user_id,
             api_key_id,
-            updated.enabled,
+            is_enabled,
         )
         return updated
 
