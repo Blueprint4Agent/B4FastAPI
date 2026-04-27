@@ -11,7 +11,6 @@ import { useTheme } from "../../hooks/useTheme";
 import {
     BrandMark,
     Button,
-    DataTable,
     DropdownMenu,
     FormCheckbox,
     InlineMessage,
@@ -61,20 +60,6 @@ export function ShowCasePage() {
         { key: "profile", label: "Profile", icon: UserRound },
         { key: "general", label: "General", icon: SlidersHorizontal },
         { key: "apiKey", label: "API Key", icon: KeyRound },
-    ];
-    const sampleRows = [
-        {
-            id: 1,
-            keyName: "Production",
-            keyPrefix: "sk_live_a1b2",
-            status: "active",
-        },
-        {
-            id: 2,
-            keyName: "Legacy",
-            keyPrefix: "sk_live_zz99",
-            status: "inactive",
-        },
     ];
 
     return (
@@ -209,37 +194,6 @@ export function ShowCasePage() {
                                         Failed to update your profile. Please try again.
                                     </InlineMessage>
                                 </div>
-                            </ShowcaseItem>
-                            <ShowcaseItem component="DataTable">
-                                <DataTable
-                                    rows={sampleRows}
-                                    rowKey={(row) => row.id}
-                                    emptyText="No records"
-                                    columns={[
-                                        {
-                                            id: "name",
-                                            header: "Name",
-                                            render: (row) => row.keyName,
-                                        },
-                                        {
-                                            id: "prefix",
-                                            header: "Prefix",
-                                            render: (row) => <code>{row.keyPrefix}</code>,
-                                        },
-                                        {
-                                            id: "status",
-                                            header: "Status",
-                                            render: (row) =>
-                                                row.status === "active" ? (
-                                                    <StatusBadge tone="active">Active</StatusBadge>
-                                                ) : (
-                                                    <StatusBadge tone="inactive">
-                                                        Inactive
-                                                    </StatusBadge>
-                                                ),
-                                        },
-                                    ]}
-                                />
                             </ShowcaseItem>
                         </div>
                     </div>

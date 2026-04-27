@@ -1071,94 +1071,6 @@ html[data-theme="dark"] .ui-toggle__track--on {
     transform: translateX(1.15rem);
 }
 
-.ui-data-table-wrap {
-    overflow-x: auto;
-    border: 1px solid color-mix(in oklab, var(--panel-border) 88%, transparent 12%);
-    border-radius: 0.9rem;
-}
-
-.ui-data-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 50rem;
-}
-
-.ui-data-table__head {
-    padding: 0.56rem 0.62rem;
-    border-bottom: 1px solid color-mix(in oklab, var(--panel-border) 70%, transparent 30%);
-    background: color-mix(in oklab, var(--panel) 96%, transparent 4%);
-    color: var(--text-soft);
-    font:
-        600 0.67rem/1.05 "Inter",
-        system-ui,
-        sans-serif;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.ui-data-table thead th:not(:last-child),
-.ui-data-table tbody td:not(:last-child) {
-    border-right: 1px solid color-mix(in oklab, var(--panel-border) 74%, transparent 26%);
-}
-
-.ui-data-table__head--center {
-    text-align: center;
-}
-
-.ui-data-table__head--right {
-    text-align: right;
-}
-
-.ui-data-table__head--left {
-    text-align: left;
-}
-
-.ui-data-table__cell {
-    padding: 0.52rem 0.62rem;
-    border-top: 1px solid color-mix(in oklab, var(--panel-border) 72%, transparent 28%);
-    font-size: 0.78rem;
-    vertical-align: middle;
-}
-
-.ui-data-table__row--clickable {
-    cursor: pointer;
-}
-
-.ui-data-table__row--clickable:hover {
-    background: color-mix(in oklab, var(--panel) 94%, transparent 6%);
-}
-
-.ui-data-table__row--selected {
-    background: color-mix(in oklab, var(--accent) 10%, var(--panel) 90%);
-}
-
-.ui-data-table tbody tr:nth-child(even) {
-    background: color-mix(in oklab, var(--panel) 96%, transparent 4%);
-}
-
-.ui-data-table__cell code {
-    font-size: 0.74rem;
-}
-
-.ui-data-table__cell--nowrap {
-    white-space: nowrap;
-}
-
-.ui-data-table__cell--center {
-    text-align: center;
-}
-
-.ui-data-table__cell--right {
-    text-align: right;
-}
-
-.ui-data-table__empty {
-    padding: 1.4rem;
-    text-align: center;
-    color: var(--text-soft);
-    font-size: 0.88rem;
-}
-
 .ui-modal {
     position: fixed;
     inset: 0;
@@ -1444,6 +1356,10 @@ html[data-theme="dark"] .ui-toggle__track--on {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+}
+
+.copy-field__button.ui-button:hover {
+    transform: translateY(calc(-50% - 2px));
 }
 
 .copy-field__button svg {
@@ -2082,10 +1998,6 @@ html[data-theme="dark"] .oauth-provider-button__logo--dark {
 
     .profile-menu__dropdown {
         min-width: 12rem;
-    }
-
-    .ui-data-table {
-        min-width: 42rem;
     }
 
     .developer-key-card__meta {
