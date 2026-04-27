@@ -903,64 +903,11 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            307: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "INVALID_TOKEN",
-                     *         "message": "Invalid refresh token."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "LOGIN_DISABLED",
-                     *         "message": "Login is currently disabled."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "OAUTH_IDENTITY_CONFLICT",
-                     *         "message": "OAuth identity is already linked to another user."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -969,40 +916,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "OAUTH_SIGNUP_FAILED",
-                     *         "message": "Failed to create OAuth user account."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Bad Gateway */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "OAUTH_PROVIDER_REQUEST_FAILED",
-                     *         "message": "OAuth provider request failed."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
@@ -1086,23 +999,6 @@ export interface operations {
                      *         "details": {
                      *           "remaining_seconds": 120
                      *         }
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "SIGNUP_FAILED",
-                     *         "message": "Failed to create the user account."
                      *       }
                      *     }
                      */
@@ -1196,23 +1092,6 @@ export interface operations {
                     "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "SIGNUP_FAILED",
-                     *         "message": "Failed to create the user account."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
         };
     };
     me_api_v1_auth_me_get: {
@@ -1300,7 +1179,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
         };
@@ -1470,23 +1351,6 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "SIGNUP_FAILED",
-                     *         "message": "Failed to create the user account."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
         };
     };
     forgot_password_api_v1_auth_forgot_password_post: {
@@ -1535,23 +1399,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "SIGNUP_FAILED",
-                     *         "message": "Failed to create the user account."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };

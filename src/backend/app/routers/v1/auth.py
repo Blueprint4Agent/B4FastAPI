@@ -98,16 +98,8 @@ async def oauth_start(
 @router.get(
     "/oauth/{provider}/callback",
     name="oauth_callback",
-    responses=auth_error_responses(
-        AuthErrorCode.LOGIN_DISABLED,
-        AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
-        AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
-        AuthErrorCode.INVALID_TOKEN,
-        AuthErrorCode.USER_NOT_FOUND,
-        AuthErrorCode.OAUTH_IDENTITY_CONFLICT,
-        AuthErrorCode.OAUTH_SIGNUP_FAILED,
-        AuthErrorCode.OAUTH_PROVIDER_REQUEST_FAILED,
-    ),
+    response_class=RedirectResponse,
+    status_code=307,
 )
 async def oauth_callback(
     provider: OAuthProvider,
@@ -137,8 +129,22 @@ async def oauth_callback(
             state=state,
         )
     except AuthException as callback_error:
-        logger.error("OAuth callback missing required params (provider=%s).", provider.value)
-        raise service_exception_to_http(callback_error) from callback_error
+        logger.error(
+            "OAuth callback missing required params (provider=%s, code=%s).",
+            provider.value,
+            callback_error.code.error,
+        )
+        failure_query = urlencode(
+            {
+                "error": callback_error.code.error,
+                "message": callback_error.message,
+            }
+        )
+        failure_url = urljoin(
+            f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
+            SETTINGS.OAUTH_FRONTEND_FAILURE_PATH.lstrip("/"),
+        )
+        return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
 
     refresh_session_id = create_refresh_session_id()
     try:

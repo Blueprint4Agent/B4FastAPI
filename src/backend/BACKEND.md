@@ -260,6 +260,8 @@ sequenceDiagram
 1. Route decorator `responses=` must include all domain errors that can be propagated by that handler
 2. Do not hard-code raw status numbers such as `400/401/500` in route decorators
 3. Convert domain exceptions using `service_exception_to_http(...)` and re-raise
+4. For redirect-driven endpoints (for example OAuth callback), do not document JSON domain error models in `responses=` when runtime behavior returns redirects for failure paths
+5. Keep route decorator response contracts aligned with actual transport behavior (JSON vs redirect) before OpenAPI generation
 
 - Service raise rules:
 
