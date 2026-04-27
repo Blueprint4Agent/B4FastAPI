@@ -69,7 +69,11 @@ export function ForgotPasswordPage() {
     return (
         <main className="page">
             <ThemeToggle />
-            <PanelCard title={t("forgotPassword.title")} subtitle={t("forgotPassword.subtitle")}>
+            <PanelCard
+                className="auth-panel"
+                title={t("forgotPassword.title")}
+                subtitle={t("forgotPassword.subtitle")}
+            >
                 <form onSubmit={onSubmit} className="form" noValidate>
                     <InputField
                         label={t("forgotPassword.emailLabel")}

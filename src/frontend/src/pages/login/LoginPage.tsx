@@ -191,7 +191,11 @@ export function LoginPage() {
             <ThemeToggle />
             <div className="auth-panel-stack">
                 <BrandMark className="brand-mark--login" />
-                <PanelCard title={t("login.title")} subtitle={t("login.subtitle")}>
+                <PanelCard
+                    className="auth-panel"
+                    title={t("login.title")}
+                    subtitle={t("login.subtitle")}
+                >
                     {loginEnabled ? (
                         <form onSubmit={onSubmit} className="form" noValidate>
                             <InputField

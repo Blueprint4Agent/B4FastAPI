@@ -13,6 +13,7 @@ export function ResetPasswordSuccessPage() {
         <main className="page">
             <ThemeToggle />
             <PanelCard
+                className="auth-panel"
                 title={t("resetPassword.successTitle")}
                 subtitle={t("resetPassword.successSubtitle")}
             >

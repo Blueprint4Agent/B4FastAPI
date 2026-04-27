@@ -48,6 +48,7 @@ export function VerifyEmailPage() {
             <main className="page">
                 <ThemeToggle />
                 <PanelCard
+                    className="auth-panel"
                     title={t("verifyEmail.loadingTitle")}
                     subtitle={t("verifyEmail.loadingSubtitle")}
                 >
@@ -62,6 +63,7 @@ export function VerifyEmailPage() {
             <main className="page">
                 <ThemeToggle />
                 <PanelCard
+                    className="auth-panel"
                     title={t("verifyEmail.errorTitle")}
                     subtitle={t("verifyEmail.errorSubtitle")}
                 >
@@ -83,6 +85,7 @@ export function VerifyEmailPage() {
         <main className="page">
             <ThemeToggle />
             <PanelCard
+                className="auth-panel"
                 title={t("verifyEmail.successTitle")}
                 subtitle={t("verifyEmail.successSubtitle")}
             >

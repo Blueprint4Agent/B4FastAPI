@@ -132,7 +132,11 @@ export function ResetPasswordPage() {
     return (
         <main className="page">
             <ThemeToggle />
-            <PanelCard title={t("resetPassword.title")} subtitle={t("resetPassword.subtitle")}>
+            <PanelCard
+                className="auth-panel"
+                title={t("resetPassword.title")}
+                subtitle={t("resetPassword.subtitle")}
+            >
                 <form onSubmit={onSubmit} className="form" noValidate>
                     <InputField
                         label={t("resetPassword.passwordLabel")}

@@ -24,6 +24,7 @@ export function ForgotPasswordEmailSentPage() {
         <main className="page">
             <ThemeToggle />
             <PanelCard
+                className="auth-panel"
                 title={
                     showDisabled ? t("forgotPassword.disabledTitle") : t("forgotPassword.sentTitle")
                 }

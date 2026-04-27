@@ -44,6 +44,7 @@ export function SignupEmailSentPage() {
         <main className="page">
             <ThemeToggle />
             <PanelCard
+                className="auth-panel"
                 title={
                     showAccountCreated
                         ? t("signupEmailSent.accountCreatedTitle")

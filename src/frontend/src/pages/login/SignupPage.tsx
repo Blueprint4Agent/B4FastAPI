@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ThemeToggle } from "../../components/ui/toggles/ThemeToggle";
+import { InlineMessage } from "../../components/ui/status/InlineMessage";
 import { ErrorCard, WarningCard } from "../../components/ui/status/StatusCard";
 import {
     Button,
@@ -27,6 +28,10 @@ export function SignupPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [nameErrorMessage, setNameErrorMessage] = useState("");
+    const [emailErrorMessage, setEmailErrorMessage] = useState("");
+    const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
+    const [confirmPasswordErrorMessage, setConfirmPasswordErrorMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
     const [warningMessage, setWarningMessage] = useState("");
 
@@ -83,6 +88,10 @@ export function SignupPage() {
     const onSubmit = async (event: FormEvent) => {
         event.preventDefault();
         setSubmitting(true);
+        setNameErrorMessage("");
+        setEmailErrorMessage("");
+        setPasswordErrorMessage("");
+        setConfirmPasswordErrorMessage("");
         setErrorMessage("");
         setWarningMessage("");
 
@@ -92,33 +101,36 @@ export function SignupPage() {
             return;
         }
 
+        let hasEmptyField = false;
         if (!name.trim()) {
-            setWarningMessage(t("auth.errors.requiredName"));
-            setSubmitting(false);
-            return;
+            setNameErrorMessage(t("auth.errors.requiredName"));
+            hasEmptyField = true;
         }
         if (!email.trim()) {
-            setWarningMessage(t("auth.errors.requiredEmail"));
+            setEmailErrorMessage(t("auth.errors.requiredEmail"));
+            hasEmptyField = true;
+        }
+        if (!password.trim()) {
+            setPasswordErrorMessage(t("auth.errors.requiredPassword"));
+            hasEmptyField = true;
+        }
+        if (!confirmPassword.trim()) {
+            setConfirmPasswordErrorMessage(t("auth.errors.requiredConfirmPassword"));
+            hasEmptyField = true;
+        }
+
+        if (hasEmptyField) {
             setSubmitting(false);
             return;
         }
+
         if (!isValidEmail(email)) {
             setWarningMessage(t("auth.errors.invalidEmail"));
             setSubmitting(false);
             return;
         }
-        if (!password.trim()) {
-            setWarningMessage(t("auth.errors.requiredPassword"));
-            setSubmitting(false);
-            return;
-        }
         if (!isValidPassword(password)) {
             setWarningMessage(t("auth.errors.invalidPasswordPattern"));
-            setSubmitting(false);
-            return;
-        }
-        if (!confirmPassword.trim()) {
-            setWarningMessage(t("auth.errors.requiredConfirmPassword"));
             setSubmitting(false);
             return;
         }
@@ -149,7 +161,11 @@ export function SignupPage() {
     return (
         <main className="page">
             <ThemeToggle />
-            <PanelCard title={t("signup.title")} subtitle={t("signup.subtitle")}>
+            <PanelCard
+                className="auth-panel"
+                title={t("signup.title")}
+                subtitle={t("signup.subtitle")}
+            >
                 <form onSubmit={onSubmit} className="form" noValidate>
                     <InputField
                         label={t("signup.fields.name")}
@@ -158,31 +174,75 @@ export function SignupPage() {
                         minLength={2}
                         maxLength={50}
                         value={name}
-                        onValueChange={setName}
+                        onValueChange={(value) => {
+                            setName(value);
+                            if (nameErrorMessage) {
+                                setNameErrorMessage("");
+                            }
+                            if (warningMessage || errorMessage) {
+                                setWarningMessage("");
+                                setErrorMessage("");
+                            }
+                        }}
                     />
+                    {nameErrorMessage ? <InlineMessage>{nameErrorMessage}</InlineMessage> : null}
                     <InputField
                         label={t("signup.fields.email")}
                         type="email"
                         autoComplete="email"
                         value={email}
-                        onValueChange={setEmail}
+                        onValueChange={(value) => {
+                            setEmail(value);
+                            if (emailErrorMessage) {
+                                setEmailErrorMessage("");
+                            }
+                            if (warningMessage || errorMessage) {
+                                setWarningMessage("");
+                                setErrorMessage("");
+                            }
+                        }}
                     />
+                    {emailErrorMessage ? <InlineMessage>{emailErrorMessage}</InlineMessage> : null}
                     <ValidationCard title={t("signup.validation.email")} rules={emailRules} />
                     <InputField
                         label={t("signup.fields.password")}
                         type="password"
                         autoComplete="new-password"
                         value={password}
-                        onValueChange={setPassword}
+                        onValueChange={(value) => {
+                            setPassword(value);
+                            if (passwordErrorMessage) {
+                                setPasswordErrorMessage("");
+                            }
+                            if (warningMessage || errorMessage) {
+                                setWarningMessage("");
+                                setErrorMessage("");
+                            }
+                        }}
                     />
+                    {passwordErrorMessage ? (
+                        <InlineMessage>{passwordErrorMessage}</InlineMessage>
+                    ) : null}
                     <ValidationCard title={t("signup.validation.password")} rules={passwordRules} />
                     <InputField
                         label={t("signup.fields.confirmPassword")}
                         type="password"
                         autoComplete="new-password"
                         value={confirmPassword}
-                        onValueChange={setConfirmPassword}
+                        onValueChange={(value) => {
+                            setConfirmPassword(value);
+                            if (confirmPasswordErrorMessage) {
+                                setConfirmPasswordErrorMessage("");
+                            }
+                            if (warningMessage || errorMessage) {
+                                setWarningMessage("");
+                                setErrorMessage("");
+                            }
+                        }}
                     />
+                    {confirmPasswordErrorMessage ? (
+                        <InlineMessage>{confirmPasswordErrorMessage}</InlineMessage>
+                    ) : null}
                     <ValidationCard title={t("signup.validation.confirm")} rules={confirmRules} />
                     {hasFeedback && warningMessage ? (
                         <WarningCard title={t("cards.warningTitle")} message={warningMessage} />
