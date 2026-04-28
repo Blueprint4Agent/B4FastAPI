@@ -9,6 +9,7 @@ This guide exists because the project is optimized for agentic coding patterns, 
 
 1. Root `AGENTS.md`
 2. This document (`src/backend/BACKEND.md`)
+3. Test guide (`src/backend/TEST.md`) when adding/changing tests
 
 - Priority on conflicts:
 
@@ -297,6 +298,8 @@ sequenceDiagram
 3. Run minimum relevant tests for modified scope (if tests exist)
 4. If OpenAPI contract changes, verify downstream frontend type generation flow
 5. If dependencies/tooling changed, verify `pyproject.toml` and lockfile are synchronized under `uv` workflow
+
+- For test architecture, naming, and harness rules, follow `src/backend/TEST.md`.
 
 - Do not commit when these checks are not satisfied.
 

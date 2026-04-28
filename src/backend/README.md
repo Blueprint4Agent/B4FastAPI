@@ -2,6 +2,7 @@
 
 This is a minimal quick-reference guide for backend contributors.
 For full engineering rules, follow `src/backend/BACKEND.md`.
+For backend test engineering rules, follow `src/backend/TEST.md`.
 
 ## 1) Core Rules
 
@@ -86,3 +87,17 @@ uv run ruff format .
 Also verify:
 - If DB changed, confirm Alembic revision/upgrade
 - If behavior/rules changed, sync `AGENTS.md`, root `README.md`, and `src/backend/BACKEND.md`
+
+## 7) Tests (Domain/API Structure)
+
+- Tests are organized by API domain under `tests/api/v1/<domain>/`.
+- Current starter layout:
+1. `tests/api/v1/auth/test_auth_api.py`
+2. `tests/api/v1/api_key/test_api_key_api.py`
+
+Run tests:
+
+```bash
+cd src/backend
+uv run pytest
+```

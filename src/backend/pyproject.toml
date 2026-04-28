@@ -23,6 +23,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "ruff",
+    "pytest>=8.3.0",
+    "httpx>=0.28.0",
 ]
 
 [tool.uv]
@@ -51,3 +53,9 @@ combine-as-imports = true
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+pythonpath = ["."]
