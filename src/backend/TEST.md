@@ -27,6 +27,7 @@ Recommended pyramid:
 Current baseline implemented:
 1. Smoke test (`tests/test_smoke.py`)
 2. API contract tests by domain (`tests/api/v1/<domain>/test_*_api.py`)
+3. Integration tests by domain (`tests/integration/api/v1/<domain>/test_*_integration.py`)
 
 ## 2) Current Directory Layout
 
@@ -40,6 +41,12 @@ src/backend/tests/
         test_auth_api.py
       api_key/
         test_api_key_api.py
+  integration/
+    api/v1/
+      auth/
+        test_auth_integration.py
+      api_key/
+        test_api_key_integration.py
 ```
 
 Planned expansion layout:
@@ -49,8 +56,6 @@ src/backend/tests/
   unit/
     services/
     utils/
-  integration/
-    api/v1/
 ```
 
 ## 3) Core Principles
@@ -145,11 +150,33 @@ uv run pytest
 
 1. File name: `test_<target>.py`
 2. Test function name: `test_<behavior>_<expected_result>`
-3. Use explicit assertions for:
+3. Each test function must include a one-line scenario docstring.
+4. Multi-step tests must use `Given / When / Then` inline comments.
+5. Use explicit assertions for:
    - status code
    - error code/message keys for domain failures
    - critical response payload fields
-4. Keep each test focused on one behavior.
+6. Keep each test focused on one behavior.
+
+Required format template:
+
+```python
+def test_<behavior>_<expected_result>(...):
+    """Scenario: <what flow is being verified in one sentence>."""
+    # Given: <initial state or setup condition>
+    # When: <action/request under test>
+    # Then: <expected result/contract>
+```
+
+Example:
+
+```python
+def test_me_requires_authentication(sample_user):
+    """Scenario: protected route denies access without auth dependency."""
+    # Given: client without current-user override.
+    # When: /api/v1/auth/me is requested.
+    # Then: 401 with INVALID_TOKEN error code is returned.
+```
 
 ## 10) Change Checklist
 

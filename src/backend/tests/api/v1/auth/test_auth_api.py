@@ -1,3 +1,4 @@
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -34,8 +35,10 @@ def create_auth_test_client(user: UserResponse, with_user_auth: bool = False) ->
 
 
 def test_signup_success(sample_user: UserResponse):
+    """Scenario: signup route returns user payload on valid input."""
     client = create_auth_test_client(sample_user)
 
+    # Given/When: valid signup payload is submitted.
     response = client.post(
         "/api/v1/auth/signup",
         json={
@@ -45,13 +48,16 @@ def test_signup_success(sample_user: UserResponse):
         },
     )
 
+    # Then: route returns success contract.
     assert response.status_code == 200
     assert response.json()["email"] == "tester@example.com"
 
 
 def test_signup_validation_error_returns_422(sample_user: UserResponse):
+    """Scenario: signup rejects password that violates schema constraints."""
     client = create_auth_test_client(sample_user)
 
+    # Given/When: weak password is submitted.
     response = client.post(
         "/api/v1/auth/signup",
         json={
@@ -61,31 +67,107 @@ def test_signup_validation_error_returns_422(sample_user: UserResponse):
         },
     )
 
+    # Then: request validation fails before service logic.
+    assert response.status_code == 422
+
+
+def test_signup_invalid_email_format_returns_422(sample_user: UserResponse):
+    """Scenario: signup rejects invalid email format."""
+    client = create_auth_test_client(sample_user)
+
+    # Given/When: malformed email is submitted.
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={
+            "email": "invalid-email-format",
+            "name": "Tester",
+            "password": "ValidPass1!",
+        },
+    )
+
+    # Then: request validation fails.
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("password", "expected_fragment"),
+    [
+        ("lowercase1!", "uppercase"),
+        ("NoNumber!", "number"),
+        ("NoSymbol1", "symbol"),
+        ("With Space1!", "spaces"),
+    ],
+)
+def test_signup_password_policy_validation_returns_422(
+    sample_user: UserResponse, password: str, expected_fragment: str
+):
+    """Scenario: signup enforces password policy branches."""
+    client = create_auth_test_client(sample_user)
+
+    # Given/When: policy-violating password is submitted.
+    response = client.post(
+        "/api/v1/auth/signup",
+        json={
+            "email": "tester@example.com",
+            "name": "Tester",
+            "password": password,
+        },
+    )
+
+    # Then: request is rejected with validation context.
+    assert response.status_code == 422
+    assert expected_fragment in str(response.json()).lower()
+
+
+def test_login_invalid_email_format_returns_422(sample_user: UserResponse):
+    """Scenario: login rejects malformed email payload."""
+    client = create_auth_test_client(sample_user)
+
+    # Given/When: login is attempted with malformed email.
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "invalid-email-format",
+            "password": "ValidPass1!",
+            "remember_me": False,
+        },
+    )
+
+    # Then: request validation fails.
     assert response.status_code == 422
 
 
 def test_oauth_providers_success(sample_user: UserResponse):
+    """Scenario: oauth providers route returns configured provider list."""
     client = create_auth_test_client(sample_user)
 
+    # When: provider list is requested.
     response = client.get("/api/v1/auth/oauth/providers")
 
+    # Then: one provider from fake service is returned.
     assert response.status_code == 200
     assert response.json()["providers"][0]["provider"] == "google"
 
 
 def test_me_requires_authentication(sample_user: UserResponse):
+    """Scenario: protected route denies access without auth dependency."""
     client = create_auth_test_client(sample_user)
 
+    # When: /me is requested without overriding get_current_user.
     response = client.get("/api/v1/auth/me")
 
+    # Then: auth guard returns invalid token error.
     assert response.status_code == 401
     assert response.json()["detail"]["error"] == "INVALID_TOKEN"
 
 
 def test_me_success_with_dependency_override(sample_user: UserResponse):
+    """Scenario: protected route returns current user when auth is injected."""
     client = create_auth_test_client(sample_user, with_user_auth=True)
 
+    # When: /me is requested with auth dependency override.
     response = client.get("/api/v1/auth/me")
 
+    # Then: current user payload is returned.
     assert response.status_code == 200
     assert response.json()["id"] == sample_user.id

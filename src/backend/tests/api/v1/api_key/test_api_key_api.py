@@ -70,37 +70,49 @@ def create_api_key_test_client(user: UserResponse, with_user_auth: bool = True) 
 
 
 def test_create_api_key_success(sample_user: UserResponse):
+    """Scenario: create API key route returns generated key payload."""
     client = create_api_key_test_client(sample_user)
 
+    # Given/When: authenticated user requests key creation.
     response = client.post("/api/v1/api-keys", json={"name": "local-dev"})
 
+    # Then: created key contract is returned.
     assert response.status_code == 200
     assert response.json()["key"]["name"] == "local-dev"
 
 
 def test_list_api_keys_success(sample_user: UserResponse):
+    """Scenario: list route returns API key collection."""
     client = create_api_key_test_client(sample_user)
 
+    # When: authenticated user requests key list.
     response = client.get("/api/v1/api-keys")
 
+    # Then: list payload includes one fake key.
     assert response.status_code == 200
     assert len(response.json()["items"]) == 1
 
 
 def test_update_api_key_status_success(sample_user: UserResponse):
+    """Scenario: status update route returns revoked timestamp when disabled."""
     client = create_api_key_test_client(sample_user)
 
+    # Given/When: authenticated user disables key.
     response = client.patch("/api/v1/api-keys/1/status", json={"enabled": False})
 
+    # Then: response reflects disabled state.
     assert response.status_code == 200
     assert response.json()["id"] == 1
     assert response.json()["revoked_at"] is not None
 
 
 def test_api_key_routes_require_authentication(sample_user: UserResponse):
+    """Scenario: protected API key route rejects unauthenticated request."""
     client = create_api_key_test_client(sample_user, with_user_auth=False)
 
+    # When: list endpoint is called without auth dependency override.
     response = client.get("/api/v1/api-keys")
 
+    # Then: invalid token domain error is returned.
     assert response.status_code == 401
     assert response.json()["detail"]["error"] == "INVALID_TOKEN"
