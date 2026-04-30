@@ -59,3 +59,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"
 pythonpath = ["."]
+markers = [
+    "api_test: router-level API contract tests with dependency overrides",
+    "primary_data: integration tests with clean/primary test data state",
+    "mocked_data: integration tests using seeded production-like dataset",
+    "scenario_flow: sequential end-to-end-like domain scenario flows",
+]

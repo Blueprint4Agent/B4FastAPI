@@ -4,9 +4,21 @@ from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
 from app.models.oauth import OAuthProvider, OAuthProviderPublicConfig
-from app.models.user import SignupForm, UserResponse
+from app.models.user import LoginForm, LoginResponse, RefreshResponse, SignupForm, UserResponse
 from app.routers.v1 import auth
 from app.services.auth import AuthService
+from tests.fixtures.api_contract_data import (
+    AUTH_PASSWORD_POLICY_CASES,
+    AUTH_REFRESH_REQUEST_PAYLOAD,
+)
+from tests.fixtures.payload_data import (
+    INVALID_EMAIL,
+    VALID_PASSWORD,
+    build_login_payload,
+    build_signup_payload,
+)
+
+pytestmark = pytest.mark.api_test
 
 
 class FakeAuthService:
@@ -16,6 +28,19 @@ class FakeAuthService:
     async def signup(self, _form: SignupForm) -> UserResponse:
         return self._user
 
+    async def login(
+        self,
+        form: LoginForm,
+        _request,
+        refresh_session_id: str,
+    ) -> LoginResponse:
+        return LoginResponse(
+            access_token=f"access-token-for-{self._user.id}",
+            refresh_token=f"refresh-token-for-{refresh_session_id}",
+            token_type="bearer",
+            user=self._user,
+        )
+
     def get_oauth_provider_public_configs(self) -> list[OAuthProviderPublicConfig]:
         return [
             OAuthProviderPublicConfig(
@@ -23,6 +48,31 @@ class FakeAuthService:
                 start_path="/api/v1/auth/oauth/google/start",
             )
         ]
+
+    async def refresh_with_request_context(
+        self,
+        *,
+        request,
+        refresh_token: str | None,
+        user_id: int | None,
+        session_id: str | None,
+    ) -> tuple[RefreshResponse, str, bool]:
+        _ = request
+        _ = refresh_token
+        _ = user_id
+        return (
+            RefreshResponse(
+                access_token="rotated-access-token",
+                refresh_token="rotated-refresh-token",
+                token_type="bearer",
+            ),
+            session_id or "session-mock-001",
+            False,
+        )
+
+    async def logout(self, user_id: int) -> None:
+        _ = user_id
+        return None
 
 
 def create_auth_test_client(user: UserResponse, with_user_auth: bool = False) -> TestClient:
@@ -39,14 +89,7 @@ def test_signup_success(sample_user: UserResponse):
     client = create_auth_test_client(sample_user)
 
     # Given/When: valid signup payload is submitted.
-    response = client.post(
-        "/api/v1/auth/signup",
-        json={
-            "email": "tester@example.com",
-            "name": "Tester",
-            "password": "ValidPass1!",
-        },
-    )
+    response = client.post("/api/v1/auth/signup", json=build_signup_payload())
 
     # Then: route returns success contract.
     assert response.status_code == 200
@@ -58,14 +101,7 @@ def test_signup_validation_error_returns_422(sample_user: UserResponse):
     client = create_auth_test_client(sample_user)
 
     # Given/When: weak password is submitted.
-    response = client.post(
-        "/api/v1/auth/signup",
-        json={
-            "email": "tester@example.com",
-            "name": "Tester",
-            "password": "weakpass",
-        },
-    )
+    response = client.post("/api/v1/auth/signup", json=build_signup_payload(password="weakpass"))
 
     # Then: request validation fails before service logic.
     assert response.status_code == 422
@@ -76,14 +112,7 @@ def test_signup_invalid_email_format_returns_422(sample_user: UserResponse):
     client = create_auth_test_client(sample_user)
 
     # Given/When: malformed email is submitted.
-    response = client.post(
-        "/api/v1/auth/signup",
-        json={
-            "email": "invalid-email-format",
-            "name": "Tester",
-            "password": "ValidPass1!",
-        },
-    )
+    response = client.post("/api/v1/auth/signup", json=build_signup_payload(email=INVALID_EMAIL))
 
     # Then: request validation fails.
     assert response.status_code == 422
@@ -91,12 +120,7 @@ def test_signup_invalid_email_format_returns_422(sample_user: UserResponse):
 
 @pytest.mark.parametrize(
     ("password", "expected_fragment"),
-    [
-        ("lowercase1!", "uppercase"),
-        ("NoNumber!", "number"),
-        ("NoSymbol1", "symbol"),
-        ("With Space1!", "spaces"),
-    ],
+    AUTH_PASSWORD_POLICY_CASES,
 )
 def test_signup_password_policy_validation_returns_422(
     sample_user: UserResponse, password: str, expected_fragment: str
@@ -105,14 +129,7 @@ def test_signup_password_policy_validation_returns_422(
     client = create_auth_test_client(sample_user)
 
     # Given/When: policy-violating password is submitted.
-    response = client.post(
-        "/api/v1/auth/signup",
-        json={
-            "email": "tester@example.com",
-            "name": "Tester",
-            "password": password,
-        },
-    )
+    response = client.post("/api/v1/auth/signup", json=build_signup_payload(password=password))
 
     # Then: request is rejected with validation context.
     assert response.status_code == 422
@@ -124,14 +141,7 @@ def test_login_invalid_email_format_returns_422(sample_user: UserResponse):
     client = create_auth_test_client(sample_user)
 
     # Given/When: login is attempted with malformed email.
-    response = client.post(
-        "/api/v1/auth/login",
-        json={
-            "email": "invalid-email-format",
-            "password": "ValidPass1!",
-            "remember_me": False,
-        },
-    )
+    response = client.post("/api/v1/auth/login", json=build_login_payload(email=INVALID_EMAIL))
 
     # Then: request validation fails.
     assert response.status_code == 422
@@ -147,6 +157,40 @@ def test_oauth_providers_success(sample_user: UserResponse):
     # Then: one provider from fake service is returned.
     assert response.status_code == 200
     assert response.json()["providers"][0]["provider"] == "google"
+
+
+def test_login_success_returns_token_contract(sample_user: UserResponse):
+    """Scenario: login route returns token payload on valid input."""
+    client = create_auth_test_client(sample_user)
+
+    # Given/When: valid login payload is submitted.
+    response = client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(email=sample_user.email, password=VALID_PASSWORD),
+    )
+
+    # Then: login contract includes bearer tokens and user.
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["token_type"] == "bearer"
+    assert payload["user"]["email"] == sample_user.email
+    assert payload["access_token"]
+    assert payload["refresh_token"]
+
+
+def test_refresh_success_returns_rotated_token_contract(sample_user: UserResponse):
+    """Scenario: refresh route returns rotated access/refresh token payload."""
+    client = create_auth_test_client(sample_user)
+
+    # Given/When: refresh request payload is submitted.
+    response = client.post("/api/v1/auth/refresh", json=AUTH_REFRESH_REQUEST_PAYLOAD)
+
+    # Then: refresh contract contains rotated token values.
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["token_type"] == "bearer"
+    assert payload["access_token"] == "rotated-access-token"
+    assert payload["refresh_token"] == "rotated-refresh-token"
 
 
 def test_me_requires_authentication(sample_user: UserResponse):
@@ -171,3 +215,15 @@ def test_me_success_with_dependency_override(sample_user: UserResponse):
     # Then: current user payload is returned.
     assert response.status_code == 200
     assert response.json()["id"] == sample_user.id
+
+
+def test_logout_success_with_dependency_override(sample_user: UserResponse):
+    """Scenario: logout route succeeds when current user dependency is provided."""
+    client = create_auth_test_client(sample_user, with_user_auth=True)
+
+    # When: logout is requested with dependency-injected current user.
+    response = client.post("/api/v1/auth/logout")
+
+    # Then: logout success message is returned.
+    assert response.status_code == 200
+    assert response.json()["message"] == "Successfully logged out."

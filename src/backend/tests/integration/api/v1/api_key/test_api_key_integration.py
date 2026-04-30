@@ -1,4 +1,14 @@
+import pytest
 from fastapi.testclient import TestClient
+
+from tests.fixtures.api_contract_data import API_KEY_CREATE_PAYLOAD
+from tests.fixtures.payload_data import (
+    VALID_PASSWORD,
+    build_login_payload,
+    build_signup_payload,
+)
+
+pytestmark = pytest.mark.primary_data
 
 
 def _signup_and_login(client: TestClient, email: str, password: str) -> dict:
@@ -6,11 +16,7 @@ def _signup_and_login(client: TestClient, email: str, password: str) -> dict:
     # Given/When: a user signs up.
     signup_response = client.post(
         "/api/v1/auth/signup",
-        json={
-            "email": email,
-            "name": "Integration User",
-            "password": password,
-        },
+        json=build_signup_payload(email=email, name="Integration User", password=password),
     )
     # Then: signup succeeds.
     assert signup_response.status_code == 200
@@ -18,11 +24,7 @@ def _signup_and_login(client: TestClient, email: str, password: str) -> dict:
     # When: the same user logs in.
     login_response = client.post(
         "/api/v1/auth/login",
-        json={
-            "email": email,
-            "password": password,
-            "remember_me": False,
-        },
+        json=build_login_payload(email=email, password=password, remember_me=False),
     )
     # Then: login succeeds and returns token payload.
     assert login_response.status_code == 200
@@ -35,7 +37,7 @@ def test_api_key_create_and_list_flow(integration_client: TestClient):
     login_payload = _signup_and_login(
         integration_client,
         email="apikey-user@example.com",
-        password="ValidPass1!",
+        password=VALID_PASSWORD,
     )
     access_token = login_payload["access_token"]
     auth_headers = {"Authorization": f"Bearer {access_token}"}
@@ -43,7 +45,7 @@ def test_api_key_create_and_list_flow(integration_client: TestClient):
     # When: the user creates an API key.
     create_response = integration_client.post(
         "/api/v1/api-keys",
-        json={"name": "integration-key"},
+        json={**API_KEY_CREATE_PAYLOAD, "name": "integration-key"},
         headers=auth_headers,
     )
     # Then: key creation contract is returned.
@@ -65,7 +67,7 @@ def test_api_key_can_access_protected_route(integration_client: TestClient):
     login_payload = _signup_and_login(
         integration_client,
         email="key-auth-user@example.com",
-        password="ValidPass1!",
+        password=VALID_PASSWORD,
     )
     access_token = login_payload["access_token"]
     bearer_headers = {"Authorization": f"Bearer {access_token}"}
@@ -73,7 +75,7 @@ def test_api_key_can_access_protected_route(integration_client: TestClient):
     # When: the user creates an API key.
     create_response = integration_client.post(
         "/api/v1/api-keys",
-        json={"name": "key-auth"},
+        json={**API_KEY_CREATE_PAYLOAD, "name": "key-auth"},
         headers=bearer_headers,
     )
     api_key_value = create_response.json()["api_key"]

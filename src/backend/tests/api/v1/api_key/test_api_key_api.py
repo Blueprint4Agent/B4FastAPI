@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -14,6 +15,9 @@ from app.models.api_key import (
 from app.models.user import UserResponse
 from app.routers.v1 import api_key
 from app.services.api_key import APIKeyService
+from tests.fixtures.api_contract_data import API_KEY_CREATE_PAYLOAD
+
+pytestmark = pytest.mark.api_test
 
 
 class FakeAPIKeyService:
@@ -74,7 +78,7 @@ def test_create_api_key_success(sample_user: UserResponse):
     client = create_api_key_test_client(sample_user)
 
     # Given/When: authenticated user requests key creation.
-    response = client.post("/api/v1/api-keys", json={"name": "local-dev"})
+    response = client.post("/api/v1/api-keys", json=API_KEY_CREATE_PAYLOAD)
 
     # Then: created key contract is returned.
     assert response.status_code == 200
@@ -104,6 +108,19 @@ def test_update_api_key_status_success(sample_user: UserResponse):
     assert response.status_code == 200
     assert response.json()["id"] == 1
     assert response.json()["revoked_at"] is not None
+
+
+def test_delete_api_key_success(sample_user: UserResponse):
+    """Scenario: delete route returns deleted API key payload."""
+    client = create_api_key_test_client(sample_user)
+
+    # Given/When: authenticated user deletes key id=1.
+    response = client.delete("/api/v1/api-keys/1")
+
+    # Then: deleted key contract is returned.
+    assert response.status_code == 200
+    assert response.json()["id"] == 1
+    assert response.json()["name"] == "local-dev"
 
 
 def test_api_key_routes_require_authentication(sample_user: UserResponse):

@@ -300,6 +300,8 @@ sequenceDiagram
 5. If dependencies/tooling changed, verify `pyproject.toml` and lockfile are synchronized under `uv` workflow
 
 - For test architecture, naming, and harness rules, follow `src/backend/TEST.md`.
+- When adding a new backend domain/router, follow the onboarding checklist in
+  `src/backend/TEST.md` (`## 11) New Domain Test Onboarding Rules (Required)`).
 
 - Do not commit when these checks are not satisfied.
 

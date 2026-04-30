@@ -176,13 +176,19 @@ def create_app() -> FastAPI:
         app.mount("/", StaticFiles(directory=static_dist_dir, html=True), name="frontend")
 
         @app.exception_handler(404)
-        async def spa_fallback(request: Request, _exc):
+        async def spa_fallback(request: Request, exc):
             accepts_html = "text/html" in request.headers.get("accept", "")
             is_api_path = request.url.path.startswith("/api/")
             if request.method in {"GET", "HEAD"} and accepts_html and not is_api_path:
                 index_path = static_dist_dir / "index.html"
                 if index_path.exists():
                     return FileResponse(index_path)
+
+            # Preserve API error payload shape for domain 404 responses.
+            if is_api_path:
+                detail = getattr(exc, "detail", "Not Found")
+                return JSONResponse(status_code=404, content={"detail": detail})
+
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
     return app
