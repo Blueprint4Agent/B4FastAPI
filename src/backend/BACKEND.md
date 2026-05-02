@@ -33,6 +33,7 @@ src/backend/
       redis.py
       settings.py
       logging.py
+      migrations.py
       error/
         error.py
         auth_exception.py
@@ -66,6 +67,7 @@ src/backend/
 3. No endpoint-specific business rules
 4. Environment variable access is centralized in `app/core/settings.py` via `SETTINGS`
 5. Do not scatter direct `os.getenv(...)` usage across routers/services/utils
+6. Startup DB migration orchestration logic belongs in `app/core/migrations.py`, not router/service/main business code
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas

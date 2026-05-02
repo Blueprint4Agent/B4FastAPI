@@ -12,9 +12,10 @@ from app.core.database import dispose_db, init_db
 from app.core.error import AuthException
 from app.core.logging import get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
+from app.core.migrations import run_startup_schema_migrations
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
-from app.models.user import UserResponse, Users
+from app.models.user import UserResponse, UserRole, Users
 from app.routers.v1 import api_key, auth
 from app.utils.token import create_access_token
 
@@ -52,7 +53,10 @@ async def lifespan(_app: FastAPI):
         logger.info("OAuth configuration validation succeeded.")
 
     await MAIL_SERVICE.initialize()
+    await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
+    logger.info("Database schema migration check complete (target=head).")
     await init_db()
+    logger.info("Database initialization complete.")
     if not SETTINGS.LOGIN_ENABLED:
         bootstrap_email = SETTINGS.BOOTSTRAP_USER_EMAIL.strip().lower()
         bootstrap_name = SETTINGS.BOOTSTRAP_USER_NAME.strip()
@@ -68,6 +72,7 @@ async def lifespan(_app: FastAPI):
                         provider="bootstrap",
                         identifier=bootstrap_email,
                         is_verified=True,
+                        role=UserRole.ADMIN,
                     )
                 except AuthException:
                     # Another startup worker may create it concurrently.
@@ -80,6 +85,15 @@ async def lifespan(_app: FastAPI):
             else:
                 logger.info(
                     "Bootstrap user found (email=%s).",
+                    mask_email(bootstrap_email),
+                )
+            if bootstrap_user is not None and bootstrap_user.role != UserRole.ADMIN:
+                bootstrap_user = await Users.update_user_role(
+                    user_id=bootstrap_user.id,
+                    role=UserRole.ADMIN,
+                )
+                logger.info(
+                    "Bootstrap user role promoted to admin (email=%s).",
                     mask_email(bootstrap_email),
                 )
             BOOTSTRAP_USER = bootstrap_user
@@ -100,6 +114,7 @@ async def lifespan(_app: FastAPI):
     else:
         BOOTSTRAP_USER = None
         BOOTSTRAP_ACCESS_TOKEN = None
+    logger.info("Application startup sequence complete.")
     try:
         yield
     finally:
@@ -117,6 +132,7 @@ def create_app() -> FastAPI:
 
     logging.getLogger("uvicorn.error").setLevel(log_level_value)
     logging.getLogger("uvicorn.access").setLevel(log_level_value)
+    logging.getLogger("uvicorn").setLevel(log_level_value)
 
     app = FastAPI(
         title=SETTINGS.APP_NAME,

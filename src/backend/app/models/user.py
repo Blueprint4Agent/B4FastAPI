@@ -505,6 +505,21 @@ class UserRepository:
             await db.commit()
         return await self.get_user_response_by_id(user_id)
 
+    async def update_user_role(self, user_id: int, role: UserRole) -> UserResponse | None:
+        async with get_db() as db:
+            result = await db.execute(
+                select(User).where(User.id == user_id, User.is_active.is_(True))
+            )
+            user = result.scalar_one_or_none()
+            if user is None:
+                return None
+
+            user.role = role.value
+            user.updated_at = datetime.now(UTC)
+            await db.commit()
+
+        return await self.get_user_response_by_id(user_id)
+
     async def get_user_role_stats(self) -> dict[str, int]:
         async with get_db() as db:
             total_users = await db.scalar(select(func.count(User.id)))

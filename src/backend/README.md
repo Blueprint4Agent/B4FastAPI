@@ -10,6 +10,8 @@ For backend test engineering rules, follow `src/backend/TEST.md`.
 - Access environment variables through `SETTINGS` in `app/core/settings.py`
 - If schema/models change, Alembic migration updates are required
 - RBAC is enforced via dependencies in `app/deps.py` (for example admin-only guards)
+- In `LOGIN_ENABLED=false` bootstrap mode, bootstrap user is provisioned/promoted as `admin`
+- On startup, backend runs Alembic `upgrade head` against the active `DATABASE_URL` only (no downgrade path)
 
 ## 1.1) Backend Flow
 
