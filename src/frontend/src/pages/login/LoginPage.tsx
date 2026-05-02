@@ -46,7 +46,7 @@ export function LoginPage() {
     const [oauthProviders, setOAuthProviders] = useState<
         Array<{ provider: OAuthProvider; start_path: string }>
     >([]);
-    const loginEnabled = appConfig?.login_enabled !== false;
+    const loginEnabled = appConfig?.login_enabled === true;
     const emailEnabled = appConfig?.email_enabled === true;
     const oauthEnabled = appConfig?.oauth_enabled === true;
 

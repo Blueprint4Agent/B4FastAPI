@@ -24,7 +24,8 @@ Default local URL:
 API base URL behavior:
 
 - If `VITE_API_BASE_URL` is set, frontend uses that value.
-- If not set, frontend defaults to current page origin (same-origin), useful for backend static serving mode.
+- If not set and current port is `5173` (Vite dev), frontend defaults to `http(s)://<current-host>:8000`.
+- Otherwise, frontend defaults to current page origin (same-origin), useful for backend static serving mode.
 
 ## 3) API Type Generation
 

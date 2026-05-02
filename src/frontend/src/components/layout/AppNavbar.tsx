@@ -16,7 +16,7 @@ export function AppNavbar() {
     const { data: appConfig } = useAppConfig();
     const { themeMode, setThemeMode } = useTheme();
     const [busy, setBusy] = useState(false);
-    const loginEnabled = appConfig?.login_enabled !== false;
+    const loginEnabled = appConfig?.login_enabled === true;
 
     const displayName = user?.name?.trim() || user?.email || "User";
     const avatarLabel = displayName.slice(0, 1).toUpperCase();
@@ -36,7 +36,7 @@ export function AppNavbar() {
         setBusy(true);
         try {
             await logout();
-            navigate("/login", { replace: true });
+            navigate(loginEnabled ? "/login" : "/show-case", { replace: true });
         } finally {
             setBusy(false);
         }

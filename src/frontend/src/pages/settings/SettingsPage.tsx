@@ -12,6 +12,7 @@ import {
     InputField,
     MenuList,
     PrimaryCard,
+    StatusBadge,
     ThemeToggleButton,
     UserAvatar,
 } from "../../components/ui";
@@ -59,7 +60,7 @@ export function SettingsPage() {
     const [deactivateTarget, setDeactivateTarget] = useState<APIKeyRecord | null>(null);
     const [deactivateBusy, setDeactivateBusy] = useState(false);
     const [toggleBusyId, setToggleBusyId] = useState<number | null>(null);
-    const loginEnabled = appConfig?.login_enabled !== false;
+    const loginEnabled = appConfig?.login_enabled === true;
 
     const showProfile = activeMenu === "profile";
     const showDevelopers = activeMenu === "developers";
@@ -76,6 +77,7 @@ export function SettingsPage() {
     const isNameChanged = normalizedNameInput !== normalizedCurrentName;
     const connectedOAuthProviders = user?.oauth_providers ?? [];
     const currentLanguageLabel = t("settings.general.languages.en");
+    const isAdminUser = user?.role === "admin";
 
     const resolveOAuthProviderLabel = (provider: string) => {
         if (provider === "google") {
@@ -344,6 +346,13 @@ export function SettingsPage() {
                                 <span>{t("settings.profile.title")}</span>
                             </h1>
                             <p>{t("settings.profile.subtitle")}</p>
+                            {isAdminUser ? (
+                                <div className="settings-profile-role-badge-wrap">
+                                    <StatusBadge tone="active">
+                                        {t("settings.profile.roleBadgeAdmin")}
+                                    </StatusBadge>
+                                </div>
+                            ) : null}
                         </header>
 
                         <section
