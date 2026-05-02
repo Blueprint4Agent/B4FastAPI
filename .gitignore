@@ -15,6 +15,7 @@ src/frontend/.env
 
 # Local infra
 docker/.env
+docker/artifacts/
 
 # Editor / OS
 .DS_Store

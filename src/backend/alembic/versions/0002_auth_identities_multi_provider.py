@@ -1,6 +1,6 @@
 """expand auth identities for multi-provider support
 
-Revision ID: 0002_auth_identities_multi_provider
+Revision ID: 0002_auth_identities_multi
 Revises: 0001_initial_auth_schema
 Create Date: 2026-03-21 00:00:00
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "0002_auth_identities_multi_provider"
+revision = "0002_auth_identities_multi"
 down_revision = "0001_initial_auth_schema"
 branch_labels = None
 depends_on = None

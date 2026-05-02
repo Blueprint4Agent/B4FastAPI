@@ -1,7 +1,7 @@
 """add profile image url to users
 
 Revision ID: 0003_users_profile_image_url
-Revises: 0002_auth_identities_multi_provider
+Revises: 0002_auth_identities_multi
 Create Date: 2026-04-04 00:00:00
 """
 
@@ -13,7 +13,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "0003_users_profile_image_url"
-down_revision = "0002_auth_identities_multi_provider"
+down_revision = "0002_auth_identities_multi"
 branch_labels = None
 depends_on = None
 
