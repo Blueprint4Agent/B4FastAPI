@@ -32,17 +32,17 @@
 }
 
 html[data-theme="dark"] {
-    --bg: #0f1521;
-    --bg-grad-a: rgba(31, 89, 201, 0.28);
-    --bg-grad-b: rgba(190, 142, 39, 0.2);
-    --text: #edf2ff;
-    --text-soft: #a4b3c7;
-    --panel: rgba(16, 24, 37, 0.85);
-    --panel-border: rgba(149, 172, 206, 0.22);
-    --input-bg: rgba(24, 36, 54, 0.9);
-    --input-border: rgba(148, 171, 205, 0.35);
-    --accent: #87b7ff;
-    --accent-hover: #9dc4ff;
+    --bg: #0b0b0c;
+    --bg-grad-a: rgba(255, 255, 255, 0.05);
+    --bg-grad-b: rgba(255, 255, 255, 0.02);
+    --text: #f3f3f3;
+    --text-soft: #a3a3a3;
+    --panel: rgba(30, 30, 33, 0.92);
+    --panel-border: rgba(148, 148, 153, 0.3);
+    --input-bg: rgba(38, 38, 41, 0.96);
+    --input-border: rgba(152, 152, 158, 0.38);
+    --accent: #d4d4d8;
+    --accent-hover: #ececef;
     --shadow: 0 22px 52px rgba(0, 0, 0, 0.42);
     --error-bg: rgba(248, 97, 97, 0.14);
     --error-border: rgba(248, 97, 97, 0.45);
@@ -60,17 +60,17 @@ html[data-theme="dark"] {
 
 @media (prefers-color-scheme: dark) {
     html:not([data-theme="light"]) {
-        --bg: #0f1521;
-        --bg-grad-a: rgba(31, 89, 201, 0.28);
-        --bg-grad-b: rgba(190, 142, 39, 0.2);
-        --text: #edf2ff;
-        --text-soft: #a4b3c7;
-        --panel: rgba(16, 24, 37, 0.85);
-        --panel-border: rgba(149, 172, 206, 0.22);
-        --input-bg: rgba(24, 36, 54, 0.9);
-        --input-border: rgba(148, 171, 205, 0.35);
-        --accent: #87b7ff;
-        --accent-hover: #9dc4ff;
+        --bg: #0b0b0c;
+        --bg-grad-a: rgba(255, 255, 255, 0.05);
+        --bg-grad-b: rgba(255, 255, 255, 0.02);
+        --text: #f3f3f3;
+        --text-soft: #a3a3a3;
+        --panel: rgba(30, 30, 33, 0.92);
+        --panel-border: rgba(148, 148, 153, 0.3);
+        --input-bg: rgba(38, 38, 41, 0.96);
+        --input-border: rgba(152, 152, 158, 0.38);
+        --accent: #d4d4d8;
+        --accent-hover: #ececef;
         --shadow: 0 22px 52px rgba(0, 0, 0, 0.42);
         --error-bg: rgba(248, 97, 97, 0.14);
         --error-border: rgba(248, 97, 97, 0.45);
