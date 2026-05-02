@@ -12,6 +12,7 @@ For backend test engineering rules, follow `src/backend/TEST.md`.
 - RBAC is enforced via dependencies in `app/deps.py` (for example admin-only guards)
 - In `LOGIN_ENABLED=false` bootstrap mode, bootstrap user is provisioned/promoted as `admin`
 - On startup, backend runs Alembic `upgrade head` against the active `DATABASE_URL` only (no downgrade path)
+- API keys track cumulative usage (`request_count`) and optional expiration (`expires_at`)
 
 ## 1.1) Backend Flow
 

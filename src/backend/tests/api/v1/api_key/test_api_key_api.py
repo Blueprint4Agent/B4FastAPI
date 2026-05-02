@@ -28,7 +28,9 @@ class FakeAPIKeyService:
             name="local-dev",
             key_prefix="sk_live_abcd",
             created_at=now,
+            request_count=0,
             last_used_at=None,
+            expires_at=None,
             revoked_at=None,
         )
 
@@ -40,7 +42,9 @@ class FakeAPIKeyService:
                 name=form.name,
                 key_prefix=self._key.key_prefix,
                 created_at=self._key.created_at,
+                request_count=self._key.request_count,
                 last_used_at=self._key.last_used_at,
+                expires_at=self._key.expires_at,
                 revoked_at=self._key.revoked_at,
             ),
         )
@@ -59,7 +63,9 @@ class FakeAPIKeyService:
             name=self._key.name,
             key_prefix=self._key.key_prefix,
             created_at=self._key.created_at,
+            request_count=self._key.request_count,
             last_used_at=self._key.last_used_at,
+            expires_at=self._key.expires_at,
             revoked_at=None if form.enabled else datetime.now(UTC),
         )
 

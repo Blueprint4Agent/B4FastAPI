@@ -1,0 +1,21 @@
+# 0073 backend api key usage and expiry
+
+- commit title: backend: add API key usage counter and expiration support
+- changed file scope:
+  - src/backend/alembic/versions/0006_api_keys_usage_and_expiry.py
+  - src/backend/app/models/api_key.py
+  - src/backend/app/services/api_key.py
+  - src/backend/app/deps.py
+  - src/backend/app/core/migrations.py
+  - src/backend/tests/api/v1/api_key/test_api_key_api.py
+  - src/backend/tests/integration/api/v1/api_key/test_api_key_integration.py
+  - src/backend/tests/integration/scenarios/test_full_system_scenario.py
+  - src/backend/README.md
+- reason:
+  - API keys needed operational fields for usage tracking and lifecycle expiration.
+  - Authentication path needed to reject expired keys and increment usage safely on each successful API-key-authenticated request.
+- impact:
+  - API key schema now supports `request_count` and optional `expires_at`.
+  - API key create/list/update response contracts include the new fields.
+  - API-key authentication updates `request_count` and `last_used_at`, and rejects expired keys.
+  - Integration and scenario tests now verify counter and expiry-related contract behavior.

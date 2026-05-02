@@ -34,6 +34,7 @@ class APIKeyService:
                 name=form.name.strip(),
                 key_prefix=key_prefix,
                 key_hash=key_hash,
+                expires_at=form.expires_at,
             )
         except IntegrityError as error:
             message = str(error.orig).lower() if getattr(error, "orig", None) else ""

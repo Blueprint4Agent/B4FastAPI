@@ -187,6 +187,8 @@ def test_seeded_api_key_domain_main_flow(seeded_integration_client: TestClient):
     create_payload = create_response.json()
     assert create_payload["api_key"].startswith("sk_live_")
     assert create_payload["key"]["name"] == scenario.api_key_name
+    assert create_payload["key"]["request_count"] == 0
+    assert create_payload["key"]["expires_at"] is None
     created_key_id = create_payload["key"]["id"]
     raw_api_key = create_payload["api_key"]
 
@@ -216,6 +218,17 @@ def test_seeded_api_key_domain_main_flow(seeded_integration_client: TestClient):
     # Then: API key authentication succeeds.
     assert me_with_key_response.status_code == 200
     assert me_with_key_response.json()["email"] == scenario.login_email
+
+    # And: API key usage count is incremented after authenticated access.
+    list_after_key_use_response = seeded_integration_client.get(
+        "/api/v1/api-keys",
+        headers=bearer_headers,
+    )
+    assert list_after_key_use_response.status_code == 200
+    key_row = next(
+        item for item in list_after_key_use_response.json()["items"] if item["id"] == created_key_id
+    )
+    assert key_row["request_count"] >= 1
 
     # When: key is disabled.
     disable_response = seeded_integration_client.patch(

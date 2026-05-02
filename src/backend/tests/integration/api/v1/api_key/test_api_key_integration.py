@@ -53,12 +53,15 @@ def test_api_key_create_and_list_flow(integration_client: TestClient):
     create_payload = create_response.json()
     assert create_payload["api_key"].startswith("sk_live_")
     assert create_payload["key"]["name"] == "integration-key"
+    assert create_payload["key"]["request_count"] == 0
+    assert create_payload["key"]["expires_at"] is None
 
     # When: the user lists API keys.
     list_response = integration_client.get("/api/v1/api-keys", headers=auth_headers)
     # Then: one created key is present.
     assert list_response.status_code == 200
     assert len(list_response.json()["items"]) == 1
+    assert list_response.json()["items"][0]["request_count"] == 0
 
 
 def test_api_key_can_access_protected_route(integration_client: TestClient):
@@ -85,3 +88,9 @@ def test_api_key_can_access_protected_route(integration_client: TestClient):
     # Then: request is authenticated by API key.
     assert me_response.status_code == 200
     assert me_response.json()["email"] == "key-auth-user@example.com"
+
+    # When: user lists keys after API-key-authenticated access.
+    list_response = integration_client.get("/api/v1/api-keys", headers=bearer_headers)
+    # Then: request counter has incremented.
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["request_count"] >= 1

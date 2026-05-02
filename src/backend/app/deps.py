@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.core.database import get_db
 from app.core.error import (
@@ -67,18 +67,21 @@ async def get_current_api_key(
         hashlib.sha256,
     ).hexdigest()
 
+    now = datetime.now(UTC)
     async with get_db() as db:
         result = await db.execute(
             select(APIKey).where(
                 APIKey.key_hash == key_hash,
                 APIKey.revoked_at.is_(None),
+                or_(APIKey.expires_at.is_(None), APIKey.expires_at > now),
             )
         )
         valid_key = result.scalar_one_or_none()
         if valid_key is None:
             raise service_exception_to_http(APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID))
 
-        valid_key.last_used_at = datetime.now(UTC)
+        valid_key.last_used_at = now
+        valid_key.request_count += 1
         await db.commit()
         await db.refresh(valid_key)
         return valid_key

@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
-from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint, select
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, UniqueConstraint, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -23,7 +23,9 @@ class APIKey(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
+    request_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     user = relationship("User", back_populates="api_keys")
@@ -31,6 +33,7 @@ class APIKey(Base):
 
 class APIKeyCreateForm(BaseModel):
     name: str = Field(min_length=1, max_length=100)
+    expires_at: datetime | None = None
 
 
 class APIKeyResponse(BaseModel):
@@ -38,7 +41,9 @@ class APIKeyResponse(BaseModel):
     name: str
     key_prefix: str
     created_at: datetime
+    request_count: int
     last_used_at: datetime | None = None
+    expires_at: datetime | None = None
     revoked_at: datetime | None = None
 
     class Config:
@@ -66,6 +71,7 @@ class APIKeyRepository:
         name: str,
         key_prefix: str,
         key_hash: str,
+        expires_at: datetime | None = None,
     ) -> APIKeyResponse:
         async with get_db() as db:
             api_key = APIKey(
@@ -73,6 +79,7 @@ class APIKeyRepository:
                 name=name,
                 key_prefix=key_prefix,
                 key_hash=key_hash,
+                expires_at=expires_at,
             )
             db.add(api_key)
             try:
