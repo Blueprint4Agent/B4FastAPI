@@ -26,6 +26,7 @@ def _login_seeded_primary_user(client: TestClient) -> tuple[dict[str, object], d
     assert login_response.status_code == 200
     login_payload = login_response.json()
     assert login_payload["user"]["email"] == scenario.login_email
+    assert login_payload["user"]["role"] == scenario.expected_principal_role
     bearer_headers = {"Authorization": f"Bearer {login_payload['access_token']}"}
     return login_payload, bearer_headers
 
@@ -51,6 +52,16 @@ def test_seeded_auth_domain_main_flow(seeded_integration_client: TestClient):
     # Then: current user payload is returned.
     assert me_response.status_code == 200
     assert me_response.json()["email"] == scenario.login_email
+    assert me_response.json()["role"] == scenario.expected_principal_role
+
+    # When: admin user requests user-role stats endpoint.
+    admin_stats_response = seeded_integration_client.get(
+        "/api/v1/auth/admin/user-role-stats",
+        headers=bearer_headers,
+    )
+    # Then: admin-only role stats contract is returned.
+    assert admin_stats_response.status_code == 200
+    assert admin_stats_response.json()["admin_users"] >= 1
 
     # When: authenticated user updates profile name.
     update_response = seeded_integration_client.patch(

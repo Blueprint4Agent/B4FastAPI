@@ -16,6 +16,7 @@ class FullSystemScenarioSchema:
     invalid_login_password: str
     malformed_signup_email: str
     api_key_name: str
+    expected_principal_role: str = "admin"
     expect_disabled_api_key_rejected: bool = True
     expect_duplicate_api_key_name_rejected: bool = True
 
@@ -28,6 +29,7 @@ DEFAULT_FULL_SYSTEM_SCENARIO: Final = FullSystemScenarioSchema(
     invalid_login_password="WrongPass1!",
     malformed_signup_email="invalid-email-format",
     api_key_name="scenario-primary-key",
+    expected_principal_role="admin",
     expect_disabled_api_key_rejected=True,
     expect_duplicate_api_key_name_rejected=True,
 )

@@ -12,7 +12,7 @@ from app.core.error import (
 )
 from app.core.logging import get_logger, mask_email
 from app.core.settings import SETTINGS
-from app.deps import get_current_user
+from app.deps import get_current_admin_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
     ForgotPasswordForm,
@@ -27,6 +27,7 @@ from app.models.user import (
     SignupForm,
     UpdateProfileForm,
     UserResponse,
+    UserRoleStatsResponse,
     VerifyEmailForm,
     VerifyEmailResponse,
 )
@@ -256,6 +257,21 @@ async def login(
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
     return current_user
+
+
+@router.get(
+    "/admin/user-role-stats",
+    response_model=UserRoleStatsResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.INSUFFICIENT_ROLE,
+    ),
+)
+async def admin_user_role_stats(
+    _current_admin_user: UserResponse = Depends(get_current_admin_user),
+    service: AuthService = Depends(AuthService),
+) -> UserRoleStatsResponse:
+    return await service.get_admin_user_role_stats()
 
 
 @router.patch(

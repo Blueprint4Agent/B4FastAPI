@@ -109,11 +109,13 @@ Seed schema standard (required):
    - `email: str`
    - `name: str`
    - `password: str`
+   - `role: str`
    - `is_verified: bool`
 2. Seed profile schema: `SeedProfileSchema`
    - `profile_name: str`
    - `primary_user: SeedUserSchema`
    - `existing_user_count: int`
+   - `existing_user_role: str`
    - `existing_user_email_prefix: str`
    - `existing_user_name_prefix: str`
    - `existing_user_start_index: int`
@@ -211,15 +213,16 @@ Auth domain sequence (`test_seeded_auth_domain_main_flow`):
 1. Seeded primary user login success
 2. OAuth providers contract check
 3. `/auth/me` success with bearer token
-4. `/auth/me` profile update success
-5. `/auth/refresh` success with refresh context
-6. `/auth/logout` success and session invalidation
-7. `/auth/refresh` rejected after logout (`INVALID_TOKEN`)
-8. `/auth/signup` duplicate email rejected (`EMAIL_ALREADY_EXISTS`)
-9. `/auth/login` wrong password rejected (`INVALID_CREDENTIALS`)
-10. `/auth/signup` malformed email rejected (422)
-11. `/auth/resend-verification` contract success
-12. `/auth/forgot-password` branch by `EMAIL_ENABLED` toggle
+4. `/auth/admin/user-role-stats` success for seeded admin principal
+5. `/auth/me` profile update success
+6. `/auth/refresh` success with refresh context
+7. `/auth/logout` success and session invalidation
+8. `/auth/refresh` rejected after logout (`INVALID_TOKEN`)
+9. `/auth/signup` duplicate email rejected (`EMAIL_ALREADY_EXISTS`)
+10. `/auth/login` wrong password rejected (`INVALID_CREDENTIALS`)
+11. `/auth/signup` malformed email rejected (422)
+12. `/auth/resend-verification` contract success
+13. `/auth/forgot-password` branch by `EMAIL_ENABLED` toggle
 
 API key domain sequence (`test_seeded_api_key_domain_main_flow`):
 1. Seeded primary user login success
@@ -257,7 +260,7 @@ API contract (`api_test`):
 2. `tests/api/v1/api_key/test_api_key_api.py`
 
 Integration primary dataset (`primary_data`):
-1. `tests/integration/api/v1/auth/test_auth_integration.py` primary-state flows
+1. `tests/integration/api/v1/auth/test_auth_integration.py` primary-state flows + RBAC forbidden/success branches
 2. `tests/integration/api/v1/api_key/test_api_key_integration.py`
 
 Integration seeded dataset (`mocked_data`):

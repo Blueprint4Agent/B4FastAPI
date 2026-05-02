@@ -2,9 +2,16 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.deps import get_current_user
+from app.deps import get_current_admin_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProviderPublicConfig
-from app.models.user import LoginForm, LoginResponse, RefreshResponse, SignupForm, UserResponse
+from app.models.user import (
+    LoginForm,
+    LoginResponse,
+    RefreshResponse,
+    SignupForm,
+    UserResponse,
+    UserRoleStatsResponse,
+)
 from app.routers.v1 import auth
 from app.services.auth import AuthService
 from tests.fixtures.api_contract_data import (
@@ -74,6 +81,9 @@ class FakeAuthService:
         _ = user_id
         return None
 
+    async def get_admin_user_role_stats(self) -> UserRoleStatsResponse:
+        return UserRoleStatsResponse(total_users=51, active_users=51, admin_users=1)
+
 
 def create_auth_test_client(user: UserResponse, with_user_auth: bool = False) -> TestClient:
     app = FastAPI()
@@ -81,6 +91,14 @@ def create_auth_test_client(user: UserResponse, with_user_auth: bool = False) ->
     app.dependency_overrides[AuthService] = lambda: FakeAuthService(user)
     if with_user_auth:
         app.dependency_overrides[get_current_user] = lambda: user
+    return TestClient(app)
+
+
+def create_auth_admin_test_client(admin_user: UserResponse) -> TestClient:
+    app = FastAPI()
+    app.include_router(auth.router, prefix="/api/v1/auth")
+    app.dependency_overrides[AuthService] = lambda: FakeAuthService(admin_user)
+    app.dependency_overrides[get_current_admin_user] = lambda: admin_user
     return TestClient(app)
 
 
@@ -227,3 +245,29 @@ def test_logout_success_with_dependency_override(sample_user: UserResponse):
     # Then: logout success message is returned.
     assert response.status_code == 200
     assert response.json()["message"] == "Successfully logged out."
+
+
+def test_admin_user_role_stats_success(sample_admin_user: UserResponse):
+    """Scenario: admin-only stats route returns aggregated role metrics for admin user."""
+    client = create_auth_admin_test_client(sample_admin_user)
+
+    # When: admin role requests role stats endpoint.
+    response = client.get("/api/v1/auth/admin/user-role-stats")
+
+    # Then: role stats payload is returned.
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_users"] == 51
+    assert payload["admin_users"] == 1
+
+
+def test_admin_user_role_stats_requires_admin_role(sample_user: UserResponse):
+    """Scenario: admin-only stats route rejects non-admin role with domain permission error."""
+    client = create_auth_test_client(sample_user, with_user_auth=True)
+
+    # When: non-admin user requests admin stats endpoint.
+    response = client.get("/api/v1/auth/admin/user-role-stats")
+
+    # Then: insufficient-role domain error is returned.
+    assert response.status_code == 403
+    assert response.json()["detail"]["error"] == "INSUFFICIENT_ROLE"

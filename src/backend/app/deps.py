@@ -18,7 +18,7 @@ from app.core.error import (
 )
 from app.core.settings import SETTINGS
 from app.models.api_key import APIKey
-from app.models.user import UserResponse, Users
+from app.models.user import UserResponse, UserRole, Users
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
 api_key_security = APIKeyHeader(name="X-API-Key", auto_error=False)
@@ -107,3 +107,30 @@ async def get_current_user(
         raise service_exception_to_http(APIKeyException(code=APIKeyErrorCode.API_KEY_USER_MISMATCH))
 
     return token_user or api_key_user
+
+
+def require_roles(*roles: UserRole):
+    allowed_roles = {role.value for role in roles}
+
+    async def _role_guard(
+        current_user: Annotated[UserResponse, Depends(get_current_user)],
+    ) -> UserResponse:
+        if current_user.role.value not in allowed_roles:
+            raise service_exception_to_http(
+                AuthException(
+                    code=AuthErrorCode.INSUFFICIENT_ROLE,
+                    details={
+                        "required_roles": sorted(allowed_roles),
+                        "current_role": current_user.role.value,
+                    },
+                )
+            )
+        return current_user
+
+    return _role_guard
+
+
+async def get_current_admin_user(
+    current_user: Annotated[UserResponse, Depends(require_roles(UserRole.ADMIN))],
+) -> UserResponse:
+    return current_user

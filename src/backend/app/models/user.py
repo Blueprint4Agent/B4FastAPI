@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import (
@@ -9,6 +10,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    func,
     select,
 )
 from sqlalchemy.exc import IntegrityError
@@ -20,12 +22,18 @@ from app.core.error import AuthErrorCode, AuthException
 EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 
 
+class UserRole(StrEnum):
+    USER = "user"
+    ADMIN = "admin"
+
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(50), nullable=False)
+    role: Mapped[str] = mapped_column(String(20), default=UserRole.USER.value, nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -153,6 +161,7 @@ class UserResponse(BaseModel):
     id: int
     email: str
     name: str
+    role: UserRole
     profile_image_url: str | None = None
     oauth_providers: list[str] = Field(default_factory=list)
     is_verified: bool
@@ -173,6 +182,12 @@ class RefreshResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+
+
+class UserRoleStatsResponse(BaseModel):
+    total_users: int
+    active_users: int
+    admin_users: int
 
 
 class VerifyEmailForm(BaseModel):
@@ -232,6 +247,7 @@ class AuthUserDTO(BaseModel):
     id: int
     email: str
     name: str
+    role: UserRole
     profile_image_url: str | None = None
     oauth_providers: list[str] = Field(default_factory=list)
     is_active: bool
@@ -244,6 +260,7 @@ class AuthUserDTO(BaseModel):
             id=self.id,
             email=self.email,
             name=self.name,
+            role=self.role,
             profile_image_url=self.profile_image_url,
             oauth_providers=self.oauth_providers,
             is_verified=self.is_verified,
@@ -270,13 +287,14 @@ class UserRepository:
         name: str,
         password_hash: str,
         is_verified: bool = False,
+        role: UserRole = UserRole.USER,
     ) -> UserResponse:
         async with get_db() as db:
             existing = await db.execute(select(User.id).where(User.email == email).limit(1))
             if existing.first() is not None:
                 raise AuthException(code=AuthErrorCode.EMAIL_ALREADY_EXISTS)
 
-            user = User(email=email, name=name, is_verified=is_verified)
+            user = User(email=email, name=name, role=role.value, is_verified=is_verified)
             user.credential = Credential(password_hash=password_hash)
             user.auth_identities = [AuthIdentity(provider="email", identifier=email)]
             db.add(user)
@@ -297,13 +315,14 @@ class UserRepository:
         provider: str,
         identifier: str,
         is_verified: bool = True,
+        role: UserRole = UserRole.USER,
     ) -> UserResponse:
         async with get_db() as db:
             existing = await db.execute(select(User.id).where(User.email == email).limit(1))
             if existing.first() is not None:
                 raise AuthException(code=AuthErrorCode.EMAIL_ALREADY_EXISTS)
 
-            user = User(email=email, name=name, is_verified=is_verified)
+            user = User(email=email, name=name, role=role.value, is_verified=is_verified)
             user.auth_identities = [AuthIdentity(provider=provider, identifier=identifier)]
             db.add(user)
 
@@ -337,6 +356,7 @@ class UserRepository:
             id=user.id,
             email=user.email,
             name=user.name,
+            role=UserRole(user.role),
             profile_image_url=user.profile_image_url,
             oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
@@ -374,6 +394,7 @@ class UserRepository:
             id=user.id,
             email=user.email,
             name=user.name,
+            role=UserRole(user.role),
             profile_image_url=user.profile_image_url,
             oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
@@ -483,6 +504,22 @@ class UserRepository:
             user.updated_at = datetime.now(UTC)
             await db.commit()
         return await self.get_user_response_by_id(user_id)
+
+    async def get_user_role_stats(self) -> dict[str, int]:
+        async with get_db() as db:
+            total_users = await db.scalar(select(func.count(User.id)))
+            active_users = await db.scalar(
+                select(func.count(User.id)).where(User.is_active.is_(True))
+            )
+            admin_users = await db.scalar(
+                select(func.count(User.id)).where(User.role == UserRole.ADMIN.value)
+            )
+
+        return {
+            "total_users": int(total_users or 0),
+            "active_users": int(active_users or 0),
+            "admin_users": int(admin_users or 0),
+        }
 
 
 Users = UserRepository()

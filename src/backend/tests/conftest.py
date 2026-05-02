@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 import app.core.database as database
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
-from app.models.user import AuthIdentity, Credential, User, UserResponse
+from app.models.user import AuthIdentity, Credential, User, UserResponse, UserRole
 from app.utils.security import hash_password
 from tests.fixtures.scenario_seed_data import (
     DEFAULT_SEED_PROFILE,
@@ -22,6 +22,21 @@ def sample_user() -> UserResponse:
         id=1,
         email="tester@example.com",
         name="Tester",
+        role=UserRole.USER,
+        profile_image_url=None,
+        oauth_providers=[],
+        is_verified=True,
+        created_at=datetime.now(UTC),
+    )
+
+
+@pytest.fixture
+def sample_admin_user() -> UserResponse:
+    return UserResponse(
+        id=99,
+        email="admin@example.com",
+        name="Admin",
+        role=UserRole.ADMIN,
         profile_image_url=None,
         oauth_providers=[],
         is_verified=True,
@@ -65,6 +80,7 @@ async def _seed_default_users(
         primary_user = User(
             email=seed_profile.primary_user.email,
             name=seed_profile.primary_user.name,
+            role=seed_profile.primary_user.role,
             is_verified=seed_profile.primary_user.is_verified,
         )
         primary_user.credential = Credential(password_hash=shared_password_hash)
@@ -80,6 +96,7 @@ async def _seed_default_users(
             user = User(
                 email=email,
                 name=f"{seed_profile.existing_user_name_prefix} {index:02d}",
+                role=seed_profile.existing_user_role,
                 is_verified=True,
             )
             user.credential = Credential(password_hash=shared_password_hash)

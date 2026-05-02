@@ -1,6 +1,11 @@
+import asyncio
+
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
+import app.core.database as database
+from app.models.user import User
 from tests.fixtures.payload_data import (
     INVALID_EMAIL,
     VALID_PASSWORD,
@@ -12,6 +17,17 @@ from tests.fixtures.scenario_seed_data import (
     SEEDED_PRIMARY_NAME,
     SEEDED_PRIMARY_PASSWORD,
 )
+
+
+async def _set_user_role_by_email(email: str, role: str) -> None:
+    session_factory = database.get_session_factory()
+    async with session_factory() as session:
+        result = await session.execute(select(User).where(User.email == email))
+        user = result.scalar_one_or_none()
+        if user is None:
+            raise AssertionError(f"Expected user for role update was not found: {email}")
+        user.role = role
+        await session.commit()
 
 
 @pytest.mark.primary_data
@@ -157,6 +173,76 @@ def test_signup_invalid_email_or_password_returns_422(integration_client: TestCl
     assert invalid_password_response.status_code == 422
 
 
+@pytest.mark.primary_data
+def test_admin_stats_forbidden_for_non_admin(integration_client: TestClient):
+    """Scenario: admin-only stats endpoint rejects authenticated non-admin users."""
+    # Given: regular user is created and logged in.
+    integration_client.post(
+        "/api/v1/auth/signup",
+        json=build_signup_payload(
+            email="rbac-user@example.com",
+            name="RBAC User",
+            password=VALID_PASSWORD,
+        ),
+    )
+    login_response = integration_client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(
+            email="rbac-user@example.com",
+            password=VALID_PASSWORD,
+            remember_me=False,
+        ),
+    )
+    access_token = login_response.json()["access_token"]
+
+    # When: non-admin user requests admin stats.
+    admin_stats_response = integration_client.get(
+        "/api/v1/auth/admin/user-role-stats",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    # Then: permission error is returned.
+    assert admin_stats_response.status_code == 403
+    assert admin_stats_response.json()["detail"]["error"] == "INSUFFICIENT_ROLE"
+
+
+@pytest.mark.primary_data
+def test_admin_stats_success_for_admin(integration_client: TestClient):
+    """Scenario: promoted admin user can access admin role stats endpoint."""
+    # Given: user is created then promoted to admin role at DB layer.
+    integration_client.post(
+        "/api/v1/auth/signup",
+        json=build_signup_payload(
+            email="rbac-admin@example.com",
+            name="RBAC Admin",
+            password=VALID_PASSWORD,
+        ),
+    )
+    asyncio.run(_set_user_role_by_email("rbac-admin@example.com", "admin"))
+
+    login_response = integration_client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(
+            email="rbac-admin@example.com",
+            password=VALID_PASSWORD,
+            remember_me=False,
+        ),
+    )
+    access_token = login_response.json()["access_token"]
+
+    # When: admin user requests role stats.
+    admin_stats_response = integration_client.get(
+        "/api/v1/auth/admin/user-role-stats",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+
+    # Then: stats payload is returned with at least one admin account.
+    assert admin_stats_response.status_code == 200
+    stats_payload = admin_stats_response.json()
+    assert stats_payload["total_users"] >= 1
+    assert stats_payload["admin_users"] >= 1
+
+
 @pytest.mark.mocked_data
 def test_seeded_primary_user_can_login(seeded_integration_client: TestClient):
     """Scenario: seeded baseline user can login in production-like preloaded dataset."""
@@ -174,6 +260,7 @@ def test_seeded_primary_user_can_login(seeded_integration_client: TestClient):
     # Then: authentication succeeds and token contract is returned.
     assert login_response.status_code == 200
     assert login_response.json()["user"]["email"] == SEEDED_PRIMARY_EMAIL
+    assert login_response.json()["user"]["role"] == "admin"
 
 
 @pytest.mark.mocked_data

@@ -27,6 +27,7 @@ from app.models.user import (
     SignupForm,
     UpdateProfileForm,
     UserResponse,
+    UserRoleStatsResponse,
     Users,
 )
 from app.utils.cookies import get_refresh_cookie_value
@@ -88,6 +89,10 @@ class AuthService:
             )
             for config in self.get_oauth_provider_configs()
         ]
+
+    async def get_admin_user_role_stats(self) -> UserRoleStatsResponse:
+        stats = await Users.get_user_role_stats()
+        return UserRoleStatsResponse(**stats)
 
     async def create_oauth_state(self, provider: OAuthProvider) -> str:
         state = create_refresh_token()

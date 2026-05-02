@@ -91,6 +91,7 @@ src/backend/
 1. Dependency injection entry points for auth/session/API-key context resolution
 2. Provides request-scoped dependency objects to routers
 3. Keeps dependency wiring focused and avoids embedding feature business workflows
+4. Centralizes RBAC guards (for example admin-only dependencies) so role checks are not duplicated in routers
 
 - `app/static/`
 1. Static frontend artifact location for monolithic deployment mode

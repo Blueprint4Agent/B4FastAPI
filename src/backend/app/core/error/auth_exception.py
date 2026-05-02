@@ -51,6 +51,11 @@ class AuthErrorCode(Enum):
         "Invalid refresh token.",
         status.HTTP_401_UNAUTHORIZED,
     )
+    INSUFFICIENT_ROLE = ServiceErrorCode(
+        "INSUFFICIENT_ROLE",
+        "User does not have enough permissions.",
+        status.HTTP_403_FORBIDDEN,
+    )
     USER_NOT_FOUND = ServiceErrorCode(
         "USER_NOT_FOUND",
         "User not found.",

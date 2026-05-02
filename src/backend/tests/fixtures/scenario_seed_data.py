@@ -7,6 +7,7 @@ class SeedUserSchema:
     email: str
     name: str
     password: str
+    role: str = "user"
     is_verified: bool = True
 
 
@@ -15,6 +16,7 @@ class SeedProfileSchema:
     profile_name: str
     primary_user: SeedUserSchema
     existing_user_count: int
+    existing_user_role: str = "user"
     existing_user_email_prefix: str = "seeded-user"
     existing_user_name_prefix: str = "Seeded User"
     existing_user_start_index: int = 1
@@ -26,6 +28,7 @@ DEFAULT_SEED_PROFILE: Final = SeedProfileSchema(
         email="seeded-primary@example.com",
         name="Seeded Primary User",
         password="SeededPass1!",
+        role="admin",
         is_verified=True,
     ),
     existing_user_count=50,

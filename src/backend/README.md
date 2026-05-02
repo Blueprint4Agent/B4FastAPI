@@ -9,6 +9,7 @@ For backend test engineering rules, follow `src/backend/TEST.md`.
 - Layering pattern: `Router -> Service -> Util/DB/MSA`
 - Access environment variables through `SETTINGS` in `app/core/settings.py`
 - If schema/models change, Alembic migration updates are required
+- RBAC is enforced via dependencies in `app/deps.py` (for example admin-only guards)
 
 ## 1.1) Backend Flow
 
