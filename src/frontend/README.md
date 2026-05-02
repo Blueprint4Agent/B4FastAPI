@@ -47,7 +47,37 @@ npm run format
 npm run format:check
 ```
 
-## 5) Build
+## 5) Test
+
+```bash
+cd src/frontend
+npm run test
+```
+
+Run by layer:
+
+```bash
+cd src/frontend
+npm run test:unit
+npm run test:component
+npm run test:integration
+```
+
+Run full matrix (unit -> component -> integration -> e2e):
+
+```bash
+cd src/frontend
+npm run test:all
+```
+
+E2E smoke:
+
+```bash
+cd src/frontend
+npm run test:e2e
+```
+
+## 6) Build
 
 ```bash
 cd src/frontend
@@ -58,7 +88,7 @@ Notes:
 
 - `npm run build` includes `generate:api`, TypeScript compile, Vite build, and copy-to-backend static sync.
 
-## 6) Core Frontend Rules (Summary)
+## 7) Core Frontend Rules (Summary)
 
 - API flow: `generated -> api/<domain> -> hooks/api/<domain> -> pages`
 - Domain set rule: `<domain>Api.ts` + `<domain>Error.ts` + `use<Domain>Api.ts` must stay 1:1:1
@@ -69,12 +99,13 @@ Notes:
 - All CSS is managed in `src/styles/app.css`
 - New reusable UI components must be showcased in `src/pages/main/ShowCasePage.tsx`
 
-## 7) Before Commit
+## 8) Before Commit
 
 ```bash
 cd src/frontend
 npm run format
 npm run format:check
+npm run test
 npx tsc --noEmit
 npm run build
 ```

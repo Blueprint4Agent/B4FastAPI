@@ -9,6 +9,7 @@ This guide exists because the project is optimized for agentic coding patterns, 
 
 1. Root `AGENTS.md`
 2. This document (`src/frontend/FRONTEND.md`)
+3. Test guide (`src/frontend/TEST.md`) when adding/changing tests
 
 - Priority on conflicts:
 
@@ -219,4 +220,5 @@ flowchart LR
 5. Shared components reused before page-level raw markup
 6. All user-visible text is i18n-key based
 7. Prettier format and check completed (`npm run format`, `npm run format:check`)
-8. Type checking completed (`npx tsc --noEmit` or `npm run build`, where build includes `tsc`)
+8. Frontend automated tests completed (`npm run test`)
+9. Type checking completed (`npx tsc --noEmit` or `npm run build`, where build includes `tsc`)

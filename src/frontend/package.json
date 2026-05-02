@@ -10,6 +10,14 @@
         "api:sync": "npm run generate:api:optional",
         "build": "npm run generate:api && tsc && vite build && node ./scripts/copy-to-backend.mjs",
         "preview": "vite preview",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:unit": "vitest run src/tests/unit",
+        "test:component": "vitest run src/tests/component",
+        "test:integration": "vitest run src/tests/integration",
+        "test:all": "npm run test:unit && npm run test:component && npm run test:integration && npm run test:e2e",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
         "format": "prettier . --write",
         "format:check": "prettier . --check"
     },
@@ -23,12 +31,19 @@
         "react-router-dom": "^7.1.0"
     },
     "devDependencies": {
+        "@playwright/test": "^1.56.1",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.0",
+        "@testing-library/user-event": "^14.6.1",
         "@types/react": "^18.3.18",
         "@types/react-dom": "^18.3.5",
         "@vitejs/plugin-react": "^4.3.4",
+        "jsdom": "^27.0.1",
+        "msw": "^2.11.5",
         "openapi-typescript": "^7.10.1",
         "prettier": "^3.4.2",
         "typescript": "^5.7.2",
-        "vite": "^6.0.5"
+        "vite": "^6.0.5",
+        "vitest": "^3.2.4"
     }
 }
