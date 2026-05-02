@@ -15,7 +15,7 @@ import { useConfigApi } from "./api/config/useConfigApi";
 import { clearAccessToken, getAccessToken, setAccessToken } from "../store/session";
 
 type AuthContextValue = {
-    user: User | null;
+    user: RoleAwareUser | null;
     loading: boolean;
     login: (input: { email: string; password: string; remember_me: boolean }) => Promise<void>;
     signup: (input: { email: string; name: string; password: string }) => Promise<void>;
@@ -25,6 +25,8 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+type RoleAwareUser = User & { role?: "admin" | "user" };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { getConfig } = useConfigApi();
@@ -36,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         updateMe,
         logout: logoutAuth,
     } = useAuthApi();
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<RoleAwareUser | null>(null);
     const [loading, setLoading] = useState(true);
     const refreshInFlightRef = useRef<Promise<void> | null>(null);
 

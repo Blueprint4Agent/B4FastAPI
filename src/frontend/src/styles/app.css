@@ -290,6 +290,10 @@ a {
     color: var(--text-soft);
 }
 
+.settings-profile-role-badge-wrap {
+    margin-top: 0.7rem;
+}
+
 .settings-profile-content {
     margin-top: 1.75rem;
     display: grid;

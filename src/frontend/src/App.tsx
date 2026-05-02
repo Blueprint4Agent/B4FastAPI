@@ -122,7 +122,9 @@ export function App() {
             />
             <Route
                 path="/reset-password"
-                element={loginEnabled ? <ResetPasswordPage /> : <Navigate to="/show-case" replace />}
+                element={
+                    loginEnabled ? <ResetPasswordPage /> : <Navigate to="/show-case" replace />
+                }
             />
             <Route
                 path="/reset-password/success"

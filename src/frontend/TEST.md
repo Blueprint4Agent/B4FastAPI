@@ -168,6 +168,8 @@ When a new frontend domain is added:
     - `INVALID_CREDENTIALS` remaining-attempts branch.
     - `EMAIL_NOT_VERIFIED` + resend verification branch.
 4. `src/tests/component/pages/settings/SettingsPage.test.tsx`
+    - Role badge visibility branch:
+      admin role shows badge, user role hides badge.
     - Backend-aligned API key lifecycle flow:
       create -> reveal -> list-visible -> disable -> enable -> delete.
     - Backend-aligned error branches:

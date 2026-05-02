@@ -11,6 +11,7 @@ const deleteApiKeyMock = vi.fn();
 const listApiKeysMock = vi.fn();
 const updateApiKeyStatusMock = vi.fn();
 const updateProfileMock = vi.fn();
+let mockedAuthUser: typeof FULL_SYSTEM_SCENARIO.principal = FULL_SYSTEM_SCENARIO.principal;
 let mockedApiKeyItems: Array<{
     id: number;
     name: string;
@@ -57,7 +58,7 @@ const apiKeyApiHookMock = {
 
 vi.mock("../../../../hooks/useAuth", () => ({
     useAuthContext: () => ({
-        user: FULL_SYSTEM_SCENARIO.principal,
+        user: mockedAuthUser,
         loading: false,
         login: vi.fn(),
         signup: vi.fn(),
@@ -84,6 +85,7 @@ vi.mock("../../../../hooks/api/apiKey/useApiKeyApi", () => ({
 
 describe("SettingsPage developers scenario", () => {
     beforeEach(() => {
+        mockedAuthUser = FULL_SYSTEM_SCENARIO.principal;
         createApiKeyMock.mockReset();
         deleteApiKeyMock.mockReset();
         listApiKeysMock.mockReset();
@@ -94,6 +96,40 @@ describe("SettingsPage developers scenario", () => {
         listApiKeysMock.mockImplementation(async () => ({
             items: [...mockedApiKeyItems],
         }));
+    });
+
+    it("shows admin badge only when current user role is admin", async () => {
+        // Given: current authenticated user has admin role.
+        mockedAuthUser = {
+            ...FULL_SYSTEM_SCENARIO.principal,
+            role: "admin",
+        };
+
+        // When: settings profile page is rendered.
+        renderWithRouter(<SettingsPage />, "/settings");
+        await waitFor(() => {
+            expect(listApiKeysMock).toHaveBeenCalled();
+        });
+
+        // Then: admin role badge is visible.
+        expect(screen.getByText("Admin")).toBeInTheDocument();
+    });
+
+    it("hides role badge when current user role is user", async () => {
+        // Given: current authenticated user has user role.
+        mockedAuthUser = {
+            ...FULL_SYSTEM_SCENARIO.principal,
+            role: "user",
+        };
+
+        // When: settings profile page is rendered.
+        renderWithRouter(<SettingsPage />, "/settings");
+        await waitFor(() => {
+            expect(listApiKeysMock).toHaveBeenCalled();
+        });
+
+        // Then: admin badge is not rendered for regular user.
+        expect(screen.queryByText("Admin")).not.toBeInTheDocument();
     });
 
     it("follows backend-aligned API key lifecycle flow from seeded principal context", async () => {

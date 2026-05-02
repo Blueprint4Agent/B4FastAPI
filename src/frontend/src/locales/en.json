@@ -221,6 +221,7 @@
                 "google": "Google",
                 "github": "GitHub"
             },
+            "roleBadgeAdmin": "Admin",
             "saveSuccess": "Profile changes were saved successfully.",
             "saveError": "Could not save your profile changes. Please try again."
         },
