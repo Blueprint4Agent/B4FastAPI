@@ -256,7 +256,8 @@
             },
             "status": {
                 "active": "Active",
-                "inactive": "Inactive"
+                "inactive": "Inactive",
+                "expired": "Expired"
             },
             "columns": {
                 "name": "Name",

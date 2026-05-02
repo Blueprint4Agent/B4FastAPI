@@ -47,3 +47,16 @@ export function formatDateYYYYMMDD(value: string | null | undefined, fallback = 
     const day = String(date.getUTCDate()).padStart(2, "0");
     return `${year}/${month}/${day}`;
 }
+
+export function isDateTimeExpired(value: string | null | undefined, now: Date = new Date()): boolean {
+    if (!value) {
+        return false;
+    }
+
+    const parsed = new Date(normalizeDateTimeInput(value));
+    if (Number.isNaN(parsed.getTime())) {
+        return false;
+    }
+
+    return parsed.getTime() <= now.getTime();
+}

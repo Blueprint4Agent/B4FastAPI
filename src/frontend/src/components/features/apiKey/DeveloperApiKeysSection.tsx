@@ -3,7 +3,7 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type { APIKeyRecord } from "../../../hooks/api/apiKey/useApiKeyApi";
-import { formatDateYYYYMMDD } from "../../../utils/date";
+import { formatDateYYYYMMDD, isDateTimeExpired } from "../../../utils/date";
 import {
     Button,
     CopyField,
@@ -42,16 +42,21 @@ function DeveloperApiKeyList({
         <div className="developer-key-list">
             {items.map((item) => {
                 const isActive = !item.revoked_at;
+                const isExpired = isDateTimeExpired(item.expires_at);
                 return (
                     <article key={item.id} className="developer-key-card">
                         <div className="developer-key-card__top">
                             <div className="developer-key-card__identity">
                                 <div className="developer-key-card__title-row">
                                     <h3>{item.name}</h3>
-                                    <StatusBadge tone={isActive ? "active" : "inactive"}>
-                                        {isActive
-                                            ? t("settings.developers.status.active")
-                                            : t("settings.developers.status.inactive")}
+                                    <StatusBadge
+                                        tone={isExpired ? "danger" : isActive ? "active" : "inactive"}
+                                    >
+                                        {isExpired
+                                            ? t("settings.developers.status.expired")
+                                            : isActive
+                                              ? t("settings.developers.status.active")
+                                              : t("settings.developers.status.inactive")}
                                     </StatusBadge>
                                 </div>
                                 <p>
