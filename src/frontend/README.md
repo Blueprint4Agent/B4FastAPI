@@ -36,6 +36,13 @@ cd src/frontend
 npm run generate:api
 ```
 
+Server-optional sync (uses existing generated file when backend is unavailable):
+
+```bash
+cd src/frontend
+npm run api:sync
+```
+
 Generated target:
 
 - `src/api/generated/openapi.ts`
@@ -85,9 +92,25 @@ cd src/frontend
 npm run build
 ```
 
+Optional API contract refresh + build:
+
+```bash
+cd src/frontend
+npm run build:sync
+```
+
+Strict API contract refresh from backend + build:
+
+```bash
+cd src/frontend
+npm run build:strict
+```
+
 Notes:
 
-- `npm run build` includes `generate:api`, TypeScript compile, Vite build, and copy-to-backend static sync.
+- `npm run build` is server-independent by default (no OpenAPI fetch).
+- `npm run build:sync` performs optional OpenAPI refresh before build (fallback to existing generated file on fetch failure).
+- `npm run build:strict` requires successful OpenAPI refresh from `localhost:8000` before build.
 
 ## 7) Core Frontend Rules (Summary)
 

@@ -26,6 +26,7 @@
             "emailDisabled": "Email-based features are currently unavailable.",
             "loginDisabled": "Login is currently disabled.",
             "invalidToken": "The token is invalid or has expired.",
+            "insufficientRole": "You do not have permission to perform this action.",
             "userNotFound": "User account was not found.",
             "oauthProviderNotEnabled": "This OAuth provider is not enabled.",
             "oauthProviderConfigInvalid": "OAuth provider settings are invalid.",

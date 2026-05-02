@@ -112,7 +112,9 @@ flowchart LR
 1. Use generated types from `src/api/generated/openapi.ts` in API/hook/page layers.
 2. Do not maintain duplicate handwritten contract types for OpenAPI-backed endpoints.
 3. If backend API schema changes, run `npm run generate:api` before API call site edits.
-4. `npm run build` must execute only after successful contract generation.
+4. `npm run build` is server-independent by default (no OpenAPI fetch during build).
+5. Use `npm run build:sync` for optional API refresh + build.
+6. Use `npm run build:strict` (or `npm run generate:api`) when strict OpenAPI refresh from backend is required.
 
 ## 4) Domain API/Error/Hook Rule (1:1:1, Required)
 
@@ -201,6 +203,8 @@ flowchart LR
 - Production build:
 
 1. `npm run build`
+2. `npm run build:sync` (optional backend OpenAPI refresh)
+3. `npm run build:strict` (requires backend OpenAPI endpoint)
 
 - The build pipeline includes copying frontend artifacts into backend static path through `scripts/copy-to-backend.mjs`.
 

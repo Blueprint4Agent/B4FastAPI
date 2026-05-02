@@ -158,6 +158,23 @@ export interface paths {
         patch: operations["update_me_api_v1_auth_me_patch"];
         trace?: never;
     };
+    "/api/v1/auth/admin/user-role-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin User Role Stats */
+        get: operations["admin_user_role_stats_api_v1_auth_admin_user_role_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -420,6 +437,7 @@ export interface components {
                 | "LOGIN_DISABLED"
                 | "EMAIL_DISABLED"
                 | "INVALID_TOKEN"
+                | "INSUFFICIENT_ROLE"
                 | "USER_NOT_FOUND"
                 | "PROFILE_UPDATE_FAILED"
                 | "OAUTH_PROVIDER_NOT_ENABLED"
@@ -588,6 +606,7 @@ export interface components {
             email: string;
             /** Name */
             name: string;
+            role: components["schemas"]["UserRole"];
             /** Profile Image Url */
             profile_image_url?: string | null;
             /** Oauth Providers */
@@ -599,6 +618,20 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /**
+         * UserRole
+         * @enum {string}
+         */
+        UserRole: "user" | "admin";
+        /** UserRoleStatsResponse */
+        UserRoleStatsResponse: {
+            /** Total Users */
+            total_users: number;
+            /** Active Users */
+            active_users: number;
+            /** Admin Users */
+            admin_users: number;
         };
         /** ValidationError */
         ValidationError: {
@@ -1162,6 +1195,60 @@ export interface operations {
                      *       "detail": {
                      *         "error": "PROFILE_UPDATE_FAILED",
                      *         "message": "Failed to update profile."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_user_role_stats_api_v1_auth_admin_user_role_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRoleStatsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_TOKEN",
+                     *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INSUFFICIENT_ROLE",
+                     *         "message": "User does not have enough permissions."
                      *       }
                      *     }
                      */
