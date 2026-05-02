@@ -3,9 +3,11 @@ import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
 
 import type { APIKeyRecord } from "../../../hooks/api/apiKey/useApiKeyApi";
+import { formatDateYYYYMMDD } from "../../../utils/date";
 import {
     Button,
     CopyField,
+    DropdownMenu,
     InlineMessage,
     InputField,
     Modal,
@@ -14,21 +16,11 @@ import {
     ToggleSwitch,
 } from "../../ui";
 
-function formatDateTime(value: string | null | undefined): string {
-    if (!value) {
-        return "-";
+function formatRequestCount(value: number | null | undefined): string {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+        return "0";
     }
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return "-";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-        year: "numeric",
-        month: "numeric",
-        day: "numeric",
-    }).format(date);
+    return value.toLocaleString();
 }
 
 type DeveloperApiKeyListProps = {
@@ -79,14 +71,23 @@ function DeveloperApiKeyList({
                             </div>
                         </div>
                         <div className="developer-key-card__meta">
-                            <span>{t("settings.developers.meta.requestCount")}: -</span>
+                            <span>
+                                {t("settings.developers.meta.requestCount")}:{" "}
+                                {formatRequestCount(item.request_count)}
+                            </span>
+                            <span>
+                                {t("settings.developers.meta.expiresAt")}:{" "}
+                                {item.expires_at
+                                    ? formatDateYYYYMMDD(item.expires_at)
+                                    : t("settings.developers.meta.noExpiration")}
+                            </span>
                             <span>
                                 {t("settings.developers.meta.created")}:{" "}
-                                {formatDateTime(item.created_at)}
+                                {formatDateYYYYMMDD(item.created_at)}
                             </span>
                             <span>
                                 {t("settings.developers.meta.lastUsed")}:{" "}
-                                {formatDateTime(item.last_used_at)}
+                                {formatDateYYYYMMDD(item.last_used_at)}
                             </span>
                             <Button
                                 type="button"
@@ -110,24 +111,45 @@ function DeveloperApiKeyList({
 type CreateApiKeyModalProps = {
     open: boolean;
     apiKeyName: string;
+    apiKeyExpiryOption: "7d" | "30d" | "90d" | "never";
     busy: boolean;
     errorMessage: string | null;
     onNameChange: (value: string) => void;
+    onExpiryOptionChange: (value: "7d" | "30d" | "90d" | "never") => void;
     onClose: () => void;
     onSubmit: () => void;
     t: TFunction;
 };
 
+const EXPIRY_OPTION_IDS = ["7d", "30d", "90d", "never"] as const;
+type ExpiryOptionId = (typeof EXPIRY_OPTION_IDS)[number];
+
+function buildExpiryOptionItems(t: TFunction): Array<{ id: ExpiryOptionId; label: string }> {
+    return [
+        { id: "7d", label: t("settings.developers.createModal.expiryOptions.sevenDays") },
+        { id: "30d", label: t("settings.developers.createModal.expiryOptions.thirtyDays") },
+        { id: "90d", label: t("settings.developers.createModal.expiryOptions.ninetyDays") },
+        { id: "never", label: t("settings.developers.createModal.expiryOptions.never") },
+    ];
+}
+
 function CreateApiKeyModal({
     open,
     apiKeyName,
+    apiKeyExpiryOption,
     busy,
     errorMessage,
     onNameChange,
+    onExpiryOptionChange,
     onClose,
     onSubmit,
     t,
 }: CreateApiKeyModalProps) {
+    const expiryOptionItems = buildExpiryOptionItems(t);
+    const selectedExpiryOptionLabel =
+        expiryOptionItems.find((item) => item.id === apiKeyExpiryOption)?.label ??
+        expiryOptionItems[0].label;
+
     return (
         <Modal
             open={open}
@@ -157,6 +179,18 @@ function CreateApiKeyModal({
                 onValueChange={onNameChange}
                 placeholder={t("settings.developers.createModal.namePlaceholder")}
             />
+            <label className="developer-create-modal__field-label">
+                {t("settings.developers.createModal.expiryLabel")}
+                <DropdownMenu
+                    className="developer-create-modal__dropdown"
+                    label={t("settings.developers.createModal.expiryLabel")}
+                    triggerLabel={selectedExpiryOptionLabel}
+                    items={expiryOptionItems}
+                    onSelect={(id) => {
+                        onExpiryOptionChange(id as ExpiryOptionId);
+                    }}
+                />
+            </label>
         </Modal>
     );
 }
@@ -231,6 +265,7 @@ type DeveloperApiKeysSectionProps = {
         errorMessage: string | null;
         createModalOpen: boolean;
         newApiKeyName: string;
+        newApiKeyExpiryOption: "7d" | "30d" | "90d" | "never";
         createBusy: boolean;
         createErrorMessage: string | null;
         createdSecret: string | null;
@@ -239,6 +274,7 @@ type DeveloperApiKeysSectionProps = {
         deactivateBusy: boolean;
         toggleBusyId: number | null;
         setNewApiKeyName: (value: string) => void;
+        setNewApiKeyExpiryOption: (value: "7d" | "30d" | "90d" | "never") => void;
         openCreateModal: () => void;
         closeCreateModal: () => void;
         handleCreateApiKey: () => void;
@@ -283,9 +319,11 @@ export function DeveloperApiKeysSection({ controller }: DeveloperApiKeysSectionP
             <CreateApiKeyModal
                 open={controller.createModalOpen}
                 apiKeyName={controller.newApiKeyName}
+                apiKeyExpiryOption={controller.newApiKeyExpiryOption}
                 busy={controller.createBusy}
                 errorMessage={controller.createErrorMessage}
                 onNameChange={controller.setNewApiKeyName}
+                onExpiryOptionChange={controller.setNewApiKeyExpiryOption}
                 onClose={controller.closeCreateModal}
                 onSubmit={controller.handleCreateApiKey}
                 t={t}

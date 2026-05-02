@@ -20,6 +20,7 @@ import { useApiKeyApi, type APIKeyRecord } from "../../hooks/api/apiKey/useApiKe
 import { useAuthContext } from "../../hooks/useAuth";
 import { useAppConfig } from "../../hooks/useFeatures";
 import { useTheme } from "../../hooks/useTheme";
+import { resolveAPIKeyExpiresAt, type APIKeyExpiryOption } from "../../utils/date";
 
 type SaveFeedback = {
     message: string;
@@ -29,6 +30,7 @@ type SaveFeedback = {
 type SettingsMenuKey = "profile" | "general" | "developers";
 const MAX_PROFILE_PHOTO_SIZE_MB = 8;
 const MAX_PROFILE_PHOTO_SIZE_BYTES = MAX_PROFILE_PHOTO_SIZE_MB * 1024 * 1024;
+const DEFAULT_API_KEY_EXPIRY_OPTION: APIKeyExpiryOption = "30d";
 
 export function SettingsPage() {
     const { t, i18n } = useTranslation();
@@ -53,6 +55,9 @@ export function SettingsPage() {
     const [apiKeyErrorMessage, setApiKeyErrorMessage] = useState<string | null>(null);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [newApiKeyName, setNewApiKeyName] = useState("");
+    const [newApiKeyExpiryOption, setNewApiKeyExpiryOption] = useState<APIKeyExpiryOption>(
+        DEFAULT_API_KEY_EXPIRY_OPTION,
+    );
     const [createBusy, setCreateBusy] = useState(false);
     const [createErrorMessage, setCreateErrorMessage] = useState<string | null>(null);
     const [createdSecret, setCreatedSecret] = useState<string | null>(null);
@@ -122,6 +127,7 @@ export function SettingsPage() {
         }
         setCreateModalOpen(false);
         setNewApiKeyName("");
+        setNewApiKeyExpiryOption(DEFAULT_API_KEY_EXPIRY_OPTION);
         setCreateErrorMessage(null);
     }, [createBusy]);
 
@@ -155,11 +161,12 @@ export function SettingsPage() {
 
         setCreateBusy(true);
         setCreateErrorMessage(null);
-        void createApiKey(trimmedName)
+        void createApiKey(trimmedName, resolveAPIKeyExpiresAt(newApiKeyExpiryOption))
             .then((result) => {
                 setApiKeyItems((prev) => [result.key, ...prev]);
                 setCreateModalOpen(false);
                 setNewApiKeyName("");
+                setNewApiKeyExpiryOption(DEFAULT_API_KEY_EXPIRY_OPTION);
                 setCreateErrorMessage(null);
                 setCreatedSecret(result.api_key);
                 setCopied(false);
@@ -172,7 +179,7 @@ export function SettingsPage() {
             .finally(() => {
                 setCreateBusy(false);
             });
-    }, [createApiKey, newApiKeyName, resolveApiKeyErrorMessage]);
+    }, [createApiKey, newApiKeyExpiryOption, newApiKeyName, resolveApiKeyErrorMessage]);
 
     const closeSecretModal = useCallback(() => {
         setCreatedSecret(null);
@@ -489,6 +496,7 @@ export function SettingsPage() {
                                     errorMessage: apiKeyErrorMessage,
                                     createModalOpen,
                                     newApiKeyName,
+                                    newApiKeyExpiryOption,
                                     createBusy,
                                     createErrorMessage,
                                     createdSecret,
@@ -497,6 +505,7 @@ export function SettingsPage() {
                                     deactivateBusy,
                                     toggleBusyId,
                                     setNewApiKeyName,
+                                    setNewApiKeyExpiryOption,
                                     openCreateModal,
                                     closeCreateModal,
                                     handleCreateApiKey,

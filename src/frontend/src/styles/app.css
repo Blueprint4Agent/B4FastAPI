@@ -1222,6 +1222,32 @@ html[data-theme="dark"] .ui-toggle__track--on {
     color: var(--text-soft);
 }
 
+.developer-create-modal__field-label {
+    display: grid;
+    gap: 0.45rem;
+    font:
+        600 0.78rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    letter-spacing: 0.02em;
+    color: var(--text-soft);
+    text-transform: uppercase;
+}
+
+.developer-create-modal__dropdown .ui-dropdown__trigger {
+    width: fit-content;
+    min-width: 10rem;
+    min-height: 2.55rem;
+    border-radius: 0.78rem;
+    padding: 0.52rem 0.7rem;
+    font:
+        500 0.88rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--text);
+    background: color-mix(in oklab, var(--input-bg) 92%, transparent 8%);
+}
+
 .developer-key-list {
     display: grid;
     gap: 0.8rem;
@@ -1270,7 +1296,7 @@ html[data-theme="dark"] .ui-toggle__track--on {
 
 .developer-key-card__meta {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr auto;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
     gap: 0.6rem;
     align-items: center;
     color: var(--text-soft);

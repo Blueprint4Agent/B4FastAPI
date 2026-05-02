@@ -17,7 +17,9 @@ let mockedApiKeyItems: Array<{
     name: string;
     key_prefix: string;
     created_at: string;
+    request_count: number;
     last_used_at: string | null;
+    expires_at: string | null;
     revoked_at: string | null;
 }> = [];
 
@@ -140,7 +142,9 @@ describe("SettingsPage developers scenario", () => {
                 name: FULL_SYSTEM_SCENARIO.apiKey.primaryName,
                 key_prefix: "sk_live_abcd",
                 created_at: "2026-04-30T12:00:00Z",
+                request_count: 0,
                 last_used_at: null,
+                expires_at: null,
                 revoked_at: null,
             };
             mockedApiKeyItems = [created, ...mockedApiKeyItems];
@@ -155,7 +159,9 @@ describe("SettingsPage developers scenario", () => {
                 name: FULL_SYSTEM_SCENARIO.apiKey.primaryName,
                 key_prefix: "sk_live_abcd",
                 created_at: "2026-04-30T12:00:00Z",
+                request_count: 1,
                 last_used_at: null,
+                expires_at: null,
                 revoked_at: "2026-04-30T12:10:00Z",
             })
             .mockResolvedValueOnce({
@@ -163,7 +169,9 @@ describe("SettingsPage developers scenario", () => {
                 name: FULL_SYSTEM_SCENARIO.apiKey.primaryName,
                 key_prefix: "sk_live_abcd",
                 created_at: "2026-04-30T12:00:00Z",
+                request_count: 1,
                 last_used_at: null,
+                expires_at: null,
                 revoked_at: null,
             });
         deleteApiKeyMock.mockImplementation(async (apiKeyId: number) => {
@@ -185,7 +193,10 @@ describe("SettingsPage developers scenario", () => {
 
         // Then: key is created, reveal modal is shown once, and key appears in list.
         await waitFor(() => {
-            expect(createApiKeyMock).toHaveBeenCalledWith(FULL_SYSTEM_SCENARIO.apiKey.primaryName);
+            expect(createApiKeyMock).toHaveBeenCalledWith(
+                FULL_SYSTEM_SCENARIO.apiKey.primaryName,
+                expect.any(String),
+            );
         });
         expect(screen.getByRole("dialog", { name: "Copy API key now" })).toBeInTheDocument();
         expect(
@@ -238,7 +249,9 @@ describe("SettingsPage developers scenario", () => {
                 name: FULL_SYSTEM_SCENARIO.apiKey.primaryName,
                 key_prefix: "sk_live_abcd",
                 created_at: "2026-04-30T12:00:00Z",
+                request_count: 0,
                 last_used_at: null,
+                expires_at: null,
                 revoked_at: null,
             },
         ];

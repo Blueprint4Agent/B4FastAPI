@@ -1,0 +1,21 @@
+# 0074 frontend api key expiry dropdown and date utils
+
+- commit title: frontend: add API key expiry dropdown and usage/expiry display
+- changed file scope:
+  - src/frontend/src/api/apiKey/apiKeyApi.ts
+  - src/frontend/src/api/generated/openapi.ts
+  - src/frontend/src/components/features/apiKey/DeveloperApiKeysSection.tsx
+  - src/frontend/src/pages/settings/SettingsPage.tsx
+  - src/frontend/src/utils/date.ts
+  - src/frontend/src/styles/app.css
+  - src/frontend/src/locales/en.json
+  - src/frontend/src/tests/component/pages/settings/SettingsPage.test.tsx
+- reason:
+  - API key create UX needed service-like expiration selection (7/30/90 days, no expiration).
+  - API key list needed operational metrics visibility for request count and expiration date.
+  - Date calculation/format logic needed central utility to avoid duplicated page-level logic.
+- impact:
+  - Create API key flow now sends optional `expires_at` using dropdown-driven selection.
+  - API key cards now show request count and expiration with `YYYY/MM/DD` formatting.
+  - Expiry calculation and date formatting are centralized in `src/utils/date.ts`.
+  - Component tests were updated to match the expanded API key contract and create call shape.

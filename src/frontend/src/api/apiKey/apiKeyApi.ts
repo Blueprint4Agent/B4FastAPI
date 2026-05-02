@@ -15,10 +15,18 @@ export async function listApiKeys(): Promise<APIKeyListPayload> {
     return data;
 }
 
-export async function createApiKey(name: string): Promise<APIKeyCreatePayload> {
+export async function createApiKey(
+    name: string,
+    expiresAt: string | null = null,
+): Promise<APIKeyCreatePayload> {
+    const requestBody: components["schemas"]["APIKeyCreateForm"] = { name };
+    if (expiresAt) {
+        requestBody.expires_at = expiresAt;
+    }
+
     const { data, error } = await apiClient.POST("/api/v1/api-keys", {
         headers: getAuthHeader(),
-        body: { name },
+        body: requestBody,
     });
     if (error || !data) {
         throw error;

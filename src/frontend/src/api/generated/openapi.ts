@@ -320,6 +320,8 @@ export interface components {
         APIKeyCreateForm: {
             /** Name */
             name: string;
+            /** Expires At */
+            expires_at?: string | null;
         };
         /** APIKeyCreateResponse */
         APIKeyCreateResponse: {
@@ -365,8 +367,12 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** Request Count */
+            request_count: number;
             /** Last Used At */
             last_used_at?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
             /** Revoked At */
             revoked_at?: string | null;
         };

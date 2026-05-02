@@ -278,7 +278,14 @@
                 "title": "Create API key",
                 "description": "Set a clear name so your team can identify this key later.",
                 "nameLabel": "API key name",
-                "namePlaceholder": "e.g. Production webhook"
+                "namePlaceholder": "e.g. Production webhook",
+                "expiryLabel": "Expiration",
+                "expiryOptions": {
+                    "sevenDays": "7 days",
+                    "thirtyDays": "30 days",
+                    "ninetyDays": "90 days",
+                    "never": "No expiration"
+                }
             },
             "revealModal": {
                 "title": "Copy API key now",
@@ -294,6 +301,8 @@
             "meta": {
                 "accessKey": "Access key",
                 "requestCount": "Request count",
+                "expiresAt": "Expires",
+                "noExpiration": "No expiration",
                 "created": "Created",
                 "lastUsed": "Last used"
             }
