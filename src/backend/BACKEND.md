@@ -339,6 +339,11 @@ sequenceDiagram
 1. Revision message/file should clearly describe intent
 2. Data migration logic must be idempotent when applicable
 3. Validate downgrade feasibility for FK/index/unique changes
+4. Revision id must follow `NNNN_snake_case`
+5. Revision id length must be 32 characters or less
+6. In shared/prod environments, treat migration failure as rollforward-first (default no downgrade)
+7. Follow `src/backend/MIGRATION_ROLLFORWARD.md` for migration incident handling
+8. Follow `src/backend/DB_BACKUP_RESTORE.md` for backup/restore operations
 
 ## 8) Completion Checklist
 

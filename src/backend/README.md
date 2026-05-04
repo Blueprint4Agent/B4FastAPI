@@ -92,7 +92,15 @@ Also verify:
 - If DB changed, confirm Alembic revision/upgrade
 - If behavior/rules changed, sync `AGENTS.md`, root `README.md`, and `src/backend/BACKEND.md`
 
-## 7) Tests (Domain/API Structure)
+## 7) Migration and Data Operations
+
+- Migration failure handling: `src/backend/MIGRATION_ROLLFORWARD.md`
+- DB backup/restore runbook: `src/backend/DB_BACKUP_RESTORE.md`
+- Alembic revision rule:
+1. `revision` format: `NNNN_snake_case`
+2. max length: `32`
+
+## 8) Tests (Domain/API Structure)
 
 - Tests are organized by API domain under `tests/api/v1/<domain>/`.
 - Current starter layout:
