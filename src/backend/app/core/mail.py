@@ -126,6 +126,7 @@ class MailService:
         to_email: str,
         user_name: str,
         link: str = "",
+        language: str | None = None,
         raise_on_failure: bool = False,
     ) -> None:
         if not self._settings.EMAIL_ENABLED:
@@ -139,6 +140,7 @@ class MailService:
             name=user_name,
             link=resolved_link,
             app_name=self._settings.EMAIL_BRAND_NAME,
+            language=language,
         )
         message = MailMessage(
             to_email=to_email,
@@ -163,6 +165,7 @@ class MailService:
         to_email: str,
         user_name: str,
         link: str = "",
+        language: str | None = None,
         raise_on_failure: bool = False,
     ) -> None:
         if not self._settings.EMAIL_ENABLED:
@@ -176,6 +179,7 @@ class MailService:
             name=user_name,
             link=resolved_link,
             app_name=self._settings.EMAIL_BRAND_NAME,
+            language=language,
         )
         message = MailMessage(
             to_email=to_email,

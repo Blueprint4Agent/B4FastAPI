@@ -48,6 +48,10 @@ from app.utils.token import (
 )
 
 logger = get_logger("app.service.auth")
+EMAIL_LANGUAGE_BY_PREFIX = {
+    "en": "en",
+    "ko": "ko",
+}
 
 
 class AuthService:
@@ -219,7 +223,7 @@ class AuthService:
             )
         return code, state
 
-    async def signup(self, form: SignupForm) -> UserResponse:
+    async def signup(self, form: SignupForm, preferred_language: str | None = None) -> UserResponse:
         logger.info("Signup attempt (email=%s).", mask_email(form.email))
         try:
             user = await Users.create_signup_user(
@@ -233,7 +237,8 @@ class AuthService:
             raise AuthException(code=AuthErrorCode.SIGNUP_FAILED) from error
 
         if SETTINGS.EMAIL_ENABLED:
-            await self._send_verification_email(user.id, user.email, user.name)
+            language = self._resolve_email_language(preferred_language)
+            await self._send_verification_email(user.id, user.email, user.name, language)
         logger.info("Signup completed (user_id=%s, verified=%s).", user.id, user.is_verified)
         return user
 
@@ -646,7 +651,9 @@ class AuthService:
         logger.info("Email verified (user_id=%s).", user.id)
         return user
 
-    async def resend_verification_email(self, email: str) -> None:
+    async def resend_verification_email(
+        self, email: str, preferred_language: str | None = None
+    ) -> None:
         if not SETTINGS.EMAIL_ENABLED:
             logger.debug("Resend verification skipped because email integration is disabled.")
             return
@@ -659,10 +666,11 @@ class AuthService:
         if user.is_verified:
             logger.debug("Resend verification skipped: already verified (user_id=%s).", user.id)
             return
-        await self._send_verification_email(user.id, user.email, user.name)
+        language = self._resolve_email_language(preferred_language)
+        await self._send_verification_email(user.id, user.email, user.name, language)
         logger.info("Verification email queued (user_id=%s).", user.id)
 
-    async def request_password_reset(self, email: str) -> None:
+    async def request_password_reset(self, email: str, preferred_language: str | None = None) -> None:
         if not SETTINGS.EMAIL_ENABLED:
             logger.debug("Password reset rejected because email integration is disabled.")
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
@@ -674,7 +682,8 @@ class AuthService:
             )
             return
 
-        await self._send_password_reset_email(user.id, user.email, user.name)
+        language = self._resolve_email_language(preferred_language)
+        await self._send_password_reset_email(user.id, user.email, user.name, language)
         logger.info("Password reset email queued (user_id=%s).", user.id)
 
     async def update_profile(self, user_id: int, form: UpdateProfileForm) -> UserResponse:
@@ -763,7 +772,13 @@ class AuthService:
         redis = await RedisManager.get_client()
         await redis.delete(f"login_fail:{user_ip}")
 
-    async def _send_verification_email(self, user_id: int, email: str, name: str) -> None:
+    async def _send_verification_email(
+        self,
+        user_id: int,
+        email: str,
+        name: str,
+        language: str,
+    ) -> None:
         verification_token = create_email_verification_token()
         await store_email_verification_token(user_id, verification_token)
 
@@ -776,9 +791,16 @@ class AuthService:
             to_email=email,
             user_name=name,
             link=verify_link,
+            language=language,
         )
 
-    async def _send_password_reset_email(self, user_id: int, email: str, name: str) -> None:
+    async def _send_password_reset_email(
+        self,
+        user_id: int,
+        email: str,
+        name: str,
+        language: str,
+    ) -> None:
         reset_token = create_password_reset_token()
         await store_password_reset_token(user_id, reset_token)
 
@@ -791,4 +813,12 @@ class AuthService:
             to_email=email,
             user_name=name,
             link=reset_link,
+            language=language,
         )
+
+    def _resolve_email_language(self, preferred_language: str | None) -> str:
+        if not preferred_language:
+            return "en"
+        primary = preferred_language.split(",")[0].strip().lower()
+        normalized = primary.split("-")[0]
+        return EMAIL_LANGUAGE_BY_PREFIX.get(normalized, "en")

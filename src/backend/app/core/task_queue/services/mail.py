@@ -33,6 +33,7 @@ class MailQueueService:
         to_email: str,
         user_name: str,
         link: str,
+        language: str,
     ) -> None:
         if not self.settings.EMAIL_ENABLED:
             return
@@ -42,6 +43,7 @@ class MailQueueService:
                 "to_email": to_email,
                 "user_name": user_name,
                 "link": link,
+                "language": language,
             },
         )
         logger.info(
@@ -56,6 +58,7 @@ class MailQueueService:
         to_email: str,
         user_name: str,
         link: str,
+        language: str,
     ) -> None:
         if not self.settings.EMAIL_ENABLED:
             return
@@ -65,6 +68,7 @@ class MailQueueService:
                 "to_email": to_email,
                 "user_name": user_name,
                 "link": link,
+                "language": language,
             },
         )
         logger.info(
@@ -88,10 +92,12 @@ class MailQueueService:
         to_email = str(payload.get("to_email", ""))
         user_name = str(payload.get("user_name", ""))
         link = str(payload.get("link", ""))
+        language = str(payload.get("language", "en"))
         await MAIL_SERVICE.send_signup_verification_email(
             to_email=to_email,
             user_name=user_name,
             link=link,
+            language=language,
             raise_on_failure=True,
         )
         logger.info(
@@ -104,10 +110,12 @@ class MailQueueService:
         to_email = str(payload.get("to_email", ""))
         user_name = str(payload.get("user_name", ""))
         link = str(payload.get("link", ""))
+        language = str(payload.get("language", "en"))
         await MAIL_SERVICE.send_password_reset_email(
             to_email=to_email,
             user_name=user_name,
             link=link,
+            language=language,
             raise_on_failure=True,
         )
         logger.info(
@@ -118,4 +126,3 @@ class MailQueueService:
 
 
 MAIL_QUEUE_SERVICE = MailQueueService(SETTINGS)
-

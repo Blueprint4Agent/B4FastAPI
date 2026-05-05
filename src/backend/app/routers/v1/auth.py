@@ -39,6 +39,13 @@ router = APIRouter()
 logger = get_logger("app.router.auth")
 
 
+def _resolve_preferred_language(request: Request) -> str | None:
+    app_language = request.headers.get("X-App-Language")
+    if app_language and app_language.strip():
+        return app_language
+    return request.headers.get("Accept-Language")
+
+
 @router.post(
     "/signup",
     response_model=UserResponse,
@@ -47,9 +54,13 @@ logger = get_logger("app.router.auth")
         AuthErrorCode.SIGNUP_FAILED,
     ),
 )
-async def signup(form: SignupForm, service: AuthService = Depends(AuthService)) -> UserResponse:
+async def signup(
+    request: Request,
+    form: SignupForm,
+    service: AuthService = Depends(AuthService),
+) -> UserResponse:
     try:
-        return await service.signup(form)
+        return await service.signup(form, preferred_language=_resolve_preferred_language(request))
     except AuthException as error:
         logger.error("Signup failed (code=%s).", error.code.error)
         raise service_exception_to_http(error) from error
@@ -367,11 +378,15 @@ async def verify_email(
     response_model=ResendVerificationResponse,
 )
 async def resend_verification_email(
+    request: Request,
     form: ResendVerificationForm,
     service: AuthService = Depends(AuthService),
 ) -> ResendVerificationResponse:
     try:
-        await service.resend_verification_email(form.email)
+        await service.resend_verification_email(
+            form.email,
+            preferred_language=_resolve_preferred_language(request),
+        )
         return ResendVerificationResponse(
             message="If an unverified account exists, a verification email has been sent.",
         )
@@ -392,11 +407,15 @@ async def resend_verification_email(
     ),
 )
 async def forgot_password(
+    request: Request,
     form: ForgotPasswordForm,
     service: AuthService = Depends(AuthService),
 ) -> ForgotPasswordResponse:
     try:
-        await service.request_password_reset(form.email)
+        await service.request_password_reset(
+            form.email,
+            preferred_language=_resolve_preferred_language(request),
+        )
         return ForgotPasswordResponse(
             message="If the account exists, a password reset email has been sent.",
         )

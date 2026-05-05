@@ -1,7 +1,9 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
+from enum import StrEnum
 
 
 @dataclass(frozen=True)
@@ -38,7 +40,13 @@ class TemplateTheme:
     muted_fg: str
 
 
-DEFAULT_LOCALE = "en"
+class EmailLocale(StrEnum):
+    EN = "en"
+    KO = "ko"
+
+
+DEFAULT_LOCALE = EmailLocale.EN.value
+SUPPORTED_LOCALES = {locale.value for locale in EmailLocale}
 
 FRONTEND_LIGHT_THEME = TemplateTheme(
     page_bg="#f7f4ea",
@@ -78,6 +86,28 @@ TEMPLATE_COPY_BY_LOCALE: dict[str, dict[str, TemplateCopy]] = {
             outro=("If you did not request a password reset, you can safely ignore this email."),
             footer="For account security, never share this link with anyone.",
         ),
+    },
+    "ko": {
+        "verification": TemplateCopy(
+            subject="이메일을 인증해 주세요",
+            preheader="계정 설정을 완료하려면 이메일 인증이 필요합니다.",
+            heading="이메일 인증",
+            intro="{name}님, 가입을 환영합니다. 계속하려면 이메일을 인증해 주세요.",
+            cta_label="이메일 인증하기",
+            outro=(
+                "이 링크는 일정 시간 동안만 유효합니다. 요청하지 않은 메일이라면 무시해도 됩니다."
+            ),
+            footer="",
+        ),
+        "password_reset": TemplateCopy(
+            subject="비밀번호를 재설정해 주세요",
+            preheader="보안 일회성 링크로 비밀번호를 재설정할 수 있습니다.",
+            heading="비밀번호 재설정",
+            intro="{name}님, 비밀번호 재설정 요청을 확인했습니다.",
+            cta_label="비밀번호 재설정",
+            outro="요청하지 않은 재설정 메일이라면 무시해도 됩니다.",
+            footer="계정 보안을 위해 이 링크를 다른 사람과 공유하지 마세요.",
+        ),
     }
 }
 
@@ -87,8 +117,75 @@ def _display_name(name: str | None) -> str:
     return value if value else "there"
 
 
-def _copy(template_name: str) -> TemplateCopy:
-    return TEMPLATE_COPY_BY_LOCALE[DEFAULT_LOCALE][template_name]
+def resolve_locale(language: str | None) -> str:
+    if not language:
+        return DEFAULT_LOCALE
+
+    # Accept-Language can contain priority list like "ko-KR,ko;q=0.9,en;q=0.8".
+    primary = language.split(",")[0].strip().lower()
+    normalized = primary.split("-")[0]
+    if normalized in SUPPORTED_LOCALES:
+        return normalized
+    return DEFAULT_LOCALE
+
+
+def _copy(template_name: str, *, locale: str) -> TemplateCopy:
+    return TEMPLATE_COPY_BY_LOCALE[locale][template_name]
+
+
+def _verification_text_en(display_name: str, link: str) -> tuple[str, str]:
+    text = (
+        f"Hi {display_name},\n\n"
+        "Please verify your email by clicking the link below:\n"
+        f"{link}\n\n"
+        "If you did not request this email, you can ignore it.\n"
+    )
+    manual_link_label = "If the button does not work, use this link:"
+    return text, manual_link_label
+
+
+def _verification_text_ko(display_name: str, link: str) -> tuple[str, str]:
+    text = (
+        f"{display_name}님, 안녕하세요.\n\n"
+        "아래 링크를 눌러 이메일 인증을 완료해 주세요.\n"
+        f"{link}\n\n"
+        "요청하지 않은 메일이라면 무시하셔도 됩니다.\n"
+    )
+    manual_link_label = "버튼이 동작하지 않으면 아래 링크를 사용해 주세요:"
+    return text, manual_link_label
+
+
+def _password_reset_text_en(display_name: str, link: str) -> tuple[str, str]:
+    text = (
+        f"Hi {display_name},\n\n"
+        "We received a request to reset your password. Use the link below:\n"
+        f"{link}\n\n"
+        "If you did not request a password reset, you can ignore this email.\n"
+    )
+    manual_link_label = "If the button does not work, use this link:"
+    return text, manual_link_label
+
+
+def _password_reset_text_ko(display_name: str, link: str) -> tuple[str, str]:
+    text = (
+        f"{display_name}님, 안녕하세요.\n\n"
+        "비밀번호 재설정 요청을 확인했습니다. 아래 링크를 사용해 주세요.\n"
+        f"{link}\n\n"
+        "요청하지 않은 메일이라면 무시하셔도 됩니다.\n"
+    )
+    manual_link_label = "버튼이 동작하지 않으면 아래 링크를 사용해 주세요:"
+    return text, manual_link_label
+
+
+TextBuilder = Callable[[str, str], tuple[str, str]]
+VERIFICATION_TEXT_BUILDERS: dict[str, TextBuilder] = {
+    EmailLocale.EN.value: _verification_text_en,
+    EmailLocale.KO.value: _verification_text_ko,
+}
+PASSWORD_RESET_TEXT_BUILDERS: dict[str, TextBuilder] = {
+    EmailLocale.EN.value: _password_reset_text_en,
+    EmailLocale.KO.value: _password_reset_text_ko,
+}
 
 
 def _build_email_html(
@@ -101,6 +198,7 @@ def _build_email_html(
     link: str,
     outro: str,
     footer: str,
+    manual_link_label: str,
     theme: TemplateTheme,
 ) -> str:
     footer_html = ""
@@ -182,7 +280,7 @@ def _build_email_html(
                 <p
                   style="margin:0 0 8px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:{theme.text_secondary};"
                 >
-                  If the button does not work, use this link:
+                  {manual_link_label}
                 </p>
                 <p
                   style="margin:0;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;line-height:1.6;"
@@ -206,16 +304,12 @@ def build_verification_email(
     name: str | None,
     link: str,
     app_name: str = "Blueprint4FastAPI",
+    language: str | None = None,
 ) -> EmailContent:
-    copy = _copy("verification")
+    locale = resolve_locale(language)
+    copy = _copy("verification", locale=locale)
     display_name = _display_name(name)
-
-    text = (
-        f"Hi {display_name},\n\n"
-        "Please verify your email by clicking the link below:\n"
-        f"{link}\n\n"
-        "If you did not request this email, you can ignore it.\n"
-    )
+    text, manual_link_label = VERIFICATION_TEXT_BUILDERS[locale](display_name, link)
     html = _build_email_html(
         app_name=app_name,
         preheader=copy.preheader,
@@ -225,6 +319,7 @@ def build_verification_email(
         link=link,
         outro=copy.outro,
         footer=copy.footer,
+        manual_link_label=manual_link_label,
         theme=FRONTEND_LIGHT_THEME,
     )
     return EmailContent(subject=copy.subject, text=text, html=html)
@@ -235,16 +330,12 @@ def build_password_reset_email(
     name: str | None,
     link: str,
     app_name: str = "Blueprint4FastAPI",
+    language: str | None = None,
 ) -> EmailContent:
-    copy = _copy("password_reset")
+    locale = resolve_locale(language)
+    copy = _copy("password_reset", locale=locale)
     display_name = _display_name(name)
-
-    text = (
-        f"Hi {display_name},\n\n"
-        "We received a request to reset your password. Use the link below:\n"
-        f"{link}\n\n"
-        "If you did not request a password reset, you can ignore this email.\n"
-    )
+    text, manual_link_label = PASSWORD_RESET_TEXT_BUILDERS[locale](display_name, link)
     html = _build_email_html(
         app_name=app_name,
         preheader=copy.preheader,
@@ -254,6 +345,7 @@ def build_password_reset_email(
         link=link,
         outro=copy.outro,
         footer=copy.footer,
+        manual_link_label=manual_link_label,
         theme=FRONTEND_LIGHT_THEME,
     )
     return EmailContent(subject=copy.subject, text=text, html=html)

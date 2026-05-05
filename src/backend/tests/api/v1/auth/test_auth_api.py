@@ -29,10 +29,15 @@ pytestmark = pytest.mark.api_test
 
 
 class FakeAuthService:
+    last_preferred_language: str | None = None
+
     def __init__(self, user: UserResponse):
         self._user = user
 
-    async def signup(self, _form: SignupForm) -> UserResponse:
+    async def signup(
+        self, _form: SignupForm, preferred_language: str | None = None
+    ) -> UserResponse:
+        FakeAuthService.last_preferred_language = preferred_language
         return self._user
 
     async def login(
@@ -81,6 +86,24 @@ class FakeAuthService:
         _ = user_id
         return None
 
+    async def resend_verification_email(
+        self,
+        email: str,
+        preferred_language: str | None = None,
+    ) -> None:
+        _ = email
+        FakeAuthService.last_preferred_language = preferred_language
+        return None
+
+    async def request_password_reset(
+        self,
+        email: str,
+        preferred_language: str | None = None,
+    ) -> None:
+        _ = email
+        FakeAuthService.last_preferred_language = preferred_language
+        return None
+
     async def get_admin_user_role_stats(self) -> UserRoleStatsResponse:
         return UserRoleStatsResponse(total_users=51, active_users=51, admin_users=1)
 
@@ -112,6 +135,22 @@ def test_signup_success(sample_user: UserResponse):
     # Then: route returns success contract.
     assert response.status_code == 200
     assert response.json()["email"] == "tester@example.com"
+
+
+def test_signup_prefers_x_app_language_header(sample_user: UserResponse):
+    """Scenario: signup passes X-App-Language header to service when both language headers exist."""
+    FakeAuthService.last_preferred_language = None
+    client = create_auth_test_client(sample_user)
+    response = client.post(
+        "/api/v1/auth/signup",
+        json=build_signup_payload(),
+        headers={
+            "X-App-Language": "ko",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+    )
+    assert response.status_code == 200
+    assert FakeAuthService.last_preferred_language == "ko"
 
 
 def test_signup_validation_error_returns_422(sample_user: UserResponse):

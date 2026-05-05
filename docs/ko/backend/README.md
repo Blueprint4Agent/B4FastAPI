@@ -15,6 +15,8 @@
 - API 키는 누적 사용량(`request_count`)과 선택적 만료(`expires_at`)를 추적
 - 실시간 SSE 스트림은 `/api/v1/events/stream`에서 제공되며 heartbeat 및 Redis Pub/Sub fan-out을 사용
 - 비동기 백그라운드 작업은 공용 Redis 큐 워커 코어(`app/core/task_queue/worker.py`)와 도메인/서비스 어댑터(예: `app/core/task_queue/services/mail.py`)로 처리
+- 인증 메일 템플릿은 요청 `Accept-Language`(`en`/`ko`)를 기준으로 로컬라이즈되며 메일 큐 payload까지 전달됨
+- 인증 메일 언어 결정 시 `X-App-Language` 헤더를 `Accept-Language`보다 우선 적용
 
 ## 1.1) 백엔드 흐름
 

@@ -1,5 +1,6 @@
 import type { components } from "../generated/openapi";
 import { apiClient, getAuthHeader } from "../http";
+import i18n from "../../i18n";
 
 type SignupInput = components["schemas"]["SignupForm"];
 type LoginInput = components["schemas"]["LoginForm"];
@@ -15,8 +16,16 @@ export type ResetPasswordPayload = components["schemas"]["ResetPasswordResponse"
 export type OAuthProvider = components["schemas"]["OAuthProvider"];
 export type OAuthProvidersPayload = components["schemas"]["OAuthProvidersResponse"];
 
+function getAppLanguageHeader(): HeadersInit {
+    const language = (i18n.resolvedLanguage ?? i18n.language ?? "en").split("-")[0] || "en";
+    return { "X-App-Language": language };
+}
+
 export async function signup(input: SignupInput): Promise<User> {
-    const { data, error } = await apiClient.POST("/api/v1/auth/signup", { body: input });
+    const { data, error } = await apiClient.POST("/api/v1/auth/signup", {
+        body: input,
+        headers: getAppLanguageHeader(),
+    });
     if (error || !data) {
         throw error;
     }
@@ -93,6 +102,7 @@ export async function verifyEmail(token: string): Promise<VerifyEmailPayload> {
 export async function resendVerificationEmail(email: string): Promise<ResendVerificationPayload> {
     const { data, error } = await apiClient.POST("/api/v1/auth/resend-verification", {
         body: { email },
+        headers: getAppLanguageHeader(),
     });
     if (error || !data) {
         throw error;
@@ -103,6 +113,7 @@ export async function resendVerificationEmail(email: string): Promise<ResendVeri
 export async function requestPasswordReset(email: string): Promise<ForgotPasswordPayload> {
     const { data, error } = await apiClient.POST("/api/v1/auth/forgot-password", {
         body: { email },
+        headers: getAppLanguageHeader(),
     });
     if (error || !data) {
         throw error;

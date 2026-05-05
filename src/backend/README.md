@@ -17,6 +17,8 @@ Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BAC
 - API keys track cumulative usage (`request_count`) and optional expiration (`expires_at`)
 - Realtime SSE stream is available at `/api/v1/events/stream` with heartbeat and Redis Pub/Sub fan-out
 - Async background jobs use a generic Redis queue worker core (`app/core/task_queue/worker.py`) with domain/service adapters (for example `app/core/task_queue/services/mail.py`)
+- Auth email templates are localized by request `Accept-Language` (`en`/`ko`) and propagated through the mail queue payload
+- For auth mail language, `X-App-Language` header has priority over `Accept-Language`
 
 ## 1.1) Backend Flow
 
