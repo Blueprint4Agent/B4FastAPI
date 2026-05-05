@@ -189,6 +189,7 @@ flowchart LR
 1. All frontend CSS must be managed in `src/styles/app.css`.
 2. Do not add separate page/component CSS files unless a documented exception is approved.
 3. Avoid one-off style duplication when a reusable class or component style can be extracted.
+4. Scrollbars must follow the global rules in `src/styles/app.css` so every scrollable container keeps a consistent style.
 
 ## 7) Build and Runtime Notes
 

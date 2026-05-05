@@ -29,6 +29,9 @@
     --button-bg: #101010;
     --button-fg: #f7f7f7;
     --button-border: #101010;
+    --scrollbar-size: 0.6rem;
+    --scrollbar-thumb: rgba(66, 87, 113, 0.42);
+    --scrollbar-thumb-hover: rgba(66, 87, 113, 0.62);
 }
 
 html[data-theme="dark"] {
@@ -56,6 +59,8 @@ html[data-theme="dark"] {
     --button-bg: #f7f7f7;
     --button-fg: #101216;
     --button-border: #f7f7f7;
+    --scrollbar-thumb: rgba(156, 156, 162, 0.46);
+    --scrollbar-thumb-hover: rgba(194, 194, 199, 0.62);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -89,11 +94,52 @@ html[data-theme="dark"] {
 
 * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background-color: var(--scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Keep top navigation area out of custom scrollbar styling/behavior. */
+.app-nav,
+.app-nav * {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+}
+
+.app-nav::-webkit-scrollbar,
+.app-nav *::-webkit-scrollbar {
+    width: auto;
+    height: auto;
+}
+
+.app-nav::-webkit-scrollbar-thumb,
+.app-nav *::-webkit-scrollbar-thumb {
+    border: initial;
+    border-radius: initial;
+    background: initial;
 }
 
 body {
     margin: 0;
-    min-height: 100vh;
     font-family:
         "Inter",
         system-ui,
@@ -104,6 +150,13 @@ body {
         sans-serif;
     color: var(--text);
     background: var(--bg);
+    overflow: hidden;
+}
+
+html,
+body,
+#root {
+    height: 100%;
 }
 
 a {
@@ -119,11 +172,13 @@ a {
 }
 
 .app-shell {
-    min-height: 100vh;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
 }
 
 .app-body {
-    min-height: calc(100vh - var(--nav-height));
+    min-height: 0;
 }
 
 .app-sidebar {
@@ -286,10 +341,11 @@ a {
 }
 
 .app-main {
-    min-height: calc(100vh - var(--nav-height) - 2rem);
+    height: 100%;
     display: grid;
     place-items: center;
     padding: 1rem;
+    overflow: auto;
 }
 
 .app-main--with-sidebar {
