@@ -48,7 +48,10 @@ export function formatDateYYYYMMDD(value: string | null | undefined, fallback = 
     return `${year}/${month}/${day}`;
 }
 
-export function isDateTimeExpired(value: string | null | undefined, now: Date = new Date()): boolean {
+export function isDateTimeExpired(
+    value: string | null | undefined,
+    now: Date = new Date(),
+): boolean {
     if (!value) {
         return false;
     }

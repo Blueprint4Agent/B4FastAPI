@@ -50,7 +50,9 @@ function DeveloperApiKeyList({
                                 <div className="developer-key-card__title-row">
                                     <h3>{item.name}</h3>
                                     <StatusBadge
-                                        tone={isExpired ? "danger" : isActive ? "active" : "inactive"}
+                                        tone={
+                                            isExpired ? "danger" : isActive ? "active" : "inactive"
+                                        }
                                     >
                                         {isExpired
                                             ? t("settings.developers.status.expired")
