@@ -15,6 +15,21 @@ Blueprint4FastAPI is a full-stack template with:
 5. Backend quick guide: `src/backend/README.md`
 6. Frontend quick guide: `src/frontend/README.md`
 
+Localized documentation rule:
+
+- Keep translated/localized docs under `docs/<locale>/...`.
+- Mirror the original document structure by domain (`backend`, `frontend`, etc.).
+
+Current locale example (`ko`):
+
+1. Root guide: `docs/ko/README.md`
+2. Agent/workflow rules: `docs/ko/AGENTS.md`
+3. Deployment guide: `docs/ko/DEPLOY.md`
+4. Backend engineering rules: `docs/ko/backend/BACKEND.md`
+5. Frontend engineering rules: `docs/ko/frontend/FRONTEND.md`
+6. Backend test guide: `docs/ko/backend/TEST.md`
+7. Frontend test guide: `docs/ko/frontend/TEST.md`
+
 ## Repository Layout
 
 ```text

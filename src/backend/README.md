@@ -3,6 +3,8 @@
 This is a minimal quick-reference guide for backend contributors.
 For full engineering rules, follow `src/backend/BACKEND.md`.
 For backend test engineering rules, follow `src/backend/TEST.md`.
+Localized docs rule: place translations under `docs/<locale>/backend/`.
+Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BACKEND.md`, `docs/ko/backend/TEST.md`.
 
 ## 1) Core Rules
 

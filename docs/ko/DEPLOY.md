@@ -1,0 +1,164 @@
+# 배포 가이드
+
+이 문서는 이 저장소의 구체적인 배포 절차를 정의합니다.
+
+## 1) 사전 요구사항
+
+1. Docker Desktop(또는 Docker Engine)이 설치되어 있고 실행 중이어야 합니다.
+2. 현재 작업 디렉터리는 저장소 루트여야 합니다.
+3. 로컬 인프라 사용 시 아래 포트가 사용 가능해야 합니다.
+- `8000` (app)
+- `5432` (postgres)
+- `6379` (redis)
+
+## 2) 환경 설정
+
+템플릿 환경 파일 초기화:
+
+```bash
+bash ./docker/scripts/init-env.sh
+```
+
+주 배포 환경 파일:
+- `docker/.env`
+
+## 3) 배포 모드
+
+`docker/scripts/docker-up.sh`는 로컬 `postgres`/`redis` 컨테이너를 시작할지 여부를 결정합니다.
+로컬 인프라를 선택하면 이제 `app` 시작 전에 컨테이너 헬스 상태를 기다립니다.
+
+### 모드 A: App + 로컬 Postgres + 로컬 Redis
+
+`docker/.env`에 다음 값을 사용합니다.
+
+```dotenv
+DB_DRIVER=postgresql+asyncpg
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=template
+DB_USER=postgres
+DB_PASSWORD=postgres
+
+REDIS_IN_MEMORY=false
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_DB=0
+```
+
+결과:
+- 시작: `app`, `postgres`, `redis`
+
+### 모드 B: App + 외부 Postgres + 외부 Redis
+
+`docker/.env`에 다음 값을 사용합니다.
+
+```dotenv
+DB_DRIVER=postgresql+asyncpg
+DB_HOST=<external-db-host>
+DB_PORT=5432
+DB_NAME=<db-name>
+DB_USER=<db-user>
+DB_PASSWORD=<db-password>
+
+REDIS_IN_MEMORY=false
+REDIS_HOST=<external-redis-host>
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_PASSWORD=<optional>
+```
+
+결과:
+- 시작: `app`만
+
+### 모드 C: App + SQLite + In-Memory Redis
+
+`docker/.env`에 다음 값을 사용합니다.
+
+```dotenv
+DB_DRIVER=sqlite+aiosqlite
+DB_NAME=template.db
+
+REDIS_IN_MEMORY=true
+```
+
+결과:
+- 시작: `app`만
+
+## 4) 표준 명령어
+
+앱 이미지 빌드:
+
+```bash
+bash ./docker/scripts/docker-build.sh
+```
+
+서비스 시작:
+
+```bash
+bash ./docker/scripts/docker-up.sh
+```
+
+서비스 중지:
+
+```bash
+bash ./docker/scripts/docker-down.sh
+```
+
+로그 보기:
+
+```bash
+bash ./docker/scripts/docker-logs.sh app
+```
+
+원샷 배포 (빌드 + 재기동 + tar 내보내기):
+
+```bash
+bash ./docker/scripts/docker-deploy.sh
+```
+
+이미지 tar만 내보내기:
+
+```bash
+bash ./docker/scripts/docker-export.sh
+```
+
+내보내기 경로:
+- `docker/artifacts/`
+
+## 5) 배포 후 검증
+
+실행 중 컨테이너 확인:
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
+```
+
+앱 헬스 엔드포인트 확인:
+
+```bash
+curl -i http://localhost:8000/docs
+curl -i http://localhost:8000/config
+```
+
+시작 시 마이그레이션 로그 확인:
+- `Database schema migration check complete (target=head).`
+
+## 6) 트러블슈팅
+
+`docker command not found`
+- Docker Desktop/Engine을 설치하고 Docker 데몬이 실행 중인지 확인하세요.
+
+앱은 시작되지만 DB 연결 실패
+- `docker/.env`의 `DB_DRIVER/DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`를 확인하세요.
+- 로컬 postgres 사용 시 `DB_HOST`는 반드시 `postgres`여야 합니다.
+
+Redis 연결 실패
+- 로컬 redis 컨테이너 사용: `REDIS_IN_MEMORY=false` 및 `REDIS_HOST=redis`
+- 외부 redis 사용: `REDIS_HOST`를 외부 호스트로 설정하고 `REDIS_IN_MEMORY=false` 유지
+
+Alembic 시작 마이그레이션이 revision 길이 오류로 실패
+- Alembic `revision` ID는 `alembic_version.version_num` 제약 길이를 넘지 않도록 유지하세요.
+
+tar 아티팩트가 생성되지 않음
+- `docker-build.sh`는 tar를 내보내지 않습니다.
+- `docker-deploy.sh` 또는 `docker-export.sh`를 사용하세요.

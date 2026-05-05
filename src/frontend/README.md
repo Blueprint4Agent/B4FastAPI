@@ -2,6 +2,8 @@
 
 This guide is for human contributors working on `src/frontend`.
 For full engineering constraints, follow `src/frontend/FRONTEND.md`.
+Localized docs rule: place translations under `docs/<locale>/frontend/`.
+Current locale example (`ko`): `docs/ko/frontend/README.md`, `docs/ko/frontend/FRONTEND.md`, `docs/ko/frontend/TEST.md`.
 
 ## 1) Setup
 
