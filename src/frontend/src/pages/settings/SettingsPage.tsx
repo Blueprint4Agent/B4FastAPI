@@ -31,6 +31,8 @@ type SettingsMenuKey = "profile" | "general" | "developers";
 const MAX_PROFILE_PHOTO_SIZE_MB = 8;
 const MAX_PROFILE_PHOTO_SIZE_BYTES = MAX_PROFILE_PHOTO_SIZE_MB * 1024 * 1024;
 const DEFAULT_API_KEY_EXPIRY_OPTION: APIKeyExpiryOption = "30d";
+const SUPPORTED_LANGUAGE_IDS = ["en", "ko"] as const;
+type SupportedLanguageId = (typeof SUPPORTED_LANGUAGE_IDS)[number];
 
 export function SettingsPage() {
     const { t, i18n } = useTranslation();
@@ -81,7 +83,14 @@ export function SettingsPage() {
     const normalizedCurrentProfileImage = user?.profile_image_url ?? null;
     const isNameChanged = normalizedNameInput !== normalizedCurrentName;
     const connectedOAuthProviders = user?.oauth_providers ?? [];
-    const currentLanguageLabel = t("settings.general.languages.en");
+    const normalizedLanguageId =
+        (i18n.resolvedLanguage ?? i18n.language ?? "en").split("-")[0] || "en";
+    const currentLanguageId: SupportedLanguageId = SUPPORTED_LANGUAGE_IDS.includes(
+        normalizedLanguageId as SupportedLanguageId,
+    )
+        ? (normalizedLanguageId as SupportedLanguageId)
+        : "en";
+    const currentLanguageLabel = t(`settings.general.languages.${currentLanguageId}`);
     const isAdminUser = user?.role === "admin";
 
     const resolveOAuthProviderLabel = (provider: string) => {
@@ -552,12 +561,10 @@ export function SettingsPage() {
                                     <DropdownMenu
                                         triggerLabel={currentLanguageLabel}
                                         label={t("settings.general.languageTitle")}
-                                        items={[
-                                            {
-                                                id: "en",
-                                                label: t("settings.general.languages.en"),
-                                            },
-                                        ]}
+                                        items={SUPPORTED_LANGUAGE_IDS.map((languageId) => ({
+                                            id: languageId,
+                                            label: t(`settings.general.languages.${languageId}`),
+                                        }))}
                                         onSelect={(languageId) => {
                                             void i18n.changeLanguage(languageId);
                                         }}

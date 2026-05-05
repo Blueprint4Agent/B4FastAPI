@@ -215,7 +215,7 @@
         },
         "profile": {
             "title": "Profile",
-            "subtitle": "Update your profile information and avatar.",
+            "subtitle": "Update your profile information.",
             "photo": "Profile Photo",
             "photoHelp": "Supported: PNG, JPG, WEBP, GIF (max 8MB)",
             "photoSelect": "Choose photo",
@@ -243,7 +243,8 @@
             "themeTitle": "Theme",
             "languageTitle": "Language",
             "languages": {
-                "en": "English"
+                "en": "English",
+                "ko": "Korean"
             }
         },
         "developers": {
@@ -289,7 +290,7 @@
             },
             "createModal": {
                 "title": "Create API key",
-                "description": "Set a clear name so your team can identify this key later.",
+                "description": "Set a name that helps identify this API key.",
                 "nameLabel": "API key name",
                 "namePlaceholder": "e.g. Production webhook",
                 "expiryLabel": "Expiration",
@@ -308,7 +309,7 @@
             },
             "deactivateModal": {
                 "title": "Delete API key",
-                "description": "You are about to deactivate this API key.",
+                "description": "You are about to delete this API key.",
                 "targetName": "Target key: {{name}}"
             },
             "meta": {

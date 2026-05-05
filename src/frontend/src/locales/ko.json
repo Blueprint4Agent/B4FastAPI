@@ -1,0 +1,332 @@
+{
+    "app": {
+        "loadingTitle": "로딩 중",
+        "loadingSubtitle": "세션을 준비하는 동안 잠시만 기다려주세요.",
+        "loadingSession": "세션 불러오는 중..."
+    },
+    "auth": {
+        "actions": {
+            "resendVerification": "인증 이메일 다시 보내기"
+        },
+        "errors": {
+            "loginFallback": "로그인에 실패했습니다. 다시 시도해주세요.",
+            "signupFallback": "회원가입에 실패했습니다. 입력값을 확인해주세요.",
+            "passwordMismatch": "비밀번호 확인이 일치하지 않습니다.",
+            "requiredEmail": "이메일은 필수입니다.",
+            "requiredName": "이름은 필수입니다.",
+            "requiredPassword": "비밀번호는 필수입니다.",
+            "requiredConfirmPassword": "비밀번호 확인을 입력해주세요.",
+            "invalidEmail": "올바른 이메일 주소를 입력해주세요.",
+            "invalidPasswordPattern": "비밀번호는 8~24자이며 대문자, 숫자, 특수문자를 포함해야 합니다.",
+            "invalidCredentialsWithCount": "이메일 또는 비밀번호가 올바르지 않습니다. 남은 시도 횟수: {{count}}회.",
+            "accountLocked": "로그인 시도가 너무 많습니다. {{seconds}}초 후 다시 시도해주세요.",
+            "emailNotVerified": "이메일 인증이 필요합니다. 먼저 이메일 인증을 완료해주세요.",
+            "resendVerificationFallback": "인증 이메일 재전송에 실패했습니다. 다시 시도해주세요.",
+            "emailAlreadyExists": "이미 사용 중인 이메일입니다.",
+            "emailDisabled": "이메일 기반 기능이 현재 비활성화되어 있습니다.",
+            "loginDisabled": "로그인이 현재 비활성화되어 있습니다.",
+            "invalidToken": "토큰이 유효하지 않거나 만료되었습니다.",
+            "insufficientRole": "이 작업을 수행할 권한이 없습니다.",
+            "userNotFound": "사용자 계정을 찾을 수 없습니다.",
+            "oauthProviderNotEnabled": "해당 OAuth 제공자가 활성화되어 있지 않습니다.",
+            "oauthProviderConfigInvalid": "OAuth 제공자 설정이 올바르지 않습니다.",
+            "oauthIdentityConflict": "이 OAuth 계정은 이미 다른 사용자와 연결되어 있습니다.",
+            "oauthSignupFailed": "OAuth로 계정을 생성하지 못했습니다.",
+            "oauthProviderRequestFailed": "OAuth 제공자 요청에 실패했습니다. 다시 시도해주세요.",
+            "profileUpdateFailed": "프로필을 업데이트하지 못했습니다. 다시 시도해주세요."
+        }
+    },
+    "cards": {
+        "errorTitle": "조치가 필요합니다",
+        "warningTitle": "주의",
+        "infoTitle": "안내"
+    },
+    "login": {
+        "title": "로그인",
+        "subtitle": "템플릿 대시보드에 접속하려면 로그인하세요.",
+        "oauth": {
+            "divider": "소셜 계정으로 로그인",
+            "providers": {
+                "google": "Google로 계속하기",
+                "github": "GitHub로 계속하기"
+            }
+        },
+        "fields": {
+            "email": "이메일",
+            "password": "비밀번호"
+        },
+        "rememberMe": "로그인 상태 유지",
+        "rememberEmail": "이메일 기억",
+        "submitIdle": "로그인",
+        "submitBusy": "로그인 중...",
+        "signupPrompt": "처음이신가요?",
+        "signupLink": "계정 만들기",
+        "forgotPasswordPrompt": "비밀번호를 잊으셨나요?",
+        "forgotPasswordLink": "비밀번호 찾기"
+    },
+    "signup": {
+        "title": "회원가입",
+        "subtitle": "로컬 개발용 기본 계정을 생성하세요.",
+        "configLoading": "서버 설정을 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+        "fields": {
+            "name": "이름",
+            "email": "이메일",
+            "password": "비밀번호",
+            "confirmPassword": "비밀번호 확인"
+        },
+        "submitIdle": "계정 생성",
+        "submitBusy": "계정을 생성하고 인증 이메일을 보내는 중...",
+        "loginPrompt": "이미 계정이 있나요?",
+        "loginLink": "로그인으로 돌아가기",
+        "validation": {
+            "email": "이메일 검증",
+            "password": "비밀번호 검증",
+            "confirm": "비밀번호 확인"
+        },
+        "rules": {
+            "email": {
+                "format": "올바른 이메일 형식을 사용하세요."
+            },
+            "password": {
+                "length": "8자 이상 24자 이하",
+                "upper": "대문자 최소 1개 포함",
+                "number": "숫자 최소 1개 포함",
+                "symbol": "특수문자 최소 1개 포함",
+                "noSpace": "공백 사용 금지"
+            },
+            "confirm": {
+                "match": "비밀번호와 비밀번호 확인이 일치해야 합니다."
+            }
+        }
+    },
+    "signupEmailSent": {
+        "title": "이메일을 확인하세요",
+        "subtitle": "{{email}} 주소로 인증 링크를 보냈습니다.",
+        "description": "메일함에서 인증을 완료하면 계정이 활성화됩니다.",
+        "accountCreatedTitle": "계정 생성 완료",
+        "accountCreatedSubtitle": "계정 준비가 완료되었습니다.",
+        "accountCreatedMessage": "계정이 생성되었습니다. 로그인 페이지로 이동해주세요.",
+        "resendButton": "인증 이메일 다시 보내기",
+        "resendFallback": "인증 이메일 재전송에 실패했습니다. 다시 시도해주세요.",
+        "loginButton": "로그인으로 돌아가기",
+        "noEmail": "이메일 주소"
+    },
+    "forgotPassword": {
+        "title": "비밀번호 찾기",
+        "subtitle": "이메일을 입력하면 비밀번호 재설정 링크를 보내드립니다.",
+        "emailLabel": "이메일",
+        "submitIdle": "재설정 링크 보내기",
+        "loginPrompt": "비밀번호가 기억나셨나요?",
+        "loginLink": "로그인으로 돌아가기",
+        "configLoading": "서버 설정을 불러오는 중입니다. 잠시 후 다시 시도해주세요.",
+        "disabled": "비밀번호 재설정 기능이 현재 비활성화되어 있습니다.",
+        "disabledTitle": "비밀번호 재설정 사용 불가",
+        "sentTitle": "이메일을 확인하세요",
+        "sentSubtitle": "{{email}} 주소로 비밀번호 재설정 링크를 보냈습니다.",
+        "sentDescription": "메일함에서 링크를 열어 비밀번호 재설정을 진행하세요.",
+        "backToRequest": "다시 요청하기",
+        "backToLogin": "로그인으로 돌아가기",
+        "requestFallback": "비밀번호 재설정 요청에 실패했습니다. 다시 시도해주세요.",
+        "noEmail": "이메일 주소"
+    },
+    "resetPassword": {
+        "title": "비밀번호 재설정",
+        "subtitle": "계정의 새 비밀번호를 설정하세요.",
+        "passwordLabel": "새 비밀번호",
+        "confirmPasswordLabel": "새 비밀번호 확인",
+        "submitIdle": "비밀번호 재설정",
+        "successTitle": "비밀번호 재설정 완료",
+        "successSubtitle": "비밀번호가 변경되었습니다.",
+        "successDescription": "이제 새 비밀번호로 로그인할 수 있습니다.",
+        "backToLogin": "로그인으로 돌아가기",
+        "loginPrompt": "로그인할 준비가 되었나요?",
+        "loginLink": "로그인으로 이동",
+        "errors": {
+            "missingToken": "재설정 토큰이 없습니다. 이메일의 링크를 이용해주세요.",
+            "fallback": "비밀번호 재설정에 실패했습니다. 링크가 만료되었거나 유효하지 않을 수 있습니다."
+        }
+    },
+    "verifyEmail": {
+        "loadingTitle": "이메일 인증 중",
+        "loadingSubtitle": "인증 토큰을 확인하는 중입니다. 잠시만 기다려주세요.",
+        "loadingDescription": "보통 몇 초 내에 완료됩니다.",
+        "successTitle": "이메일 인증 완료",
+        "successSubtitle": "계정 이메일 인증이 완료되었습니다.",
+        "successDescription": "이제 이메일과 비밀번호로 로그인할 수 있습니다.",
+        "errorTitle": "인증 실패",
+        "errorSubtitle": "이메일 인증을 완료할 수 없습니다.",
+        "backToLogin": "로그인으로 돌아가기",
+        "errors": {
+            "missingToken": "인증 토큰이 없습니다. 이메일의 링크를 이용해주세요.",
+            "fallback": "인증에 실패했습니다. 링크가 만료되었거나 유효하지 않을 수 있습니다."
+        }
+    },
+    "showCase": {
+        "title": "쇼케이스 페이지",
+        "subtitle": "이 페이지에서 컴포넌트를 확인하고, 원하는 화면에 사용할 구성을 에이전트에게 지시하세요.",
+        "tooltip": {
+            "demoTrigger": "이 버튼에 마우스를 올려보세요",
+            "demoContent": "재사용 가능한 툴팁 예시입니다."
+        },
+        "labels": {
+            "userId": "사용자 ID",
+            "name": "이름",
+            "email": "이메일"
+        },
+        "logoutIdle": "로그아웃",
+        "logoutBusy": "로그아웃 중..."
+    },
+    "nav": {
+        "profileMenu": "프로필 메뉴",
+        "sidebar": {
+            "aria": "기본 탐색",
+            "showCase": "쇼케이스",
+            "settings": "설정",
+            "toggleOpen": "사이드바 펼치기",
+            "toggleClose": "사이드바 접기"
+        },
+        "pageTitles": {
+            "showCase": "쇼케이스 페이지",
+            "settings": "설정",
+            "loading": "로딩",
+            "notFound": "404 찾을 수 없음"
+        },
+        "settings": "설정",
+        "logoutIdle": "로그아웃",
+        "logoutBusy": "로그아웃 중...",
+        "aria": {
+            "goShowCase": "쇼케이스 페이지로 이동",
+            "openMenu": "프로필 메뉴 열기"
+        }
+    },
+    "settings": {
+        "title": "설정",
+        "subtitle": "계정과 환경설정을 관리하세요.",
+        "menu": {
+            "title": "설정 메뉴",
+            "profile": "프로필",
+            "general": "일반",
+            "developers": "개발자"
+        },
+        "labels": {
+            "name": "이름",
+            "email": "이메일",
+            "userId": "사용자 ID"
+        },
+        "profile": {
+            "title": "프로필",
+            "subtitle": "프로필 정보를 업데이트하세요.",
+            "photo": "프로필 사진",
+            "photoHelp": "지원 형식: PNG, JPG, WEBP, GIF (최대 8MB)",
+            "photoSelect": "사진 선택",
+            "photoClear": "사진 제거",
+            "photoTypeError": "PNG, JPG, WEBP, GIF 파일만 지원합니다.",
+            "photoSizeError": "프로필 사진은 8MB 이하여야 합니다.",
+            "photoReadError": "선택한 이미지를 읽을 수 없습니다.",
+            "namePlaceholder": "이름을 입력하세요",
+            "save": "저장",
+            "nameSaveSuccess": "이름이 성공적으로 변경되었습니다.",
+            "nameSaveError": "이름 변경에 실패했습니다.",
+            "oauthConnectedTitle": "연결된 OAuth",
+            "oauthConnectedEmpty": "연결된 외부 OAuth 제공자가 없습니다.",
+            "oauthProviders": {
+                "google": "Google",
+                "github": "GitHub"
+            },
+            "roleBadgeAdmin": "관리자",
+            "saveSuccess": "프로필 변경사항이 저장되었습니다.",
+            "saveError": "프로필 변경사항을 저장하지 못했습니다. 다시 시도해주세요."
+        },
+        "general": {
+            "title": "일반",
+            "subtitle": "언어와 테마를 설정하세요.",
+            "themeTitle": "테마",
+            "languageTitle": "언어",
+            "languages": {
+                "en": "영어",
+                "ko": "한국어"
+            }
+        },
+        "developers": {
+            "title": "개발자",
+            "subtitle": "연동 및 자동화를 위한 API 키를 관리하세요.",
+            "loading": "API 키를 불러오는 중...",
+            "empty": "생성된 API 키가 없습니다.",
+            "createButton": "API 키 생성",
+            "refreshButton": "새로고침",
+            "listLoadError": "API 키 목록을 불러오지 못했습니다.",
+            "createError": "API 키를 생성하지 못했습니다. 다른 이름으로 다시 시도해주세요.",
+            "updateError": "API 키 상태를 업데이트하지 못했습니다.",
+            "deactivateError": "API 키 비활성화에 실패했습니다.",
+            "enableBlockedInfo": "폐기된 API 키는 다시 활성화할 수 없습니다. 새 키를 생성하세요.",
+            "errors": {
+                "apiKeyInvalid": "유효하지 않은 API 키 요청입니다.",
+                "userMismatch": "현재 사용자 소유의 API 키가 아닙니다.",
+                "createFailed": "API 키 생성에 실패했습니다. 다시 시도해주세요.",
+                "nameAlreadyExists": "같은 이름의 API 키가 이미 존재합니다.",
+                "notFound": "요청한 API 키를 찾을 수 없습니다.",
+                "updateFailed": "API 키 업데이트에 실패했습니다."
+            },
+            "status": {
+                "active": "활성",
+                "inactive": "비활성",
+                "expired": "만료"
+            },
+            "columns": {
+                "name": "이름",
+                "prefix": "접두사",
+                "status": "상태",
+                "createdAt": "생성일",
+                "lastUsedAt": "마지막 사용",
+                "enabled": "활성화",
+                "delete": "삭제"
+            },
+            "actions": {
+                "save": "저장",
+                "cancel": "취소",
+                "close": "닫기",
+                "deactivate": "비활성화",
+                "delete": "삭제"
+            },
+            "createModal": {
+                "title": "API 키 생성",
+                "description": "API 키를 식별할 수 있는 이름을 지정하세요.",
+                "nameLabel": "API 키 이름",
+                "namePlaceholder": "예: Production webhook",
+                "expiryLabel": "만료 기간",
+                "expiryOptions": {
+                    "sevenDays": "7일",
+                    "thirtyDays": "30일",
+                    "ninetyDays": "90일",
+                    "never": "만료 없음"
+                }
+            },
+            "revealModal": {
+                "title": "지금 API 키를 복사하세요",
+                "description": "이 시크릿은 한 번만 표시되며 다시 조회할 수 없습니다.",
+                "copy": "복사",
+                "copied": "복사됨"
+            },
+            "deactivateModal": {
+                "title": "API 키 삭제",
+                "description": "이 API 키를 삭제하려고 합니다.",
+                "targetName": "대상 키: {{name}}"
+            },
+            "meta": {
+                "accessKey": "Access key",
+                "requestCount": "요청 횟수",
+                "expiresAt": "만료일",
+                "noExpiration": "만료 없음",
+                "created": "생성일",
+                "lastUsed": "마지막 사용"
+            }
+        }
+    },
+    "theme": {
+        "label": "테마",
+        "select": "테마 모드",
+        "system": "시스템",
+        "light": "라이트 모드",
+        "dark": "다크 모드"
+    }
+}

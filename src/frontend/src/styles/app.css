@@ -1602,9 +1602,16 @@ html[data-theme="dark"] .ui-toggle__track--on {
     gap: 0.35rem;
 }
 
+.developer-delete-inline-btn.ui-button .ui-button__content > span {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+
 .developer-delete-inline-btn svg {
     width: 0.9rem;
     height: 0.9rem;
+    display: block;
 }
 
 .developer-delete-inline-btn.ui-button:hover {
