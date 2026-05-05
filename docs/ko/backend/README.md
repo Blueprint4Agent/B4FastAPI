@@ -13,6 +13,7 @@
 - `LOGIN_ENABLED=false` 부트스트랩 모드에서는 bootstrap 사용자를 `admin`으로 프로비저닝/승격
 - 시작 시 백엔드는 현재 `DATABASE_URL`에 대해 Alembic `upgrade head`만 수행(다운그레이드 경로 없음)
 - API 키는 누적 사용량(`request_count`)과 선택적 만료(`expires_at`)를 추적
+- 실시간 SSE 스트림은 `/api/v1/events/stream`에서 제공되며 heartbeat 및 Redis Pub/Sub fan-out을 사용
 
 ## 1.1) 백엔드 흐름
 
@@ -106,6 +107,7 @@ uv run ruff format .
 - 현재 시작 레이아웃:
 1. `tests/api/v1/auth/test_auth_api.py`
 2. `tests/api/v1/api_key/test_api_key_api.py`
+3. `tests/api/v1/events/test_events_api.py`
 
 테스트 실행:
 

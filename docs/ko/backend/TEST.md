@@ -42,6 +42,8 @@ src/backend/tests/
         test_auth_api.py
       api_key/
         test_api_key_api.py
+      events/
+        test_events_api.py
   integration/
     api/v1/
       auth/
@@ -258,6 +260,7 @@ Smoke:
 API 계약 (`api_test`):
 1. `tests/api/v1/auth/test_auth_api.py`
 2. `tests/api/v1/api_key/test_api_key_api.py`
+3. `tests/api/v1/events/test_events_api.py`
 
 Integration 기본 데이터셋 (`primary_data`):
 1. `tests/integration/api/v1/auth/test_auth_integration.py` primary 상태 플로우 + RBAC 금지/성공 분기

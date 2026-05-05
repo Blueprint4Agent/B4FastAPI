@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.error import APIKeyErrorCode, APIKeyException
 from app.core.logging import get_logger
+from app.core.realtime import APIKeyRealtimeEventType
 from app.core.settings import SETTINGS
 from app.models.api_key import (
     APIKeyCreateForm,
@@ -15,6 +16,7 @@ from app.models.api_key import (
     APIKeysResponse,
     APIKeyStatusUpdateForm,
 )
+from app.services.realtime import RealtimeService
 
 API_KEY_PREFIX = "sk_live_"
 API_KEY_SECRET_BYTES = 32
@@ -23,6 +25,9 @@ logger = get_logger("app.service.api_key")
 
 
 class APIKeyService:
+    def __init__(self):
+        self._realtime = RealtimeService()
+
     async def create_api_key(self, *, user_id: int, form: APIKeyCreateForm) -> APIKeyCreateResponse:
         logger.info("Creating API key (user_id=%s, name=%s).", user_id, form.name.strip())
         raw_api_key = self._generate_api_key()
@@ -45,6 +50,11 @@ class APIKeyService:
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_CREATE_FAILED) from error
 
         logger.info("API key created (user_id=%s, api_key_id=%s).", user_id, created.id)
+        await self._realtime.publish_user_event(
+            user_id=user_id,
+            event_type=APIKeyRealtimeEventType.CREATED,
+            payload={"api_key": created.model_dump(mode="json")},
+        )
         return APIKeyCreateResponse(api_key=raw_api_key, key=created)
 
     async def list_api_keys(self, *, user_id: int) -> APIKeysResponse:
@@ -61,6 +71,11 @@ class APIKeyService:
             )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
         logger.info("API key deleted (user_id=%s, api_key_id=%s).", user_id, api_key_id)
+        await self._realtime.publish_user_event(
+            user_id=user_id,
+            event_type=APIKeyRealtimeEventType.DELETED,
+            payload={"api_key": deleted.model_dump(mode="json")},
+        )
         return deleted
 
     async def update_api_key_status(
@@ -94,6 +109,11 @@ class APIKeyService:
             user_id,
             api_key_id,
             is_enabled,
+        )
+        await self._realtime.publish_user_event(
+            user_id=user_id,
+            event_type=APIKeyRealtimeEventType.STATUS_UPDATED,
+            payload={"api_key": updated.model_dump(mode="json")},
         )
         return updated
 

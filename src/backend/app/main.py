@@ -16,7 +16,7 @@ from app.core.migrations import run_startup_schema_migrations
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
 from app.models.user import UserResponse, UserRole, Users
-from app.routers.v1 import api_key, auth
+from app.routers.v1 import api_key, auth, events
 from app.utils.token import create_access_token
 
 logger = get_logger("app.main")
@@ -187,6 +187,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
     app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])
+    app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
 
     if static_dist_dir.exists():
         app.mount("/", StaticFiles(directory=static_dist_dir, html=True), name="frontend")

@@ -93,6 +93,8 @@ class Settings(BaseModel):
     OAUTH_GITHUB_USERINFO_URL: str = os.getenv(
         "OAUTH_GITHUB_USERINFO_URL", "https://api.github.com/user"
     )
+    SSE_HEARTBEAT_SECONDS: int = int(os.getenv("SSE_HEARTBEAT_SECONDS", "20"))
+    SSE_RETRY_MILLIS: int = int(os.getenv("SSE_RETRY_MILLIS", "5000"))
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -15,6 +15,7 @@ Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BAC
 - In `LOGIN_ENABLED=false` bootstrap mode, bootstrap user is provisioned/promoted as `admin`
 - On startup, backend runs Alembic `upgrade head` against the active `DATABASE_URL` only (no downgrade path)
 - API keys track cumulative usage (`request_count`) and optional expiration (`expires_at`)
+- Realtime SSE stream is available at `/api/v1/events/stream` with heartbeat and Redis Pub/Sub fan-out
 
 ## 1.1) Backend Flow
 

@@ -34,6 +34,12 @@ src/backend/
       settings.py
       logging.py
       migrations.py
+      realtime/
+        events.py
+        broker.py
+        sse.py
+        domain_events/
+          api_key.py
       error/
         error.py
         auth_exception.py
@@ -46,9 +52,11 @@ src/backend/
       v1/
         auth.py
         api_key.py
+        events.py
     services/
       auth.py
       api_key.py
+      realtime.py
     utils/
       token.py
       cookies.py
@@ -88,6 +96,12 @@ src/backend/
 1. Reusable technical helpers shared across services
 2. Security/token/cookie/session/crypto-style utility functions
 3. Should not own domain policy decisions
+
+- `app/core/realtime/`
+1. Realtime transport primitives for SSE delivery
+2. System event schema (`connected`, `ping`) + broker fan-out (`broker.py`) + stream heartbeat loop (`sse.py`)
+3. Domain-scoped realtime event enums must be defined under `app/core/realtime/domain_events/` (example: `APIKeyRealtimeEventType` in `app/core/realtime/domain_events/api_key.py`)
+4. Service layer publishes domain events into broker channels and routers consume stream through `RealtimeService`
 
 - `app/deps.py`
 1. Dependency injection entry points for auth/session/API-key context resolution
@@ -182,6 +196,42 @@ sequenceDiagram
         S-->>R: Domain exception (ServiceException)
         R-->>C: HTTP error via service_exception_to_http(...)
     end
+```
+
+## 0.4) Realtime Event Project Pattern
+
+- Rule:
+1. Shared transport/system realtime concerns stay in `app/core/realtime/` (`events.py`, `broker.py`, `sse.py`)
+2. Domain-owned realtime event types must live under `app/core/realtime/domain_events/`
+3. Services import event enums from `app.core.realtime` (re-export) or `app.core.realtime.domain_events.<domain>`
+4. Routers must not define/own realtime event enums directly
+
+```mermaid
+flowchart LR
+    subgraph Router["Router Layer"]
+        ER["events.py (/api/v1/events/stream)"]
+    end
+
+    subgraph Service["Service Layer"]
+        AS["api_key.py"]
+        RS["realtime.py"]
+    end
+
+    subgraph RealtimeCore["Core Realtime"]
+        EV["events.py (connected/ping envelope)"]
+        BR["broker.py (Redis pub/sub)"]
+        SSE["sse.py (stream loop + heartbeat)"]
+        subgraph Domains["domain_events/"]
+            DAK["api_key.py (APIKeyRealtimeEventType)"]
+        end
+    end
+
+    AS --> DAK
+    AS --> RS
+    RS --> BR
+    ER --> RS
+    RS --> SSE
+    SSE --> EV
 ```
 
 ## 1) Formatting and Linting (Ruff-First)

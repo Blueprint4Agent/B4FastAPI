@@ -34,6 +34,12 @@ src/backend/
       settings.py
       logging.py
       migrations.py
+      realtime/
+        events.py
+        broker.py
+        sse.py
+        domain_events/
+          api_key.py
       error/
         error.py
         auth_exception.py
@@ -46,9 +52,11 @@ src/backend/
       v1/
         auth.py
         api_key.py
+        events.py
     services/
       auth.py
       api_key.py
+      realtime.py
     utils/
       token.py
       cookies.py
@@ -88,6 +96,12 @@ src/backend/
 1. 서비스 간 공유 가능한 재사용 기술 헬퍼
 2. 보안/토큰/쿠키/세션/암호화 유틸 함수
 3. 도메인 정책 결정 로직 보유 금지
+
+- `app/core/realtime/`
+1. SSE 전달을 위한 실시간 전송 프리미티브
+2. 시스템 이벤트 스키마(`connected`, `ping`) + 브로커 fan-out(`broker.py`) + 스트림 heartbeat 루프(`sse.py`) 구성
+3. 도메인 단위 실시간 이벤트 enum은 `app/core/realtime/domain_events/` 하위에 정의 (예시: `app/core/realtime/domain_events/api_key.py`의 `APIKeyRealtimeEventType`)
+4. 서비스 계층에서 도메인 이벤트를 브로커 채널에 발행하고, 라우터는 `RealtimeService`를 통해 스트림을 소비
 
 - `app/deps.py`
 1. auth/session/API-key 컨텍스트 해석용 DI 진입점
@@ -182,6 +196,42 @@ sequenceDiagram
         S-->>R: Domain exception (ServiceException)
         R-->>C: HTTP error via service_exception_to_http(...)
     end
+```
+
+## 0.4) 실시간 이벤트 프로젝트 패턴
+
+- 규칙:
+1. 공통 전송/시스템 실시간 로직은 `app/core/realtime/`에 유지 (`events.py`, `broker.py`, `sse.py`)
+2. 도메인 소유 실시간 이벤트 타입은 `app/core/realtime/domain_events/`에 배치
+3. 서비스는 `app.core.realtime`(re-export) 또는 `app.core.realtime.domain_events.<domain>`에서 이벤트 enum import
+4. 라우터에서 실시간 이벤트 enum을 직접 정의/소유하지 않음
+
+```mermaid
+flowchart LR
+    subgraph Router["Router Layer"]
+        ER["events.py (/api/v1/events/stream)"]
+    end
+
+    subgraph Service["Service Layer"]
+        AS["api_key.py"]
+        RS["realtime.py"]
+    end
+
+    subgraph RealtimeCore["Core Realtime"]
+        EV["events.py (connected/ping envelope)"]
+        BR["broker.py (Redis pub/sub)"]
+        SSE["sse.py (stream loop + heartbeat)"]
+        subgraph Domains["domain_events/"]
+            DAK["api_key.py (APIKeyRealtimeEventType)"]
+        end
+    end
+
+    AS --> DAK
+    AS --> RS
+    RS --> BR
+    ER --> RS
+    RS --> SSE
+    SSE --> EV
 ```
 
 ## 1) 포맷팅 및 린팅 (Ruff 우선)
