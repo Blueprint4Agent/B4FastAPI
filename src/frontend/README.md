@@ -118,6 +118,7 @@ Notes:
 
 - API flow: `generated -> api/<domain> -> hooks/api/<domain> -> pages`
 - Domain set rule: `<domain>Api.ts` + `<domain>Error.ts` + `use<Domain>Api.ts` must stay 1:1:1
+- Authenticated realtime stream (`/api/v1/events/stream`) should use fetch streaming in `api/events` domain (bearer header required)
 - Domain hooks are called in page layer, not in feature components
 - Feature components receive state/actions via props
 - Reusable components belong to `src/components/ui/*` (category folders)

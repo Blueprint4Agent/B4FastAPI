@@ -116,6 +116,7 @@ npm run build:strict
 
 - API 흐름: `generated -> api/<domain> -> hooks/api/<domain> -> pages`
 - 도메인 세트 규칙: `<domain>Api.ts` + `<domain>Error.ts` + `use<Domain>Api.ts`는 1:1:1 유지
+- 인증이 필요한 실시간 스트림(`/api/v1/events/stream`)은 bearer 헤더 전달을 위해 `api/events` 도메인에서 fetch 스트리밍으로 처리
 - 도메인 hook 호출은 feature component가 아니라 page 레이어에서 수행
 - feature component는 state/actions를 props로 전달받아 사용
 - 재사용 컴포넌트는 `src/components/ui/*`(카테고리 폴더) 배치

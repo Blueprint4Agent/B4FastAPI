@@ -17,6 +17,7 @@ import {
     UserAvatar,
 } from "../../components/ui";
 import { useApiKeyApi, type APIKeyRecord } from "../../hooks/api/apiKey/useApiKeyApi";
+import { useApiKeyRealtimeSubscription } from "../../hooks/realtime/apiKey/useApiKeyRealtimeSubscription";
 import { useAuthContext } from "../../hooks/useAuth";
 import { useAppConfig } from "../../hooks/useFeatures";
 import { useTheme } from "../../hooks/useTheme";
@@ -246,6 +247,33 @@ export function SettingsPage() {
     useEffect(() => {
         void loadApiKeys();
     }, [loadApiKeys]);
+
+    const handleRealtimeAPIKeyCreated = useCallback((created: APIKeyRecord) => {
+        const id = created.id;
+        setApiKeyItems((prev) => {
+            if (prev.some((item) => item.id === id)) {
+                return prev.map((item) => (item.id === id ? created : item));
+            }
+            return [created, ...prev];
+        });
+    }, []);
+
+    const handleRealtimeAPIKeyStatusUpdated = useCallback((updated: APIKeyRecord) => {
+        const id = updated.id;
+        setApiKeyItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
+    }, []);
+
+    const handleRealtimeAPIKeyDeleted = useCallback((deleted: APIKeyRecord) => {
+        const id = deleted.id;
+        setApiKeyItems((prev) => prev.filter((item) => item.id !== id));
+    }, []);
+
+    useApiKeyRealtimeSubscription({
+        enabled: loginEnabled && showDevelopers,
+        onCreated: handleRealtimeAPIKeyCreated,
+        onStatusUpdated: handleRealtimeAPIKeyStatusUpdated,
+        onDeleted: handleRealtimeAPIKeyDeleted,
+    });
 
     const toDataUrl = (file: File): Promise<string> =>
         new Promise((resolve, reject) => {

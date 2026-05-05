@@ -85,6 +85,13 @@ vi.mock("../../../../hooks/api/apiKey/useApiKeyApi", () => ({
     useApiKeyApi: () => apiKeyApiHookMock,
 }));
 
+vi.mock("../../../../hooks/api/events/useEventsApi", () => ({
+    useEventsApi: () => ({
+        streamRealtimeEvents: vi.fn().mockResolvedValue(undefined),
+        normalizeEventsStreamError: vi.fn(),
+    }),
+}));
+
 describe("SettingsPage developers scenario", () => {
     beforeEach(() => {
         mockedAuthUser = FULL_SYSTEM_SCENARIO.principal;

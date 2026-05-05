@@ -24,6 +24,9 @@ src/frontend/
   src/
     api/          # generated + domain API/error
     hooks/        # api hooks + app hooks
+      realtime/   # stream subscription lifecycle hooks (non-API)
+        core/     # shared stream lifecycle/reconnect hooks
+        <domain>/ # domain-specific stream handlers (apiKey, ...)
     pages/        # page-group based (login/settings/main)
     components/
       ui/         # reusable UI components (category folders)
@@ -129,6 +132,7 @@ flowchart LR
 
 1. Auth router domain -> `src/api/auth/authApi.ts` + `src/api/auth/authError.ts` + `src/hooks/api/auth/useAuthApi.ts`
 2. API key router domain -> `src/api/apiKey/apiKeyApi.ts` + `src/api/apiKey/apiKeyError.ts` + `src/hooks/api/apiKey/useApiKeyApi.ts`
+3. Events router domain -> `src/api/events/eventsApi.ts` + `src/api/events/eventsError.ts` + `src/hooks/api/events/useEventsApi.ts`
 
 - When a new backend router/domain is added, frontend must add the same domain 1:1:1 set in the same work cycle.
 - Do not place domain error parsing/mapping in `src/utils`; keep it inside each domain API folder.
@@ -138,6 +142,13 @@ flowchart LR
 2. `api/<domain>`
 3. `hooks/api/<domain>`
 4. actual usage (`pages/components`)
+
+- Realtime stream note:
+
+1. If backend auth for stream requires bearer token, do not use native `EventSource` for authenticated streams.
+2. Use `fetch` streaming in domain API layer so `Authorization` header can be sent.
+3. Reconnect/backoff policy should be implemented in `src/hooks/realtime/core/*`.
+4. Domain event parsing/dispatch logic should be implemented in `src/hooks/realtime/<domain>/*`.
 
 - `pages/components` must not import from `src/api/*` directly; they must consume domain hooks only.
 - API hooks must be placed under `src/hooks/api/<domain>/*`.

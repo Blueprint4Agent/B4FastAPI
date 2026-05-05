@@ -24,6 +24,9 @@ src/frontend/
   src/
     api/          # generated + domain API/error
     hooks/        # api hooks + app hooks
+      realtime/   # 스트림 구독 라이프사이클 훅 (비 API)
+        core/     # 공통 스트림 라이프사이클/재연결 훅
+        <domain>/ # 도메인별 스트림 핸들러 (apiKey, ...)
     pages/        # page-group based (login/settings/main)
     components/
       ui/         # reusable UI components (category folders)
@@ -129,6 +132,7 @@ flowchart LR
 
 1. Auth router 도메인 -> `src/api/auth/authApi.ts` + `src/api/auth/authError.ts` + `src/hooks/api/auth/useAuthApi.ts`
 2. API key router 도메인 -> `src/api/apiKey/apiKeyApi.ts` + `src/api/apiKey/apiKeyError.ts` + `src/hooks/api/apiKey/useApiKeyApi.ts`
+3. Events router 도메인 -> `src/api/events/eventsApi.ts` + `src/api/events/eventsError.ts` + `src/hooks/api/events/useEventsApi.ts`
 
 - 신규 백엔드 router/domain이 추가되면 같은 작업 사이클에서 프론트에도 1:1:1 세트를 반드시 추가
 - 도메인 에러 파싱/매핑을 `src/utils`에 두지 말고 각 도메인 API 폴더 내부에 유지
@@ -138,6 +142,13 @@ flowchart LR
 2. `api/<domain>`
 3. `hooks/api/<domain>`
 4. 실제 사용처 (`pages/components`)
+
+- 실시간 스트림 참고:
+
+1. 스트림 인증이 bearer token 기반이면 native `EventSource`로 인증 헤더를 보낼 수 없습니다.
+2. 인증 스트림은 도메인 API 레이어에서 `fetch` 스트리밍 방식으로 구현합니다.
+3. 재연결/backoff 정책은 `src/hooks/realtime/core/*`에서 처리합니다.
+4. 도메인 이벤트 파싱/디스패치는 `src/hooks/realtime/<domain>/*`에서 처리합니다.
 
 - `pages/components`는 `src/api/*`를 직접 import하면 안 되고 도메인 훅만 소비해야 합니다.
 - API 훅은 `src/hooks/api/<domain>/*` 아래에 배치해야 합니다.

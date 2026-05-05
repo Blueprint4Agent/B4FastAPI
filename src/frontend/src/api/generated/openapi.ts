@@ -329,6 +329,23 @@ export interface paths {
         patch: operations["update_api_key_status_api_v1_api_keys__api_key_id__status_patch"];
         trace?: never;
     };
+    "/api/v1/events/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream Events */
+        get: operations["stream_events_api_v1_events_stream_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1780,6 +1797,43 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+        };
+    };
+    stream_events_api_v1_events_stream_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_TOKEN",
+                     *         "message": "Invalid refresh token."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
         };
