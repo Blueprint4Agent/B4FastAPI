@@ -11,9 +11,9 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.error import AuthErrorCode, AuthException
 from app.core.logging import get_logger, mask_email
-from app.core.mail import MAIL_SERVICE
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
+from app.core.task_queue.services.mail import MAIL_QUEUE_SERVICE
 from app.models.oauth import (
     OAuthIdentityProfile,
     OAuthProvider,
@@ -772,7 +772,7 @@ class AuthService:
         verify_link = urljoin(f"{SETTINGS.APP_BASE_URL.rstrip('/')}/", verify_path.lstrip("/"))
         verify_link = f"{verify_link}?{verify_query}"
 
-        await MAIL_SERVICE.send_signup_verification_email(
+        await MAIL_QUEUE_SERVICE.enqueue_signup_verification(
             to_email=email,
             user_name=name,
             link=verify_link,
@@ -787,7 +787,7 @@ class AuthService:
         reset_link = urljoin(f"{SETTINGS.APP_BASE_URL.rstrip('/')}/", reset_path.lstrip("/"))
         reset_link = f"{reset_link}?{reset_query}"
 
-        await MAIL_SERVICE.send_password_reset_email(
+        await MAIL_QUEUE_SERVICE.enqueue_password_reset(
             to_email=email,
             user_name=name,
             link=reset_link,

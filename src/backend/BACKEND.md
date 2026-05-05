@@ -34,6 +34,11 @@ src/backend/
       settings.py
       logging.py
       migrations.py
+      task_queue/
+        __init__.py
+        worker.py
+        services/
+          mail.py
       realtime/
         events.py
         broker.py
@@ -76,6 +81,8 @@ src/backend/
 4. Environment variable access is centralized in `app/core/settings.py` via `SETTINGS`
 5. Do not scatter direct `os.getenv(...)` usage across routers/services/utils
 6. Startup DB migration orchestration logic belongs in `app/core/migrations.py`, not router/service/main business code
+7. Generic asynchronous queue worker orchestration belongs in `app/core/task_queue/worker.py`
+8. Domain/service-specific queue adapters (for example email delivery) belong in dedicated modules such as `app/core/task_queue/services/mail.py`
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas

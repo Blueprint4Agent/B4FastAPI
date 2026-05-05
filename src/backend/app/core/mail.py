@@ -121,7 +121,12 @@ class MailService:
             logger.info("SMTP startup verification skipped by configuration.")
 
     async def send_signup_verification_email(
-        self, *, to_email: str, user_name: str, link: str = ""
+        self,
+        *,
+        to_email: str,
+        user_name: str,
+        link: str = "",
+        raise_on_failure: bool = False,
     ) -> None:
         if not self._settings.EMAIL_ENABLED:
             return
@@ -149,9 +154,16 @@ class MailService:
             logger.exception(
                 "Failed to send signup verification email to %s.", mask_email(to_email)
             )
+            if raise_on_failure:
+                raise
 
     async def send_password_reset_email(
-        self, *, to_email: str, user_name: str, link: str = ""
+        self,
+        *,
+        to_email: str,
+        user_name: str,
+        link: str = "",
+        raise_on_failure: bool = False,
     ) -> None:
         if not self._settings.EMAIL_ENABLED:
             return
@@ -177,6 +189,8 @@ class MailService:
             logger.info("Password reset email delivered to %s.", mask_email(to_email))
         except Exception:
             logger.exception("Failed to send password reset email to %s.", mask_email(to_email))
+            if raise_on_failure:
+                raise
 
     def _resolve_link(self, *, path: str, link: str) -> str:
         explicit_link = link.strip()

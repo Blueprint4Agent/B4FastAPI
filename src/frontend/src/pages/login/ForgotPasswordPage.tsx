@@ -46,24 +46,24 @@ export function ForgotPasswordPage() {
             return;
         }
 
-        try {
-            await requestPasswordReset(email.trim());
-            navigate("/forgot-password/email-sent", {
-                replace: true,
-                state: { email: email.trim() },
-            });
-        } catch (nextError) {
+        const normalizedEmail = email.trim();
+        navigate("/forgot-password/email-sent", {
+            replace: true,
+            state: { email: normalizedEmail },
+        });
+
+        void requestPasswordReset(normalizedEmail).catch((nextError) => {
             const detail = extractApiDetail(nextError);
-            if (detail?.error === "EMAIL_DISABLED") {
-                setWarningMessage(t("forgotPassword.disabled"));
-            } else {
-                setErrorMessage(
-                    resolveAuthErrorMessage(t, detail, "forgotPassword.requestFallback"),
-                );
-            }
-        } finally {
-            setSubmitting(false);
-        }
+            const message =
+                detail?.error === "EMAIL_DISABLED"
+                    ? t("forgotPassword.disabled")
+                    : resolveAuthErrorMessage(t, detail, "forgotPassword.requestFallback");
+            console.debug(
+                "[auth] forgot-password request failed after optimistic transition:",
+                message,
+            );
+        });
+        setSubmitting(false);
     };
 
     return (
@@ -90,11 +90,7 @@ export function ForgotPasswordPage() {
                     />
                     {warningMessage ? <InlineMessage>{warningMessage}</InlineMessage> : null}
                     {errorMessage ? <InlineMessage>{errorMessage}</InlineMessage> : null}
-                    <Button
-                        type="submit"
-                        loading={submitting}
-                        disabled={configLoading || !emailEnabled}
-                    >
+                    <Button type="submit" disabled={submitting || configLoading || !emailEnabled}>
                         {t("forgotPassword.submitIdle")}
                     </Button>
                 </form>

@@ -140,22 +140,29 @@ export function SignupPage() {
             return;
         }
 
-        try {
-            await signup({ name, email, password });
-            if (emailEnabled) {
-                navigate("/signup/email-sent", {
-                    replace: true,
-                    state: { email: email.trim() },
-                });
-            } else {
-                navigate("/signup/email-sent", { replace: true });
-            }
-        } catch (nextError) {
-            const detail = extractApiDetail(nextError);
-            setErrorMessage(resolveAuthErrorMessage(t, detail, "auth.errors.signupFallback"));
-        } finally {
-            setSubmitting(false);
+        const normalizedEmail = email.trim();
+        if (emailEnabled) {
+            navigate("/signup/email-sent", {
+                replace: true,
+                state: { email: normalizedEmail },
+            });
+        } else {
+            navigate("/signup/email-sent", { replace: true });
         }
+
+        void signup({ name, email: normalizedEmail, password }).catch((nextError) => {
+            const detail = extractApiDetail(nextError);
+            const resolvedMessage = resolveAuthErrorMessage(
+                t,
+                detail,
+                "auth.errors.signupFallback",
+            );
+            console.debug(
+                "[auth] signup request failed after optimistic transition:",
+                resolvedMessage,
+            );
+        });
+        setSubmitting(false);
     };
 
     return (
@@ -252,8 +259,7 @@ export function SignupPage() {
                     ) : null}
                     <Button
                         type="submit"
-                        loading={submitting}
-                        disabled={passwordMismatch || configLoading}
+                        disabled={submitting || passwordMismatch || configLoading}
                     >
                         {t("signup.submitIdle")}
                     </Button>

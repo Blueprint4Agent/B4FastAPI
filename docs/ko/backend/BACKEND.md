@@ -34,6 +34,11 @@ src/backend/
       settings.py
       logging.py
       migrations.py
+      task_queue/
+        __init__.py
+        worker.py
+        services/
+          mail.py
       realtime/
         events.py
         broker.py
@@ -76,6 +81,8 @@ src/backend/
 4. 환경 변수 접근은 `app/core/settings.py`의 `SETTINGS`로 일원화
 5. router/service/utils 전역에 `os.getenv(...)` 직접 사용 분산 금지
 6. 시작 시 DB 마이그레이션 오케스트레이션은 `app/core/migrations.py`에 배치 (router/service/main 비즈니스 코드에 배치 금지)
+7. 공용 비동기 큐 워커 오케스트레이션은 `app/core/task_queue/worker.py`에 배치
+8. 도메인/서비스별 큐 어댑터(예: 이메일 전송)는 `app/core/task_queue/services/mail.py` 같은 전용 모듈에 배치
 
 - `app/models/`
 1. 데이터 형태 정의: SQLAlchemy 엔티티 및 API/Pydantic 스키마
