@@ -2,6 +2,7 @@ import { AppWindow, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
+import { Tooltip } from "../ui";
 
 type SidebarKey = "show-case" | "settings";
 
@@ -43,17 +44,20 @@ export function AppSidebar({ expanded, onToggleExpanded }: AppSidebarProps) {
         navigate("/show-case");
     };
 
+    const toggleLabel = expanded ? t("nav.sidebar.toggleClose") : t("nav.sidebar.toggleOpen");
+
     return (
         <aside className={expanded ? "app-sidebar app-sidebar--expanded" : "app-sidebar"}>
-            <button
-                type="button"
-                className="app-sidebar__toggle"
-                onClick={onToggleExpanded}
-                aria-label={expanded ? t("nav.sidebar.toggleClose") : t("nav.sidebar.toggleOpen")}
-                title={expanded ? t("nav.sidebar.toggleClose") : t("nav.sidebar.toggleOpen")}
-            >
-                {expanded ? <PanelLeftClose /> : <PanelLeftOpen />}
-            </button>
+            <Tooltip content={toggleLabel} side="right" className="app-sidebar__toggle-tooltip">
+                <button
+                    type="button"
+                    className="app-sidebar__toggle"
+                    onClick={onToggleExpanded}
+                    aria-label={toggleLabel}
+                >
+                    {expanded ? <PanelLeftClose /> : <PanelLeftOpen />}
+                </button>
+            </Tooltip>
             <nav className="app-sidebar__nav" aria-label={t("nav.sidebar.aria")}>
                 {items.map(({ key, label, icon: Icon }) => {
                     const isActive = activeKey === key;
@@ -61,21 +65,28 @@ export function AppSidebar({ expanded, onToggleExpanded }: AppSidebarProps) {
                         ? "app-sidebar__item app-sidebar__item--active"
                         : "app-sidebar__item";
                     return (
-                        <button
+                        <Tooltip
                             key={key}
-                            type="button"
-                            className={buttonClassName}
-                            onClick={() => handleSelect(key)}
-                            aria-current={isActive ? "page" : undefined}
-                            title={label}
+                            content={label}
+                            side="right"
+                            disabled={expanded}
+                            className="app-sidebar__item-tooltip"
                         >
-                            <span className="app-sidebar__item-icon" aria-hidden="true">
-                                <Icon />
-                            </span>
-                            {expanded ? (
-                                <span className="app-sidebar__item-label">{label}</span>
-                            ) : null}
-                        </button>
+                            <button
+                                type="button"
+                                className={buttonClassName}
+                                onClick={() => handleSelect(key)}
+                                aria-current={isActive ? "page" : undefined}
+                                aria-label={label}
+                            >
+                                <span className="app-sidebar__item-icon" aria-hidden="true">
+                                    <Icon />
+                                </span>
+                                {expanded ? (
+                                    <span className="app-sidebar__item-label">{label}</span>
+                                ) : null}
+                            </button>
+                        </Tooltip>
                     );
                 })}
             </nav>

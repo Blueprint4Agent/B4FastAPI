@@ -202,15 +202,20 @@ a {
     width: 11.2rem;
 }
 
+.app-sidebar__toggle-tooltip {
+    width: 2.35rem;
+    height: 2.1rem;
+    justify-self: start;
+}
+
 .app-sidebar__toggle {
     border: 0;
     border-radius: 0.36rem;
-    width: 2.35rem;
-    height: 2.1rem;
+    width: 100%;
+    height: 100%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    justify-self: start;
     align-self: start;
     color: var(--text-soft);
     background: transparent;
@@ -226,6 +231,10 @@ a {
     display: grid;
     gap: 0.45rem;
     align-content: start;
+}
+
+.app-sidebar__item-tooltip {
+    width: 100%;
 }
 
 .app-sidebar__item {
@@ -257,6 +266,11 @@ a {
     justify-self: center;
     padding: 0;
     border-radius: 0.36rem;
+}
+
+.app-sidebar:not(.app-sidebar--expanded) .app-sidebar__item-tooltip {
+    width: 2.35rem;
+    justify-self: center;
 }
 
 .app-sidebar--expanded .app-sidebar__item {
@@ -1151,6 +1165,81 @@ a {
 .ui-dropdown__item:hover {
     border-color: color-mix(in oklab, var(--panel-border) 72%, transparent 28%);
     background: color-mix(in oklab, var(--input-bg) 80%, transparent 20%);
+}
+
+.ui-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.ui-tooltip__trigger {
+    display: block;
+}
+
+.ui-tooltip__content {
+    position: absolute;
+    z-index: 60;
+    pointer-events: none;
+    white-space: nowrap;
+    border: 1px solid color-mix(in oklab, var(--panel-border) 80%, transparent 20%);
+    border-radius: 0.5rem;
+    padding: 0.34rem 0.5rem;
+    font:
+        500 0.76rem/1.2 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--text);
+    background: color-mix(in oklab, var(--panel) 98%, transparent 2%);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+        opacity 120ms ease,
+        transform 120ms ease;
+}
+
+.ui-tooltip__content--top {
+    left: 50%;
+    bottom: calc(100% + 0.45rem);
+    transform: translate(-50%, 4px);
+}
+
+.ui-tooltip__content--bottom {
+    left: 50%;
+    top: calc(100% + 0.45rem);
+    transform: translate(-50%, -4px);
+}
+
+.ui-tooltip__content--left {
+    top: 50%;
+    right: calc(100% + 0.45rem);
+    transform: translate(4px, -50%);
+}
+
+.ui-tooltip__content--right {
+    top: 50%;
+    left: calc(100% + 0.45rem);
+    transform: translate(-4px, -50%);
+}
+
+.ui-tooltip__content--open {
+    opacity: 1;
+}
+
+.ui-tooltip__content--top.ui-tooltip__content--open {
+    transform: translate(-50%, 0);
+}
+
+.ui-tooltip__content--bottom.ui-tooltip__content--open {
+    transform: translate(-50%, 0);
+}
+
+.ui-tooltip__content--left.ui-tooltip__content--open {
+    transform: translate(0, -50%);
+}
+
+.ui-tooltip__content--right.ui-tooltip__content--open {
+    transform: translate(0, -50%);
 }
 
 .ui-status-badge {

@@ -164,6 +164,10 @@
     "showCase": {
         "title": "ShowCase Page",
         "subtitle": "This is the ShowCase page. Review these components and instruct the Agent which ones to use for your screen.",
+        "tooltip": {
+            "demoTrigger": "Hover this button",
+            "demoContent": "This is a reusable tooltip."
+        },
         "labels": {
             "userId": "User ID",
             "name": "Name",

@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../hooks/useAuth";
 import { useAppConfig } from "../../hooks/useFeatures";
 import { useTheme } from "../../hooks/useTheme";
-import { BrandMark } from "../ui";
+import { BrandMark, Tooltip } from "../ui";
 import { ProfileDropdown } from "./ProfileDropdown";
 
 export function AppNavbar() {
@@ -45,13 +45,15 @@ export function AppNavbar() {
     return (
         <header className="app-nav">
             <div className="app-nav__inner">
-                <Link
-                    to="/show-case"
-                    className="app-nav__brand"
-                    aria-label={t("nav.aria.goShowCase")}
-                >
-                    <BrandMark className="brand-mark--nav" />
-                </Link>
+                <Tooltip content={t("nav.aria.goShowCase")} side="right">
+                    <Link
+                        to="/show-case"
+                        className="app-nav__brand"
+                        aria-label={t("nav.aria.goShowCase")}
+                    >
+                        <BrandMark className="brand-mark--nav" />
+                    </Link>
+                </Tooltip>
                 <p className="app-nav__title">{pageTitle}</p>
                 <ProfileDropdown
                     avatarLabel={avatarLabel}

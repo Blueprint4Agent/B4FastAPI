@@ -23,6 +23,7 @@ import {
     Spinner,
     StatusBadge,
     ThemeToggleButton,
+    Tooltip,
     ToggleSwitch,
     ValidationCard,
 } from "../../components/ui";
@@ -129,6 +130,13 @@ export function ShowCasePage() {
                                         { id: "item-3", label: "Item 3" },
                                     ]}
                                 />
+                            </ShowcaseItem>
+                            <ShowcaseItem component="Tooltip">
+                                <Tooltip content={t("showCase.tooltip.demoContent")} side="top">
+                                    <Button type="button">
+                                        {t("showCase.tooltip.demoTrigger")}
+                                    </Button>
+                                </Tooltip>
                             </ShowcaseItem>
                         </div>
                     </div>
