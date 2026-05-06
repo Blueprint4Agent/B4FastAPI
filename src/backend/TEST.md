@@ -150,6 +150,7 @@ Integration tests:
    - `api_test`: API contract tests only
    - `primary_data`: integration tests on clean primary data state
    - `mocked_data`: integration tests on production-like seeded data
+   - `email_enabled`: integration tests that require `EMAIL_ENABLED=true` flow
 
 E2E tests:
 1. Run against a real running app instance.
@@ -184,6 +185,13 @@ Run seeded production-like scenario/integration tests:
 ```bash
 cd src/backend
 uv run pytest -m mocked_data
+```
+
+Run email-enabled integration tests:
+
+```bash
+cd src/backend
+uv run pytest -m email_enabled
 ```
 
 Run only full-system seeded scenarios:
@@ -245,6 +253,7 @@ API key domain sequence (`test_seeded_api_key_domain_main_flow`):
 2. `primary_data` integration uses per-test isolated temporary DB with clean initial state.
 3. `mocked_data` integration uses per-test isolated temporary DB plus seeded profile data.
 4. Seed data is recreated for each test execution and discarded with temporary DB teardown.
+5. `email_enabled` integration uses `email_enabled_integration_client` fixture which forces `EMAIL_ENABLED=true` with null mail provider to avoid external SMTP dependency.
 
 ## 8.3) Error Contract Consistency Rule (Static Serving Mode)
 
@@ -265,6 +274,9 @@ API contract (`api_test`):
 Integration primary dataset (`primary_data`):
 1. `tests/integration/api/v1/auth/test_auth_integration.py` primary-state flows + RBAC forbidden/success branches
 2. `tests/integration/api/v1/api_key/test_api_key_integration.py`
+
+Integration email-enabled dataset (`email_enabled`):
+1. `tests/integration/api/v1/auth/test_auth_integration.py` email verification required login + forgot-password token issuance flows
 
 Integration seeded dataset (`mocked_data`):
 1. `tests/integration/api/v1/auth/test_auth_integration.py` seeded-state flows

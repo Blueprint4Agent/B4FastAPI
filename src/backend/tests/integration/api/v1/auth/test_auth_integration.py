@@ -282,3 +282,115 @@ def test_seeded_dataset_duplicate_email_signup_returns_409(
     # Then: domain conflict error is returned.
     assert duplicate_response.status_code == 409
     assert duplicate_response.json()["detail"]["error"] == "EMAIL_ALREADY_EXISTS"
+
+
+@pytest.mark.primary_data
+@pytest.mark.email_enabled
+def test_email_enabled_signup_requires_verification_before_login(
+    email_enabled_integration_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Scenario: when EMAIL_ENABLED=true, login is blocked until email verification is completed."""
+    fixed_verification_token = "integration-email-verify-token"
+    monkeypatch.setattr(
+        "app.services.auth.create_email_verification_token",
+        lambda: fixed_verification_token,
+    )
+
+    # Given: signup succeeds while email verification is required.
+    signup_response = email_enabled_integration_client.post(
+        "/api/v1/auth/signup",
+        json=build_signup_payload(
+            email="verify-required@example.com",
+            name="Verify Required",
+            password=VALID_PASSWORD,
+        ),
+        headers={"X-App-Language": "ko"},
+    )
+    assert signup_response.status_code == 200
+
+    # When: user attempts login before verification.
+    blocked_login_response = email_enabled_integration_client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(
+            email="verify-required@example.com",
+            password=VALID_PASSWORD,
+            remember_me=False,
+        ),
+    )
+
+    # Then: login is rejected with EMAIL_NOT_VERIFIED.
+    assert blocked_login_response.status_code == 403
+    assert blocked_login_response.json()["detail"]["error"] == "EMAIL_NOT_VERIFIED"
+
+    # When: verification token is consumed via verify-email endpoint.
+    verify_response = email_enabled_integration_client.post(
+        "/api/v1/auth/verify-email",
+        json={"token": fixed_verification_token},
+    )
+    assert verify_response.status_code == 200
+
+    # Then: login succeeds after verification.
+    login_after_verify_response = email_enabled_integration_client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(
+            email="verify-required@example.com",
+            password=VALID_PASSWORD,
+            remember_me=False,
+        ),
+    )
+    assert login_after_verify_response.status_code == 200
+    assert login_after_verify_response.json()["user"]["email"] == "verify-required@example.com"
+
+
+@pytest.mark.primary_data
+@pytest.mark.email_enabled
+def test_email_enabled_forgot_password_issues_reset_token(
+    email_enabled_integration_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Scenario: when EMAIL_ENABLED=true, forgot-password returns success and issues reset token."""
+    fixed_password_reset_token = "integration-password-reset-token"
+    monkeypatch.setattr(
+        "app.services.auth.create_password_reset_token",
+        lambda: fixed_password_reset_token,
+    )
+
+    # Given: a signed-up user in email-enabled mode.
+    signup_response = email_enabled_integration_client.post(
+        "/api/v1/auth/signup",
+        json=build_signup_payload(
+            email="reset-enabled@example.com",
+            name="Reset Enabled",
+            password=VALID_PASSWORD,
+        ),
+        headers={"X-App-Language": "en"},
+    )
+    assert signup_response.status_code == 200
+
+    # When: forgot-password endpoint is requested.
+    forgot_password_response = email_enabled_integration_client.post(
+        "/api/v1/auth/forgot-password",
+        json={"email": "reset-enabled@example.com"},
+        headers={"X-App-Language": "ko"},
+    )
+
+    # Then: endpoint returns accepted contract and issued token can be consumed.
+    assert forgot_password_response.status_code == 200
+    reset_password_response = email_enabled_integration_client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": fixed_password_reset_token, "password": "NewValidPass1!"},
+    )
+    assert reset_password_response.status_code == 200
+
+    # And: user can login with rotated password (still blocked until verify-email).
+    login_after_reset_response = email_enabled_integration_client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(
+            email="reset-enabled@example.com",
+            password="NewValidPass1!",
+            remember_me=False,
+        ),
+    )
+    assert login_after_reset_response.status_code == 403
+    assert login_after_reset_response.json()["detail"]["error"] == "EMAIL_NOT_VERIFIED"

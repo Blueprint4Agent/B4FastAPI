@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.core.database as database
+from app.core.mail import MAIL_SERVICE, NullMailProvider
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
 from app.models.user import AuthIdentity, Credential, User, UserResponse, UserRole
@@ -46,9 +47,17 @@ def sample_admin_user() -> UserResponse:
 
 @pytest.fixture
 def integration_client(tmp_path: Path):
+    """Integration harness with deterministic auth defaults (email disabled)."""
     original_database_url = SETTINGS.DATABASE_URL
+    original_email_enabled = SETTINGS.EMAIL_ENABLED
+    original_login_enabled = SETTINGS.LOGIN_ENABLED
+    original_provider = MAIL_SERVICE._provider
     test_db_url = f"sqlite+aiosqlite:///{(tmp_path / 'integration.db').as_posix()}"
+
     object.__setattr__(SETTINGS, "DATABASE_URL", test_db_url)
+    object.__setattr__(SETTINGS, "LOGIN_ENABLED", True)
+    object.__setattr__(SETTINGS, "EMAIL_ENABLED", False)
+    object.__setattr__(MAIL_SERVICE, "_provider", NullMailProvider())
 
     database._ENGINE = None
     database._SESSION_FACTORY = None
@@ -63,6 +72,43 @@ def integration_client(tmp_path: Path):
     finally:
         asyncio.run(RedisManager.close())
         object.__setattr__(SETTINGS, "DATABASE_URL", original_database_url)
+        object.__setattr__(SETTINGS, "EMAIL_ENABLED", original_email_enabled)
+        object.__setattr__(SETTINGS, "LOGIN_ENABLED", original_login_enabled)
+        object.__setattr__(MAIL_SERVICE, "_provider", original_provider)
+        database._ENGINE = None
+        database._SESSION_FACTORY = None
+
+
+@pytest.fixture
+def email_enabled_integration_client(tmp_path: Path):
+    """Integration harness for EMAIL_ENABLED=true flow (provider mocked to null sender)."""
+    original_database_url = SETTINGS.DATABASE_URL
+    original_email_enabled = SETTINGS.EMAIL_ENABLED
+    original_login_enabled = SETTINGS.LOGIN_ENABLED
+    original_provider = MAIL_SERVICE._provider
+    test_db_url = f"sqlite+aiosqlite:///{(tmp_path / 'integration-email-enabled.db').as_posix()}"
+
+    object.__setattr__(SETTINGS, "DATABASE_URL", test_db_url)
+    object.__setattr__(SETTINGS, "LOGIN_ENABLED", True)
+    object.__setattr__(SETTINGS, "EMAIL_ENABLED", True)
+    object.__setattr__(MAIL_SERVICE, "_provider", NullMailProvider())
+
+    database._ENGINE = None
+    database._SESSION_FACTORY = None
+    asyncio.run(RedisManager.close())
+
+    from app.main import create_app
+
+    app = create_app()
+    try:
+        with TestClient(app) as client:
+            yield client
+    finally:
+        asyncio.run(RedisManager.close())
+        object.__setattr__(SETTINGS, "DATABASE_URL", original_database_url)
+        object.__setattr__(SETTINGS, "EMAIL_ENABLED", original_email_enabled)
+        object.__setattr__(SETTINGS, "LOGIN_ENABLED", original_login_enabled)
+        object.__setattr__(MAIL_SERVICE, "_provider", original_provider)
         database._ENGINE = None
         database._SESSION_FACTORY = None
 

@@ -150,6 +150,7 @@ Integration 테스트:
    - `api_test`: API 계약 테스트 전용
    - `primary_data`: 클린 프라이머리 데이터 상태의 integration 테스트
    - `mocked_data`: 운영 유사 시드 데이터 상태의 integration 테스트
+   - `email_enabled`: `EMAIL_ENABLED=true` 플로우를 검증하는 integration 테스트
 
 E2E 테스트:
 1. 실제 실행 중인 앱 인스턴스 대상으로 수행
@@ -184,6 +185,13 @@ uv run pytest -m primary_data
 ```bash
 cd src/backend
 uv run pytest -m mocked_data
+```
+
+이메일 활성화 플로우 통합 테스트 실행:
+
+```bash
+cd src/backend
+uv run pytest -m email_enabled
 ```
 
 full-system 시드 시나리오만 실행:
@@ -245,6 +253,7 @@ API key 도메인 시퀀스 (`test_seeded_api_key_domain_main_flow`):
 2. `primary_data` integration은 테스트별 격리된 임시 DB의 클린 초기 상태 사용
 3. `mocked_data` integration은 테스트별 격리된 임시 DB + 시드 프로필 데이터 사용
 4. 시드 데이터는 테스트 실행마다 재생성되며 임시 DB teardown 시 폐기됨
+5. `email_enabled` integration은 `email_enabled_integration_client` fixture를 사용하며, 외부 SMTP 의존 없이 `EMAIL_ENABLED=true` 분기를 검증하기 위해 null mail provider를 사용함
 
 ## 8.3) 에러 계약 일관성 규칙 (Static Serving 모드)
 
@@ -269,6 +278,9 @@ Integration 기본 데이터셋 (`primary_data`):
 Integration 시드 데이터셋 (`mocked_data`):
 1. `tests/integration/api/v1/auth/test_auth_integration.py` seeded 상태 플로우
 2. `tests/integration/scenarios/test_full_system_scenario.py`
+
+Integration 이메일 활성 데이터셋 (`email_enabled`):
+1. `tests/integration/api/v1/auth/test_auth_integration.py`의 이메일 인증 필수 로그인 분기 + 비밀번호 재설정 토큰 소비 플로우
 
 ## 9) 네이밍 및 스타일 규칙
 

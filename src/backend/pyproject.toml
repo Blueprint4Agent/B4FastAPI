@@ -63,5 +63,6 @@ markers = [
     "api_test: router-level API contract tests with dependency overrides",
     "primary_data: integration tests with clean/primary test data state",
     "mocked_data: integration tests using seeded production-like dataset",
+    "email_enabled: integration tests that require EMAIL_ENABLED=true behavior",
     "scenario_flow: sequential end-to-end-like domain scenario flows",
 ]
