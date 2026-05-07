@@ -36,9 +36,11 @@ src/backend/
       migrations.py
       task_queue/
         __init__.py
+        bootstrap.py
         worker.py
         services/
           mail.py
+          __init__.py
       realtime/
         events.py
         broker.py
@@ -83,6 +85,7 @@ src/backend/
 6. 시작 시 DB 마이그레이션 오케스트레이션은 `app/core/migrations.py`에 배치 (router/service/main 비즈니스 코드에 배치 금지)
 7. 공용 비동기 큐 워커 오케스트레이션은 `app/core/task_queue/worker.py`에 배치
 8. 도메인/서비스별 큐 어댑터(예: 이메일 전송)는 `app/core/task_queue/services/mail.py` 같은 전용 모듈에 배치
+9. 태스크 큐 서비스 등록/부트스트랩 오케스트레이션은 `app/core/task_queue/bootstrap.py`와 `app/core/task_queue/services/__init__.py`에 배치
 
 - `app/models/`
 1. 데이터 형태 정의: SQLAlchemy 엔티티 및 API/Pydantic 스키마

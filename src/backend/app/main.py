@@ -15,7 +15,7 @@ from app.core.mail import MAIL_SERVICE
 from app.core.migrations import run_startup_schema_migrations
 from app.core.redis import RedisManager
 from app.core.settings import SETTINGS
-from app.core.task_queue.services.mail import MAIL_QUEUE_SERVICE
+from app.core.task_queue.services import TASK_QUEUE_BOOTSTRAP
 from app.models.user import UserResponse, UserRole, Users
 from app.routers.v1 import api_key, auth, events
 from app.utils.token import create_access_token
@@ -54,7 +54,7 @@ async def lifespan(_app: FastAPI):
         logger.info("OAuth configuration validation succeeded.")
 
     await MAIL_SERVICE.initialize()
-    await MAIL_QUEUE_SERVICE.start_worker()
+    await TASK_QUEUE_BOOTSTRAP.start_all()
     await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
     logger.info("Database schema migration check complete (target=head).")
     await init_db()
@@ -120,7 +120,7 @@ async def lifespan(_app: FastAPI):
     try:
         yield
     finally:
-        await MAIL_QUEUE_SERVICE.stop_worker()
+        await TASK_QUEUE_BOOTSTRAP.stop_all()
         await dispose_db()
         await RedisManager.close()
 
