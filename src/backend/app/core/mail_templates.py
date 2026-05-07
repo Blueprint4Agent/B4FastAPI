@@ -108,7 +108,7 @@ TEMPLATE_COPY_BY_LOCALE: dict[str, dict[str, TemplateCopy]] = {
             outro="요청하지 않은 재설정 메일이라면 무시해도 됩니다.",
             footer="계정 보안을 위해 이 링크를 다른 사람과 공유하지 마세요.",
         ),
-    }
+    },
 }
 
 

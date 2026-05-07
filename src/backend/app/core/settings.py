@@ -67,9 +67,7 @@ class Settings(BaseModel):
         os.getenv("EMAIL_QUEUE_BLOCK_TIMEOUT_SECONDS", "2")
     )
     EMAIL_QUEUE_MAX_RETRIES: int = int(os.getenv("EMAIL_QUEUE_MAX_RETRIES", "3"))
-    EMAIL_QUEUE_RETRY_DELAY_SECONDS: int = int(
-        os.getenv("EMAIL_QUEUE_RETRY_DELAY_SECONDS", "2")
-    )
+    EMAIL_QUEUE_RETRY_DELAY_SECONDS: int = int(os.getenv("EMAIL_QUEUE_RETRY_DELAY_SECONDS", "2"))
 
     OAUTH_ENABLED: bool = os.getenv("OAUTH_ENABLED", "false").lower() == "true"
     OAUTH_ALLOWED_PROVIDERS: str = os.getenv("OAUTH_ALLOWED_PROVIDERS", "google,github")

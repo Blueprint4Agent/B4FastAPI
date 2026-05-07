@@ -670,7 +670,9 @@ class AuthService:
         await self._send_verification_email(user.id, user.email, user.name, language)
         logger.info("Verification email queued (user_id=%s).", user.id)
 
-    async def request_password_reset(self, email: str, preferred_language: str | None = None) -> None:
+    async def request_password_reset(
+        self, email: str, preferred_language: str | None = None
+    ) -> None:
         if not SETTINGS.EMAIL_ENABLED:
             logger.debug("Password reset rejected because email integration is disabled.")
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
