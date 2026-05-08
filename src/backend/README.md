@@ -58,6 +58,10 @@ API docs:
 Prometheus metrics:
 - `http://localhost:8000/metrics`
 
+Health checks:
+- `http://localhost:8000/health/live`
+- `http://localhost:8000/health/ready`
+
 ## 4) Lint / Format (Ruff)
 
 ```bash

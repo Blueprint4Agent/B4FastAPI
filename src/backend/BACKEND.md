@@ -35,6 +35,7 @@ src/backend/
       logging.py
       request_context.py
       metrics.py
+      health.py
       migrations.py
       task_queue/
         __init__.py
@@ -90,6 +91,7 @@ src/backend/
 9. Task queue service registration/bootstrap orchestration belongs in `app/core/task_queue/bootstrap.py` and `app/core/task_queue/services/__init__.py`
 10. Request correlation context belongs in `app/core/request_context.py`; services and queue adapters may read context but must not generate transport headers themselves
 11. Prometheus metrics setup belongs in `app/core/metrics.py`; keep endpoint exposure out of routers
+12. Operational health checks belong in `app/core/health.py`; expose root-level `/health/*` endpoints from `app/main.py`, not versioned domain routers
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas

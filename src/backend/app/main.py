@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from app.core.database import dispose_db, init_db
 from app.core.error import AuthException
+from app.core.health import HealthCheckResult, ReadinessResponse, get_readiness
 from app.core.logging import configure_request_context_logging, get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
 from app.core.metrics import setup_metrics
@@ -200,6 +201,17 @@ def create_app() -> FastAPI:
     @app.get("/ping")
     async def ping():
         return {"status": "ok", "message": "pong"}
+
+    @app.get("/health/live", response_model=HealthCheckResult, include_in_schema=False)
+    async def health_live():
+        return HealthCheckResult(status="ok")
+
+    @app.get("/health/ready", response_model=ReadinessResponse, include_in_schema=False)
+    async def health_ready():
+        readiness = await get_readiness()
+        if readiness.status != "ok":
+            return JSONResponse(status_code=503, content=readiness.model_dump())
+        return readiness
 
     @app.get("/config", response_model=AppConfigResponse)
     async def config():
