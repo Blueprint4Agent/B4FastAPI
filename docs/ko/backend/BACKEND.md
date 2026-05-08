@@ -33,6 +33,7 @@ src/backend/
       redis.py
       settings.py
       logging.py
+      request_context.py
       migrations.py
       task_queue/
         __init__.py
@@ -86,6 +87,7 @@ src/backend/
 7. 공용 비동기 큐 워커 오케스트레이션은 `app/core/task_queue/worker.py`에 배치
 8. 도메인/서비스별 큐 어댑터(예: 이메일 전송)는 `app/core/task_queue/services/mail.py` 같은 전용 모듈에 배치
 9. 태스크 큐 서비스 등록/부트스트랩 오케스트레이션은 `app/core/task_queue/bootstrap.py`와 `app/core/task_queue/services/__init__.py`에 배치
+10. 요청 상관관계 컨텍스트는 `app/core/request_context.py`에 배치하고, 서비스/큐 어댑터는 컨텍스트를 읽을 수 있지만 직접 transport header를 생성하지 않음
 
 - `app/models/`
 1. 데이터 형태 정의: SQLAlchemy 엔티티 및 API/Pydantic 스키마
@@ -345,12 +347,16 @@ flowchart LR
 1. 라우터는 서비스 예외를 `logger.error(... code=...)`로 로깅
 2. 예기치 않은 에러는 `logger.exception(...)`으로 스택트레이스 유지
 3. 이메일 등 민감 데이터는 마스킹 헬퍼 사용 필수
+4. HTTP 요청 상관관계는 `X-Request-ID`와 `X-Trace-ID`를 사용하며, 로그는 request context logging을 통해 두 값을 포함
+5. 런타임 로그 포맷은 key-value prefix(`level`, `logger`, `request_id`, `trace_id`) 뒤에 `message`를 붙이는 형식 사용
 
 - 권장 운영 규칙:
 
 1. 실패 로그에 에러 코드를 항상 포함
 2. 동일 실패 경로에서 중복 에러 로그 방지
 3. 재-raise 시 원인 보존 (`raise ... from error`)
+4. 인바운드 `X-Request-ID`가 있으면 보존하고, upstream client/gateway가 제공한 W3C `traceparent` trace id를 우선 사용
+5. 애플리케이션 로그 메시지는 기존 event style인 `Event description (key=%s, other_key=%s).` 형태 유지
 
 ## 6) 커밋 전 필수 체크
 

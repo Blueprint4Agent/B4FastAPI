@@ -10,10 +10,17 @@ from pydantic import BaseModel
 
 from app.core.database import dispose_db, init_db
 from app.core.error import AuthException
-from app.core.logging import get_logger, mask_email
+from app.core.logging import configure_request_context_logging, get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
 from app.core.migrations import run_startup_schema_migrations
 from app.core.redis import RedisManager
+from app.core.request_context import (
+    add_request_context_headers,
+    reset_request_context,
+    resolve_request_id,
+    resolve_trace_id,
+    set_request_context,
+)
 from app.core.settings import SETTINGS
 from app.core.task_queue.services import TASK_QUEUE_BOOTSTRAP
 from app.models.user import UserResponse, UserRole, Users
@@ -136,6 +143,7 @@ def create_app() -> FastAPI:
     logging.getLogger("uvicorn.error").setLevel(log_level_value)
     logging.getLogger("uvicorn.access").setLevel(log_level_value)
     logging.getLogger("uvicorn").setLevel(log_level_value)
+    configure_request_context_logging()
 
     app = FastAPI(
         title=SETTINGS.APP_NAME,
@@ -154,7 +162,24 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID", "X-Trace-ID"],
     )
+
+    @app.middleware("http")
+    async def request_context_middleware(request: Request, call_next):
+        request_id = resolve_request_id(request)
+        trace_id = resolve_trace_id(request)
+        tokens = set_request_context(request_id=request_id, trace_id=trace_id)
+        try:
+            response = await call_next(request)
+            add_request_context_headers(
+                response,
+                request_id=request_id,
+                trace_id=trace_id,
+            )
+            return response
+        finally:
+            reset_request_context(tokens)
 
     @app.exception_handler(Exception)
     async def default_exception_handler(_request, _exc):

@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from app.core.logging import get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
+from app.core.request_context import get_trace_id
 from app.core.settings import SETTINGS, Settings
 from app.core.task_queue.worker import RedisTaskQueueWorker, TaskQueueConfig
 
@@ -45,6 +46,7 @@ class MailQueueService:
                 "link": link,
                 "language": language,
             },
+            trace_id=get_trace_id(),
         )
         logger.info(
             "Email job queued (type=%s, to=%s).",
@@ -70,6 +72,7 @@ class MailQueueService:
                 "link": link,
                 "language": language,
             },
+            trace_id=get_trace_id(),
         )
         logger.info(
             "Email job queued (type=%s, to=%s).",

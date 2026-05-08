@@ -33,6 +33,7 @@ src/backend/
       redis.py
       settings.py
       logging.py
+      request_context.py
       migrations.py
       task_queue/
         __init__.py
@@ -86,6 +87,7 @@ src/backend/
 7. Generic asynchronous queue worker orchestration belongs in `app/core/task_queue/worker.py`
 8. Domain/service-specific queue adapters (for example email delivery) belong in dedicated modules such as `app/core/task_queue/services/mail.py`
 9. Task queue service registration/bootstrap orchestration belongs in `app/core/task_queue/bootstrap.py` and `app/core/task_queue/services/__init__.py`
+10. Request correlation context belongs in `app/core/request_context.py`; services and queue adapters may read context but must not generate transport headers themselves
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas
@@ -345,12 +347,16 @@ flowchart LR
 1. Router logs service exceptions with `logger.error(... code=...)`
 2. Unexpected errors use `logger.exception(...)` to keep stack traces
 3. Sensitive data (for example email) must use masking helpers
+4. HTTP request correlation uses `X-Request-ID` and `X-Trace-ID`; logs include both values through request context logging
+5. Runtime log formatting uses a key-value prefix: `level`, `logger`, `request_id`, `trace_id`, then `message`
 
 - Recommended operational conventions:
 
 1. Always include error code in failure logs
 2. Avoid duplicate error logs for the same failure path
 3. Preserve original cause on re-raise (`raise ... from error`)
+4. Preserve inbound `X-Request-ID` when present and prefer W3C `traceparent` trace ids when provided by upstream clients or gateways
+5. Keep application log messages in the existing event style: `Event description (key=%s, other_key=%s).`
 
 ## 6) Mandatory Pre-Commit Checks
 
