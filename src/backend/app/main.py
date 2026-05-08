@@ -25,6 +25,7 @@ from app.core.request_context import (
 )
 from app.core.settings import SETTINGS
 from app.core.task_queue.services import TASK_QUEUE_BOOTSTRAP
+from app.core.tracing import setup_tracing
 from app.models.user import UserResponse, UserRole, Users
 from app.routers.v1 import api_key, auth, events
 from app.utils.token import create_access_token
@@ -227,6 +228,7 @@ def create_app() -> FastAPI:
         }
 
     setup_metrics(app)
+    setup_tracing(app)
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
     app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])

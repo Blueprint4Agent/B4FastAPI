@@ -36,6 +36,7 @@ src/backend/
       request_context.py
       metrics.py
       health.py
+      tracing.py
       migrations.py
       task_queue/
         __init__.py
@@ -92,6 +93,7 @@ src/backend/
 10. 요청 상관관계 컨텍스트는 `app/core/request_context.py`에 배치하고, 서비스/큐 어댑터는 컨텍스트를 읽을 수 있지만 직접 transport header를 생성하지 않음
 11. Prometheus metrics 설정은 `app/core/metrics.py`에 배치하고 endpoint 노출을 라우터에 두지 않음
 12. 운영 health check는 `app/core/health.py`에 배치하고 root-level `/health/*` endpoint는 versioned domain router가 아니라 `app/main.py`에서 노출
+13. OpenTelemetry tracing 설정은 `app/core/tracing.py`에 배치하고 `TRACING_ENABLED`로 토글하며 기본값은 비활성화
 
 - `app/models/`
 1. 데이터 형태 정의: SQLAlchemy 엔티티 및 API/Pydantic 스키마

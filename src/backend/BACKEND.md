@@ -36,6 +36,7 @@ src/backend/
       request_context.py
       metrics.py
       health.py
+      tracing.py
       migrations.py
       task_queue/
         __init__.py
@@ -92,6 +93,7 @@ src/backend/
 10. Request correlation context belongs in `app/core/request_context.py`; services and queue adapters may read context but must not generate transport headers themselves
 11. Prometheus metrics setup belongs in `app/core/metrics.py`; keep endpoint exposure out of routers
 12. Operational health checks belong in `app/core/health.py`; expose root-level `/health/*` endpoints from `app/main.py`, not versioned domain routers
+13. OpenTelemetry tracing setup belongs in `app/core/tracing.py`; keep instrumentation toggled by `TRACING_ENABLED` and disabled by default
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas

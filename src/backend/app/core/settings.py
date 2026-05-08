@@ -21,6 +21,19 @@ class Settings(BaseModel):
     METRICS_ENABLED: bool = os.getenv("METRICS_ENABLED", "true").lower() == "true"
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
     TRUST_PROXY_HEADERS: bool = os.getenv("TRUST_PROXY_HEADERS", "false").lower() == "true"
+    TRACING_ENABLED: bool = os.getenv("TRACING_ENABLED", "false").lower() == "true"
+    OTEL_SERVICE_NAME: str = os.getenv("OTEL_SERVICE_NAME", "blueprint4fastapi-backend")
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT",
+        "http://localhost:4317",
+    )
+    OTEL_EXPORTER_OTLP_INSECURE: bool = (
+        os.getenv("OTEL_EXPORTER_OTLP_INSECURE", "true").lower() == "true"
+    )
+    OTEL_EXPORTER_OTLP_TIMEOUT_SECONDS: int = int(
+        os.getenv("OTEL_EXPORTER_OTLP_TIMEOUT_SECONDS", "10")
+    )
+    OTEL_TRACE_SAMPLE_RATIO: float = float(os.getenv("OTEL_TRACE_SAMPLE_RATIO", "1.0"))
 
     SECRET_KEY: str = os.getenv("SECRET_KEY", "CHANGE_ME")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")

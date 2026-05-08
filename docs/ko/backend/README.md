@@ -19,6 +19,7 @@
 - 인증 메일 언어 결정 시 `X-App-Language` 헤더를 `Accept-Language`보다 우선 적용
 - 모든 HTTP 응답은 요청 상관관계 헤더(`X-Request-ID`, `X-Trace-ID`)를 포함하고 백엔드 로그도 같은 컨텍스트 값을 포함
 - `METRICS_ENABLED=true`일 때 Prometheus metrics를 `/metrics`에서 제공
+- `TRACING_ENABLED=true`일 때 OpenTelemetry tracing을 OTLP로 내보낼 수 있음
 
 ## 1.1) 백엔드 흐름
 
@@ -59,6 +60,10 @@ Prometheus metrics:
 Health checks:
 - `http://localhost:8000/health/live`
 - `http://localhost:8000/health/ready`
+
+OpenTelemetry tracing:
+- `TRACING_ENABLED=true` 설정
+- `OTEL_EXPORTER_OTLP_ENDPOINT`를 collector endpoint로 설정(예: `http://localhost:4317`)
 
 ## 4) 린트 / 포맷 (Ruff)
 

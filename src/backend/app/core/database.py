@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 from app.core.settings import SETTINGS
+from app.core.tracing import instrument_sqlalchemy_engine
 
 
 class Base(DeclarativeBase):
@@ -24,10 +25,11 @@ def _create_engine():
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.close()
+    else:
+        engine = create_async_engine(db_url, future=True, pool_pre_ping=True)
 
-        return engine
-
-    return create_async_engine(db_url, future=True, pool_pre_ping=True)
+    instrument_sqlalchemy_engine(engine)
+    return engine
 
 
 _ENGINE = None

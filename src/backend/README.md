@@ -21,6 +21,7 @@ Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BAC
 - For auth mail language, `X-App-Language` header has priority over `Accept-Language`
 - Every HTTP response includes request correlation headers (`X-Request-ID`, `X-Trace-ID`) and backend logs include the same context values
 - Prometheus metrics are exposed at `/metrics` when `METRICS_ENABLED=true`
+- OpenTelemetry tracing can be enabled with `TRACING_ENABLED=true` and exported through OTLP
 
 ## 1.1) Backend Flow
 
@@ -61,6 +62,10 @@ Prometheus metrics:
 Health checks:
 - `http://localhost:8000/health/live`
 - `http://localhost:8000/health/ready`
+
+OpenTelemetry tracing:
+- Set `TRACING_ENABLED=true`
+- Set `OTEL_EXPORTER_OTLP_ENDPOINT` to your collector endpoint, for example `http://localhost:4317`
 
 ## 4) Lint / Format (Ruff)
 
