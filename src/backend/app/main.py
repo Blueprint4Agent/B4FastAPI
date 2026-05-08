@@ -12,6 +12,7 @@ from app.core.database import dispose_db, init_db
 from app.core.error import AuthException
 from app.core.logging import configure_request_context_logging, get_logger, mask_email
 from app.core.mail import MAIL_SERVICE
+from app.core.metrics import setup_metrics
 from app.core.migrations import run_startup_schema_migrations
 from app.core.redis import RedisManager
 from app.core.request_context import (
@@ -212,6 +213,8 @@ def create_app() -> FastAPI:
             "bootstrap_user": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER,
             "bootstrap_access_token": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_ACCESS_TOKEN,
         }
+
+    setup_metrics(app)
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
     app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])

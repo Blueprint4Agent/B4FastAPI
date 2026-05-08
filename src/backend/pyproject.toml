@@ -18,6 +18,7 @@ dependencies = [
     "fakeredis>=2.23.0",
     "python-multipart>=0.0.26",
     "greenlet>=3.0.0",
+    "prometheus-fastapi-instrumentator>=7.1.0",
 ]
 
 [dependency-groups]

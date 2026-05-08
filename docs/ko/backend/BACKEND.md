@@ -34,6 +34,7 @@ src/backend/
       settings.py
       logging.py
       request_context.py
+      metrics.py
       migrations.py
       task_queue/
         __init__.py
@@ -88,6 +89,7 @@ src/backend/
 8. 도메인/서비스별 큐 어댑터(예: 이메일 전송)는 `app/core/task_queue/services/mail.py` 같은 전용 모듈에 배치
 9. 태스크 큐 서비스 등록/부트스트랩 오케스트레이션은 `app/core/task_queue/bootstrap.py`와 `app/core/task_queue/services/__init__.py`에 배치
 10. 요청 상관관계 컨텍스트는 `app/core/request_context.py`에 배치하고, 서비스/큐 어댑터는 컨텍스트를 읽을 수 있지만 직접 transport header를 생성하지 않음
+11. Prometheus metrics 설정은 `app/core/metrics.py`에 배치하고 endpoint 노출을 라우터에 두지 않음
 
 - `app/models/`
 1. 데이터 형태 정의: SQLAlchemy 엔티티 및 API/Pydantic 스키마

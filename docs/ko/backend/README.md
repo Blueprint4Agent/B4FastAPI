@@ -18,6 +18,7 @@
 - 인증 메일 템플릿은 요청 `Accept-Language`(`en`/`ko`)를 기준으로 로컬라이즈되며 메일 큐 payload까지 전달됨
 - 인증 메일 언어 결정 시 `X-App-Language` 헤더를 `Accept-Language`보다 우선 적용
 - 모든 HTTP 응답은 요청 상관관계 헤더(`X-Request-ID`, `X-Trace-ID`)를 포함하고 백엔드 로그도 같은 컨텍스트 값을 포함
+- `METRICS_ENABLED=true`일 때 Prometheus metrics를 `/metrics`에서 제공
 
 ## 1.1) 백엔드 흐름
 
@@ -51,6 +52,9 @@ uv run uvicorn app.main:app --reload --port 8000
 
 API 문서:
 - `http://localhost:8000/docs`
+
+Prometheus metrics:
+- `http://localhost:8000/metrics`
 
 ## 4) 린트 / 포맷 (Ruff)
 

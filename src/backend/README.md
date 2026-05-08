@@ -20,6 +20,7 @@ Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BAC
 - Auth email templates are localized by request `Accept-Language` (`en`/`ko`) and propagated through the mail queue payload
 - For auth mail language, `X-App-Language` header has priority over `Accept-Language`
 - Every HTTP response includes request correlation headers (`X-Request-ID`, `X-Trace-ID`) and backend logs include the same context values
+- Prometheus metrics are exposed at `/metrics` when `METRICS_ENABLED=true`
 
 ## 1.1) Backend Flow
 
@@ -53,6 +54,9 @@ uv run uvicorn app.main:app --reload --port 8000
 
 API docs:
 - `http://localhost:8000/docs`
+
+Prometheus metrics:
+- `http://localhost:8000/metrics`
 
 ## 4) Lint / Format (Ruff)
 

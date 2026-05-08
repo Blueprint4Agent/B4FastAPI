@@ -34,6 +34,7 @@ src/backend/
       settings.py
       logging.py
       request_context.py
+      metrics.py
       migrations.py
       task_queue/
         __init__.py
@@ -88,6 +89,7 @@ src/backend/
 8. Domain/service-specific queue adapters (for example email delivery) belong in dedicated modules such as `app/core/task_queue/services/mail.py`
 9. Task queue service registration/bootstrap orchestration belongs in `app/core/task_queue/bootstrap.py` and `app/core/task_queue/services/__init__.py`
 10. Request correlation context belongs in `app/core/request_context.py`; services and queue adapters may read context but must not generate transport headers themselves
+11. Prometheus metrics setup belongs in `app/core/metrics.py`; keep endpoint exposure out of routers
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas
