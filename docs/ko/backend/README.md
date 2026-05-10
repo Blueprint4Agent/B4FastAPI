@@ -65,6 +65,26 @@ OpenTelemetry tracing:
 - `TRACING_ENABLED=true` 설정
 - `OTEL_EXPORTER_OTLP_ENDPOINT`를 collector endpoint로 설정(예: `http://localhost:4317`)
 
+로컬 Docker tracing stack:
+
+```bash
+cd docker
+docker compose up -d tempo otel-collector grafana
+```
+
+백엔드도 같은 compose 파일로 실행할 때는 다음 값을 사용:
+
+```env
+TRACING_ENABLED=true
+OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+```
+
+Grafana:
+- `http://localhost:3000` (`admin` / `admin`)
+
+Trace 흐름:
+- FastAPI app -> OpenTelemetry Collector -> Tempo -> Grafana
+
 ## 4) 린트 / 포맷 (Ruff)
 
 ```bash
