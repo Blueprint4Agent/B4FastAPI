@@ -69,7 +69,7 @@ OpenTelemetry tracing:
 
 ```bash
 cd docker
-docker compose up -d tempo otel-collector grafana
+docker compose up -d tempo otel-collector prometheus grafana
 ```
 
 백엔드도 같은 compose 파일로 실행할 때는 다음 값을 사용:
@@ -82,8 +82,19 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 Grafana:
 - `http://localhost:3000` (`admin` / `admin`)
 
+Prometheus:
+- `http://localhost:9090`
+
+로컬 Prometheus 설정은 호스트 머신에서 실행 중인 백엔드를 수집합니다:
+- target: `host.docker.internal:8000`
+
+백엔드도 compose `app` 서비스로 실행할 때는 Prometheus target을 `app:8000`으로 변경합니다.
+
 Trace 흐름:
 - FastAPI app -> OpenTelemetry Collector -> Tempo -> Grafana
+
+Metrics 흐름:
+- FastAPI `/metrics` -> Prometheus -> Grafana
 
 ## 4) 린트 / 포맷 (Ruff)
 

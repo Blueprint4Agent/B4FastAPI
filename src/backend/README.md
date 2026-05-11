@@ -71,7 +71,7 @@ Local Docker tracing stack:
 
 ```bash
 cd docker
-docker compose up -d tempo otel-collector grafana
+docker compose up -d tempo otel-collector prometheus grafana
 ```
 
 When the backend also runs through this compose file, use:
@@ -84,8 +84,19 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 Grafana:
 - `http://localhost:3000` (`admin` / `admin`)
 
+Prometheus:
+- `http://localhost:9090`
+
+The local Prometheus config scrapes a backend started on the host machine:
+- target: `host.docker.internal:8000`
+
+If the backend is also started as the compose `app` service, change the Prometheus target to `app:8000`.
+
 Trace flow:
 - FastAPI app -> OpenTelemetry Collector -> Tempo -> Grafana
+
+Metrics flow:
+- FastAPI `/metrics` -> Prometheus -> Grafana
 
 ## 4) Lint / Format (Ruff)
 
