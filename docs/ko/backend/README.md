@@ -81,6 +81,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 
 Grafana:
 - `http://localhost:3000` (`admin` / `admin`)
+- 자동 등록 dashboard: `B4FastAPI / FastAPI Overview`
 
 Prometheus:
 - `http://localhost:9090`
@@ -95,6 +96,13 @@ Trace 흐름:
 
 Metrics 흐름:
 - FastAPI `/metrics` -> Prometheus -> Grafana
+
+자동 등록되는 FastAPI dashboard 항목:
+- backend target 상태
+- request rate
+- 5xx error ratio
+- latency p95
+- endpoint request rate와 endpoint p95 latency
 
 ## 4) 린트 / 포맷 (Ruff)
 

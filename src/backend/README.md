@@ -83,6 +83,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
 
 Grafana:
 - `http://localhost:3000` (`admin` / `admin`)
+- Provisioned dashboard: `B4FastAPI / FastAPI Overview`
 
 Prometheus:
 - `http://localhost:9090`
@@ -97,6 +98,13 @@ Trace flow:
 
 Metrics flow:
 - FastAPI `/metrics` -> Prometheus -> Grafana
+
+The provisioned FastAPI dashboard includes:
+- backend target status
+- request rate
+- 5xx error ratio
+- latency p95
+- endpoint request rate and endpoint p95 latency
 
 ## 4) Lint / Format (Ruff)
 
