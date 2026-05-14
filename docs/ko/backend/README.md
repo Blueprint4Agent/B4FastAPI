@@ -65,11 +65,20 @@ OpenTelemetry tracing:
 - `TRACING_ENABLED=true` 설정
 - `OTEL_EXPORTER_OTLP_ENDPOINT`를 collector endpoint로 설정(예: `http://localhost:4317`)
 
-로컬 Docker tracing stack:
+로컬 Docker observability stack:
 
 ```bash
 cd docker
-docker compose up -d tempo otel-collector prometheus grafana
+docker compose --profile observability up -d tempo otel-collector prometheus grafana
+```
+
+기본 Docker 실행에서는 observability 서비스를 제외합니다. Tempo, OpenTelemetry Collector, Prometheus, Grafana가 필요할 때 `--profile observability`를 사용합니다.
+
+백엔드까지 포함한 전체 compose stack을 실행할 때:
+
+```bash
+cd docker
+docker compose --profile observability up -d
 ```
 
 백엔드도 같은 compose 파일로 실행할 때는 다음 값을 사용:

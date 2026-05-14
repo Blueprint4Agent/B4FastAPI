@@ -47,6 +47,7 @@ services:
   tempo:
     image: grafana/tempo:2.6.1
     container_name: b4fastapi-tempo
+    profiles: ["observability"]
     command: ["-config.file=/etc/tempo/tempo.yml"]
     ports:
       - "3200:3200"
@@ -58,6 +59,7 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.114.0
     container_name: b4fastapi-otel-collector
+    profiles: ["observability"]
     command: ["--config=/etc/otel-collector.yml"]
     ports:
       - "4317:4317"
@@ -71,6 +73,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.55.1
     container_name: b4fastapi-prometheus
+    profiles: ["observability"]
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -84,6 +87,7 @@ services:
   grafana:
     image: grafana/grafana:11.3.1
     container_name: b4fastapi-grafana
+    profiles: ["observability"]
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin

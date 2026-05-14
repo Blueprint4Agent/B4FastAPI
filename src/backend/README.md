@@ -67,11 +67,20 @@ OpenTelemetry tracing:
 - Set `TRACING_ENABLED=true`
 - Set `OTEL_EXPORTER_OTLP_ENDPOINT` to your collector endpoint, for example `http://localhost:4317`
 
-Local Docker tracing stack:
+Local Docker observability stack:
 
 ```bash
 cd docker
-docker compose up -d tempo otel-collector prometheus grafana
+docker compose --profile observability up -d tempo otel-collector prometheus grafana
+```
+
+Default Docker startup excludes observability services. Use `--profile observability` when Tempo, OpenTelemetry Collector, Prometheus, and Grafana are needed.
+
+To run the full compose stack including the backend and observability services:
+
+```bash
+cd docker
+docker compose --profile observability up -d
 ```
 
 When the backend also runs through this compose file, use:
