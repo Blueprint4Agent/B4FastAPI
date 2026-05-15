@@ -7,6 +7,7 @@ import { AppSidebar } from "./components/layout/AppSidebar";
 import { useAuthContext } from "./hooks/useAuth";
 import { useAppConfig } from "./hooks/useFeatures";
 import { useTheme } from "./hooks/useTheme";
+import { hasStartedFromLanding } from "./utils/landing";
 import { ForgotPasswordEmailSentPage } from "./pages/login/ForgotPasswordEmailSentPage";
 import { ForgotPasswordPage } from "./pages/login/ForgotPasswordPage";
 import { LoginPage } from "./pages/login/LoginPage";
@@ -16,6 +17,7 @@ import { SignupEmailSentPage } from "./pages/login/SignupEmailSentPage";
 import { SignupPage } from "./pages/login/SignupPage";
 import { VerifyEmailPage } from "./pages/login/VerifyEmailPage";
 import { LoadingPage } from "./pages/main/LoadingPage";
+import { LandingPage } from "./pages/main/LandingPage";
 import { ShowCaseNotFoundPage } from "./pages/main/ShowCaseNotFoundPage";
 import { ShowCasePage } from "./pages/main/ShowCasePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
@@ -108,6 +110,7 @@ export function App() {
     const { t } = useTranslation();
     const { data: appConfig, loading: configLoading } = useAppConfig();
     const loginEnabled = appConfig?.login_enabled === true;
+    const landingStarted = hasStartedFromLanding();
 
     if (configLoading) {
         return <LoadingPage message={t("app.loadingSession")} />;
@@ -115,7 +118,16 @@ export function App() {
 
     return (
         <Routes>
-            <Route path="/" element={<Navigate to="/show-case" replace />} />
+            <Route
+                path="/"
+                element={
+                    landingStarted ? (
+                        <Navigate to={loginEnabled ? "/login" : "/show-case"} replace />
+                    ) : (
+                        <LandingPage loginEnabled={loginEnabled} />
+                    )
+                }
+            />
             <Route
                 path="/login"
                 element={loginEnabled ? <LoginPage /> : <Navigate to="/show-case" replace />}

@@ -4,6 +4,14 @@
         "loadingSubtitle": "세션을 준비하는 동안 잠시만 기다려주세요.",
         "loadingSession": "세션 불러오는 중..."
     },
+    "landing": {
+        "navAria": "랜딩 탐색",
+        "eyebrow": "Blueprint4FastAPI",
+        "title": "이 랜딩 페이지를 서비스에 맞게 수정하세요.",
+        "subtitle": "이 템플릿은 간단한 랜딩 페이지, 인증 라우팅, API 키, 실시간 이벤트, 작업 큐, 메트릭, 트레이싱, React 쇼케이스를 포함합니다.",
+        "note": "문구를 제품 메시지로 교체하고, 버튼을 필요한 시작 흐름에 연결한 뒤 나머지 스타터 구성을 기준점으로 사용하세요.",
+        "start": "시작하기"
+    },
     "auth": {
         "actions": {
             "resendVerification": "인증 이메일 다시 보내기"

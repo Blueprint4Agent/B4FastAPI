@@ -4,6 +4,14 @@
         "loadingSubtitle": "Please wait while we prepare your session.",
         "loadingSession": "Loading session..."
     },
+    "landing": {
+        "navAria": "Landing navigation",
+        "eyebrow": "Blueprint4FastAPI",
+        "title": "Customize this landing page for your service.",
+        "subtitle": "This template includes a small landing page, auth-ready routing, API keys, realtime events, task queues, metrics, tracing, and a React showcase.",
+        "note": "Replace this copy with your product message, connect the button to the flow you need, and keep the rest of the starter as your baseline.",
+        "start": "Get started"
+    },
     "auth": {
         "actions": {
             "resendVerification": "Resend verification email"
