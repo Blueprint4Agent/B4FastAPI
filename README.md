@@ -14,6 +14,7 @@ Blueprint4FastAPI is a full-stack template with:
 4. Frontend engineering rules: `src/frontend/FRONTEND.md`
 5. Backend quick guide: `src/backend/README.md`
 6. Frontend quick guide: `src/frontend/README.md`
+7. CI build pipeline: `.github/workflows/build.yml`
 
 Localized documentation rule:
 
