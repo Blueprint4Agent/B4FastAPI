@@ -1,0 +1,223 @@
+name: Build
+
+on:
+    pull_request:
+        branches:
+            - main
+        types:
+            - opened
+            - synchronize
+            - reopened
+            - ready_for_review
+    schedule:
+        # GitHub cron is UTC. 15:00 UTC is 00:00 KST.
+        - cron: "0 15 * * *"
+    workflow_dispatch:
+        inputs:
+            ref:
+                description: "Branch, tag, commit SHA, or PR ref to build. Example: main, v1.0.0, 1a2b3c4"
+                required: false
+                type: string
+            pr_number:
+                description: "Pull request number to build. Takes priority over ref."
+                required: false
+                type: string
+            publish_image:
+                description: "Push the Docker image to GitHub Container Registry"
+                required: false
+                type: boolean
+                default: false
+    push:
+        tags:
+            - "v*"
+    release:
+        types:
+            - published
+
+permissions:
+    contents: read
+    packages: write
+
+concurrency:
+    group: build-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.ref || '' }}
+    cancel-in-progress: false
+
+jobs:
+    resolve-ref:
+        name: Resolve build ref
+        runs-on: ubuntu-latest
+        outputs:
+            checkout-ref: ${{ steps.ref.outputs.checkout-ref }}
+            image-version: ${{ steps.version.outputs.image-version }}
+            publish-image: ${{ steps.publish.outputs.publish-image }}
+        steps:
+            - name: Resolve checkout ref
+              id: ref
+              shell: bash
+              run: |
+                  if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.pr_number }}" ]]; then
+                    echo "checkout-ref=refs/pull/${{ inputs.pr_number }}/head" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.ref }}" ]]; then
+                    echo "checkout-ref=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "release" ]]; then
+                    echo "checkout-ref=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+                    echo "checkout-ref=main" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "checkout-ref=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Resolve image version
+              id: version
+              shell: bash
+              run: |
+                  if [[ "${{ github.event_name }}" == "release" ]]; then
+                    echo "image-version=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+                    echo "image-version=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "schedule" ]]; then
+                    echo "image-version=nightly-main" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.pr_number }}" ]]; then
+                    echo "image-version=manual-pr-${{ inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.ref }}" ]]; then
+                    safe_ref="$(echo "${{ inputs.ref }}" | tr '/:@ ' '----' | tr -cd '[:alnum:]_.-')"
+                    echo "image-version=manual-${safe_ref}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "image-version=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Resolve publish policy
+              id: publish
+              shell: bash
+              run: |
+                  if [[ "${{ github.event_name }}" == "release" || "${{ github.ref_type }}" == "tag" || "${{ github.event_name }}" == "schedule" ]]; then
+                    echo "publish-image=true" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_image }}" == "true" ]]; then
+                    echo "publish-image=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "publish-image=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+    backend:
+        name: Backend checks
+        runs-on: ubuntu-latest
+        needs:
+            - resolve-ref
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
+
+            - name: Install uv
+              uses: astral-sh/setup-uv@v5
+              with:
+                  enable-cache: true
+                  cache-dependency-glob: src/backend/uv.lock
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+
+            - name: Install backend dependencies
+              working-directory: src/backend
+              run: uv sync --frozen
+
+            - name: Ruff check
+              working-directory: src/backend
+              run: uv run ruff check .
+
+            - name: Ruff format check
+              working-directory: src/backend
+              run: uv run ruff format . --check
+
+            - name: Pytest
+              working-directory: src/backend
+              run: uv run pytest
+
+    frontend:
+        name: Frontend checks
+        runs-on: ubuntu-latest
+        needs:
+            - resolve-ref
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20"
+                  cache: npm
+                  cache-dependency-path: src/frontend/package-lock.json
+
+            - name: Install frontend dependencies
+              working-directory: src/frontend
+              run: npm ci
+
+            - name: Prettier check
+              working-directory: src/frontend
+              run: npm run format:check
+
+            - name: Vitest
+              working-directory: src/frontend
+              run: npm run test
+
+            - name: Build frontend
+              working-directory: src/frontend
+              run: npm run build
+
+    docker-image:
+        name: Docker image
+        runs-on: ubuntu-latest
+        if: github.event_name != 'pull_request'
+        needs:
+            - resolve-ref
+            - backend
+            - frontend
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Resolve image name
+              id: image
+              shell: bash
+              run: |
+                  image_name="ghcr.io/${{ github.repository }}"
+                  echo "name=${image_name,,}" >> "$GITHUB_OUTPUT"
+
+            - name: Docker metadata
+              id: meta
+              uses: docker/metadata-action@v5
+              with:
+                  images: ${{ steps.image.outputs.name }}
+                  tags: |
+                      type=raw,value=${{ needs.resolve-ref.outputs.image-version }}
+                      type=sha,format=short
+
+            - name: Login to GitHub Container Registry
+              if: needs.resolve-ref.outputs.publish-image == 'true'
+              uses: docker/login-action@v3
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Build Docker image
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: docker/Dockerfile
+                  push: ${{ needs.resolve-ref.outputs.publish-image == 'true' }}
+                  tags: ${{ steps.meta.outputs.tags }}
+                  labels: ${{ steps.meta.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max

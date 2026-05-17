@@ -7,6 +7,7 @@
 1. Docker Desktop(또는 Docker Engine)이 설치되어 있고 실행 중이어야 합니다.
 2. 현재 작업 디렉터리는 저장소 루트여야 합니다.
 3. 로컬 인프라 사용 시 아래 포트가 사용 가능해야 합니다.
+
 - `8000` (app)
 - `5432` (postgres)
 - `6379` (redis)
@@ -20,6 +21,7 @@ bash ./docker/scripts/init-env.sh
 ```
 
 주 배포 환경 파일:
+
 - `docker/.env`
 
 ## 3) 배포 모드
@@ -46,6 +48,7 @@ REDIS_DB=0
 ```
 
 결과:
+
 - 시작: `app`, `postgres`, `redis`
 
 ### 모드 B: App + 외부 Postgres + 외부 Redis
@@ -68,6 +71,7 @@ REDIS_PASSWORD=<optional>
 ```
 
 결과:
+
 - 시작: `app`만
 
 ### 모드 C: App + SQLite + In-Memory Redis
@@ -82,6 +86,7 @@ REDIS_IN_MEMORY=true
 ```
 
 결과:
+
 - 시작: `app`만
 
 ## 4) 표준 명령어
@@ -123,9 +128,52 @@ bash ./docker/scripts/docker-export.sh
 ```
 
 내보내기 경로:
+
 - `docker/artifacts/`
 
-## 5) 배포 후 검증
+## 5) GitHub Actions 빌드 파이프라인
+
+워크플로:
+
+- `.github/workflows/build.yml`
+
+트리거:
+
+- `main` 대상 Pull request
+- 매일 `00:00 KST`에 `main` nightly build (`15:00 UTC`)
+- 선택적 `ref` 또는 `pr_number` 입력을 받는 수동 `workflow_dispatch`
+- Release published 이벤트
+- `v*` 형식의 버전 태그 push
+
+수동 `ref` 예시:
+
+- `main`
+- `v1.0.0`
+- `<commit-sha>`
+
+수동 PR build 예시:
+
+- `pr_number=12`는 `refs/pull/12/head`를 build합니다.
+
+파이프라인 job:
+
+- Backend: `uv sync --frozen`, Ruff check, Ruff format check, Pytest
+- Frontend: `npm ci`, Prettier check, Vitest, production build
+- Docker: Pull request를 제외하고 `docker/Dockerfile` 기반 이미지 빌드
+
+이미지 배포:
+
+- Pull request build는 backend/frontend check만 검증합니다.
+- nightly 실행은 이미지를 `nightly-main`으로 push합니다.
+- 기본 수동 실행은 이미지만 빌드하고 push하지 않습니다.
+- Release published 이벤트와 `v*` 태그 push는 GitHub Container Registry로 push합니다.
+- 수동 실행은 `publish_image=true`를 설정하면 push합니다.
+
+기본 이미지 registry:
+
+- `ghcr.io/<owner>/<repo>`
+
+## 6) 배포 후 검증
 
 실행 중 컨테이너 확인:
 
@@ -141,24 +189,30 @@ curl -i http://localhost:8000/config
 ```
 
 시작 시 마이그레이션 로그 확인:
+
 - `Database schema migration check complete (target=head).`
 
-## 6) 트러블슈팅
+## 7) 트러블슈팅
 
 `docker command not found`
+
 - Docker Desktop/Engine을 설치하고 Docker 데몬이 실행 중인지 확인하세요.
 
 앱은 시작되지만 DB 연결 실패
+
 - `docker/.env`의 `DB_DRIVER/DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD`를 확인하세요.
 - 로컬 postgres 사용 시 `DB_HOST`는 반드시 `postgres`여야 합니다.
 
 Redis 연결 실패
+
 - 로컬 redis 컨테이너 사용: `REDIS_IN_MEMORY=false` 및 `REDIS_HOST=redis`
 - 외부 redis 사용: `REDIS_HOST`를 외부 호스트로 설정하고 `REDIS_IN_MEMORY=false` 유지
 
 Alembic 시작 마이그레이션이 revision 길이 오류로 실패
+
 - Alembic `revision` ID는 `alembic_version.version_num` 제약 길이를 넘지 않도록 유지하세요.
 
 tar 아티팩트가 생성되지 않음
+
 - `docker-build.sh`는 tar를 내보내지 않습니다.
 - `docker-deploy.sh` 또는 `docker-export.sh`를 사용하세요.

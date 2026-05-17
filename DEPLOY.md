@@ -7,6 +7,7 @@ This document defines the concrete deployment flow for this repository.
 1. Docker Desktop (or Docker Engine) is installed and running.
 2. Repository root is current working directory.
 3. Ports are available when using local infra:
+
 - `8000` (app)
 - `5432` (postgres)
 - `6379` (redis)
@@ -20,6 +21,7 @@ bash ./docker/scripts/init-env.sh
 ```
 
 Primary deployment env file:
+
 - `docker/.env`
 
 ## 3) Deployment Modes
@@ -46,6 +48,7 @@ REDIS_DB=0
 ```
 
 Result:
+
 - Starts: `app`, `postgres`, `redis`
 
 ### Mode B: App + External Postgres + External Redis
@@ -68,6 +71,7 @@ REDIS_PASSWORD=<optional>
 ```
 
 Result:
+
 - Starts: `app` only
 
 ### Mode C: App + SQLite + In-Memory Redis
@@ -82,6 +86,7 @@ REDIS_IN_MEMORY=true
 ```
 
 Result:
+
 - Starts: `app` only
 
 ## 4) Standard Commands
@@ -123,9 +128,52 @@ bash ./docker/scripts/docker-export.sh
 ```
 
 Export path:
+
 - `docker/artifacts/`
 
-## 5) Post-Deploy Verification
+## 5) GitHub Actions Build Pipeline
+
+Workflow:
+
+- `.github/workflows/build.yml`
+
+Triggers:
+
+- Pull requests targeting `main`
+- Nightly build of `main` at `00:00 KST` (`15:00 UTC`)
+- Manual `workflow_dispatch` with optional `ref` or `pr_number`
+- Release published events
+- Version tag pushes matching `v*`
+
+Manual `ref` examples:
+
+- `main`
+- `v1.0.0`
+- `<commit-sha>`
+
+Manual PR build example:
+
+- `pr_number=12` builds `refs/pull/12/head`
+
+Pipeline jobs:
+
+- Backend: `uv sync --frozen`, Ruff check, Ruff format check, Pytest
+- Frontend: `npm ci`, Prettier check, Vitest, production build
+- Docker: build image from `docker/Dockerfile` except on pull requests
+
+Image publishing:
+
+- Pull request builds validate backend/frontend checks only.
+- Nightly runs publish the image as `nightly-main`.
+- Default manual runs build the image without pushing.
+- Release published events and `v*` tag pushes publish to GitHub Container Registry.
+- Manual runs can publish by setting `publish_image=true`.
+
+Default image registry:
+
+- `ghcr.io/<owner>/<repo>`
+
+## 6) Post-Deploy Verification
 
 Check running containers:
 
@@ -141,24 +189,30 @@ curl -i http://localhost:8000/config
 ```
 
 Check startup migration log:
+
 - `Database schema migration check complete (target=head).`
 
-## 6) Troubleshooting
+## 7) Troubleshooting
 
 `docker command not found`
+
 - Install Docker Desktop/Engine and ensure Docker daemon is running.
 
 App starts but DB connection fails
+
 - Confirm `DB_DRIVER/DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD` in `docker/.env`.
 - If using local postgres, `DB_HOST` must be `postgres`.
 
 Redis connection fails
+
 - For local redis container: `REDIS_IN_MEMORY=false` and `REDIS_HOST=redis`.
 - For external redis, set `REDIS_HOST` to external host and keep `REDIS_IN_MEMORY=false`.
 
 Alembic startup migration fails with revision length errors
+
 - Keep Alembic `revision` IDs short enough for `alembic_version.version_num` constraints.
 
 No tar artifact found
+
 - `docker-build.sh` does not export tar.
 - Use `docker-deploy.sh` or `docker-export.sh`.
