@@ -17,13 +17,13 @@ Blueprint4FastAPI는 다음 구성을 갖춘 풀스택 템플릿입니다.
 
 한국어 문서:
 
-1. 루트 가이드: `docs/ko/README.md`
-2. 에이전트/워크플로 규칙: `docs/ko/AGENTS.md`
-3. 배포 가이드: `docs/ko/DEPLOY.md`
-4. 백엔드 엔지니어링 규칙: `docs/ko/backend/BACKEND.md`
-5. 프론트엔드 엔지니어링 규칙: `docs/ko/frontend/FRONTEND.md`
-6. 백엔드 빠른 가이드: `docs/ko/backend/README.md`
-7. 프론트엔드 빠른 가이드: `docs/ko/frontend/README.md`
+1. 루트 가이드: `notes/ko/README.md`
+2. 에이전트/워크플로 규칙: `notes/ko/AGENTS.md`
+3. 배포 가이드: `notes/ko/DEPLOY.md`
+4. 백엔드 엔지니어링 규칙: `notes/ko/backend/BACKEND.md`
+5. 프론트엔드 엔지니어링 규칙: `notes/ko/frontend/FRONTEND.md`
+6. 백엔드 빠른 가이드: `notes/ko/backend/README.md`
+7. 프론트엔드 빠른 가이드: `notes/ko/frontend/README.md`
 
 ## 저장소 구조
 
