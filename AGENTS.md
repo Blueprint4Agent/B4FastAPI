@@ -12,6 +12,9 @@ Read this file first, then move to the domain guide for your task.
 
 If implementation changes behavior, structure, or rules, update related docs in the same work cycle.
 
+Localized documentation is maintained under `notes/<locale>/...`.
+Keep localized paths synchronized with `README.md`.
+
 ## Worklog Policy (Required)
 
 1. Every commit must include a matching worklog entry file under `worklog/`.
