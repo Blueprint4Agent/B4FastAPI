@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: General project discussion
+    url: https://github.com/Blueprint4Agent/B4FastAPI/discussions
+    about: Use discussions for open-ended questions, ideas, and project conversations.
