@@ -29,15 +29,22 @@ src/backend/
       ...
   app/
     core/
-      database.py
-      redis.py
-      settings.py
-      logging.py
-      request_context.py
-      metrics.py
-      health.py
-      tracing.py
-      migrations.py
+      config/
+        settings.py
+      db/
+        session.py
+        migrations.py
+      cache/
+        redis.py
+      observability/
+        logging.py
+        request_context.py
+        metrics.py
+        health.py
+        tracing.py
+      mail/
+        service.py
+        templates.py
       task_queue/
         __init__.py
         bootstrap.py
@@ -82,18 +89,16 @@ src/backend/
 
 - `app/core/`
 1. Application-wide infrastructure and cross-cutting concerns
-2. DB/Redis/settings/logging initialization and shared error foundation
-3. No endpoint-specific business rules
-4. Environment variable access is centralized in `app/core/settings.py` via `SETTINGS`
-5. Do not scatter direct `os.getenv(...)` usage across routers/services/utils
-6. Startup DB migration orchestration logic belongs in `app/core/migrations.py`, not router/service/main business code
-7. Generic asynchronous queue worker orchestration belongs in `app/core/task_queue/worker.py`
-8. Domain/service-specific queue adapters (for example email delivery) belong in dedicated modules such as `app/core/task_queue/services/mail.py`
-9. Task queue service registration/bootstrap orchestration belongs in `app/core/task_queue/bootstrap.py` and `app/core/task_queue/services/__init__.py`
-10. Request correlation context belongs in `app/core/request_context.py`; services and queue adapters may read context but must not generate transport headers themselves
-11. Prometheus metrics setup belongs in `app/core/metrics.py`; keep endpoint exposure out of routers
-12. Operational health checks belong in `app/core/health.py`; expose root-level `/health/*` endpoints from `app/main.py`, not versioned domain routers
-13. OpenTelemetry tracing setup belongs in `app/core/tracing.py`; keep instrumentation toggled by `TRACING_ENABLED` and disabled by default
+2. No endpoint-specific business rules
+3. `app/core/config/` owns environment-backed application settings via `SETTINGS`
+4. `app/core/db/` owns DB engine/session lifecycle and startup schema migration orchestration
+5. `app/core/cache/` owns shared cache/broker clients such as Redis
+6. `app/core/observability/` owns logging, request correlation, metrics, tracing, and health checks
+7. `app/core/mail/` owns mail provider/service and email templates
+8. `app/core/error/` owns the shared domain error foundation and error response builders
+9. `app/core/realtime/` owns SSE transport primitives, broker fan-out, and realtime event schemas
+10. `app/core/task_queue/` owns generic async queue workers plus registered domain queue services
+11. Do not scatter direct `os.getenv(...)` usage across routers/services/utils
 
 - `app/models/`
 1. Data shape definitions: SQLAlchemy entities and API/Pydantic schemas
@@ -102,7 +107,7 @@ src/backend/
 
 - `app/routers/`
 1. HTTP transport layer only (request parsing, response mapping, status/response declarations)
-2. Calls service methods and converts domain exceptions to HTTP errors
+2. Calls service methods and lets domain exceptions propagate to the global app handler
 3. Must not contain domain business orchestration logic
 
 - `app/services/`
@@ -136,7 +141,7 @@ src/backend/
 
 - Runtime application path:
 
-1. `app/core/database.py` initializes DB engine/session factory
+1. `app/core/db/session.py` initializes DB engine/session factory
 2. `app/models/*` defines SQLAlchemy models and schema metadata
 3. `app/services/*` executes domain operations using model/repository functions
 
@@ -156,7 +161,7 @@ flowchart TD
     A[Model Changes app/models/*] --> B[Alembic Revision alembic/versions/*.py]
     B --> C[Alembic Upgrade]
     C --> D[Database Schema]
-    E[App Runtime app/core/database.py] --> D
+    E[App Runtime app/core/db/session.py] --> D
     F[Services app/services/*] --> E
     F --> G[Models/Repositories app/models/*]
 ```
@@ -201,6 +206,7 @@ sequenceDiagram
     participant U as Util
     participant DB as Database
     participant X as External MSA/API
+    participant M as App Main Handler
 
     C->>R: HTTP Request
     R->>S: Call service method
@@ -212,7 +218,8 @@ sequenceDiagram
         R-->>C: HTTP Response
     else Domain failure
         S-->>R: Domain exception (ServiceException)
-        R-->>C: HTTP error via service_exception_to_http(...)
+        R-->>C: Exception propagation
+        M-->>C: HTTP error via app/main.py ServiceException handler
     end
 ```
 
@@ -296,7 +303,7 @@ flowchart LR
 
 1. Handle request/response schema mapping, cookies/headers, and response declarations only
 2. No business logic, no complex domain branching, no direct DB access
-3. Call service methods and convert domain exceptions to HTTP errors
+3. Call service methods and let domain exceptions propagate to `app/main.py`
 
 - Service rules:
 
@@ -331,26 +338,28 @@ flowchart LR
 
 1. Route decorator `responses=` must include all domain errors that can be propagated by that handler
 2. Do not hard-code raw status numbers such as `400/401/500` in route decorators
-3. Convert domain exceptions using `service_exception_to_http(...)` and re-raise
+3. Do not wrap normal service calls in `try/except` just to convert domain exceptions
 4. For redirect-driven endpoints (for example OAuth callback), do not document JSON domain error models in `responses=` when runtime behavior returns redirects for failure paths
 5. Keep route decorator response contracts aligned with actual transport behavior (JSON vs redirect) before OpenAPI generation
+6. Routers may catch domain exceptions only for transport-specific side effects, such as redirect failure contracts or clearing cookies before re-raising
 
 - Service raise rules:
 
 1. Catch infra/library exceptions in the service layer
 2. Translate to domain exceptions (`...Exception(code=...)`) and raise
-3. Router should only handle domain exceptions from services
+3. `app/main.py` converts `ServiceException` instances to HTTP JSON responses through the global exception handler
 
 ## 5) Exception Handling and Logging Pattern
 
 - Responsibility split:
 
 1. Services normalize detailed failure causes
-2. Routers perform HTTP conversion and transport-layer error logging
+2. `app/main.py` performs shared domain-exception HTTP conversion and error logging
+3. Routers handle only endpoint-specific transport behavior
 
 - Current project logging behavior:
 
-1. Router logs service exceptions with `logger.error(... code=...)`
+1. The global `ServiceException` handler logs service exceptions with `logger.error(... code=...)`
 2. Unexpected errors use `logger.exception(...)` to keep stack traces
 3. Sensitive data (for example email) must use masking helpers
 4. HTTP request correlation uses `X-Request-ID` and `X-Trace-ID`; logs include both values through request context logging

@@ -8,15 +8,14 @@ from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy import or_, select
 
-from app.core.database import get_db
+from app.core.config.settings import SETTINGS
+from app.core.db.session import get_db
 from app.core.error import (
     APIKeyErrorCode,
     APIKeyException,
     AuthErrorCode,
     AuthException,
-    service_exception_to_http,
 )
-from app.core.settings import SETTINGS
 from app.models.api_key import APIKey
 from app.models.user import UserResponse, UserRole, Users
 
@@ -38,16 +37,14 @@ async def get_current_token_user(
         )
         user_id = int(payload.get("sub"))
     except (JWTError, ValueError, TypeError):
-        raise service_exception_to_http(
-            AuthException(
-                code=AuthErrorCode.INVALID_TOKEN,
-                message="Invalid bearer token.",
-            )
+        raise AuthException(
+            code=AuthErrorCode.INVALID_TOKEN,
+            message="Invalid bearer token.",
         ) from None
 
     token_user = await Users.get_user_response_by_id(user_id)
     if token_user is None:
-        raise service_exception_to_http(AuthException(code=AuthErrorCode.USER_NOT_FOUND))
+        raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
     return token_user
 
 
@@ -59,7 +56,7 @@ async def get_current_api_key(
 
     normalized = api_key.strip()
     if not normalized:
-        raise service_exception_to_http(APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID))
+        raise APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID)
 
     key_hash = hmac.new(
         SETTINGS.SECRET_KEY.encode("utf-8"),
@@ -78,7 +75,7 @@ async def get_current_api_key(
         )
         valid_key = result.scalar_one_or_none()
         if valid_key is None:
-            raise service_exception_to_http(APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID))
+            raise APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID)
 
         valid_key.last_used_at = now
         valid_key.request_count += 1
@@ -96,18 +93,16 @@ async def get_current_user(
     if current_api_key is not None:
         api_key_user = await Users.get_user_response_by_id(current_api_key.user_id)
         if api_key_user is None:
-            raise service_exception_to_http(AuthException(code=AuthErrorCode.USER_NOT_FOUND))
+            raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
 
     if token_user is None and api_key_user is None:
-        raise service_exception_to_http(
-            AuthException(
-                code=AuthErrorCode.INVALID_TOKEN,
-                message="Bearer token or API key is required.",
-            )
+        raise AuthException(
+            code=AuthErrorCode.INVALID_TOKEN,
+            message="Bearer token or API key is required.",
         )
 
     if token_user is not None and api_key_user is not None and token_user.id != api_key_user.id:
-        raise service_exception_to_http(APIKeyException(code=APIKeyErrorCode.API_KEY_USER_MISMATCH))
+        raise APIKeyException(code=APIKeyErrorCode.API_KEY_USER_MISMATCH)
 
     return token_user or api_key_user
 
@@ -119,14 +114,12 @@ def require_roles(*roles: UserRole):
         current_user: Annotated[UserResponse, Depends(get_current_user)],
     ) -> UserResponse:
         if current_user.role.value not in allowed_roles:
-            raise service_exception_to_http(
-                AuthException(
-                    code=AuthErrorCode.INSUFFICIENT_ROLE,
-                    details={
-                        "required_roles": sorted(allowed_roles),
-                        "current_role": current_user.role.value,
-                    },
-                )
+            raise AuthException(
+                code=AuthErrorCode.INSUFFICIENT_ROLE,
+                details={
+                    "required_roles": sorted(allowed_roles),
+                    "current_role": current_user.role.value,
+                },
             )
         return current_user
 

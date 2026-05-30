@@ -4,8 +4,8 @@ from datetime import UTC, datetime, timedelta
 
 from jose import jwt
 
-from app.core.redis import RedisManager
-from app.core.settings import SETTINGS
+from app.core.cache.redis import RedisManager
+from app.core.config.settings import SETTINGS
 
 
 def create_access_token(subject: str, email: str, expires_delta: timedelta | None = None) -> str:

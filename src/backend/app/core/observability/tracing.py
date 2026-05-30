@@ -10,7 +10,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.sdk.trace.sampling import ParentBased, TraceIdRatioBased
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
 
 TRACING_EXCLUDED_URLS = "/metrics,/health/live,/health/ready"
 _TRACER_PROVIDER: TracerProvider | None = None

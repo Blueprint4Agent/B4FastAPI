@@ -3,10 +3,10 @@ from collections.abc import AsyncIterator
 
 from fastapi import Request
 
-from app.core.logging import get_logger
+from app.core.config.settings import SETTINGS
+from app.core.observability.logging import get_logger
 from app.core.realtime.broker import RealtimeBroker
 from app.core.realtime.events import RealtimeEventType, build_realtime_event, encode_sse_event
-from app.core.settings import SETTINGS
 from app.models.user import UserResponse
 
 logger = get_logger("app.core.realtime.sse")

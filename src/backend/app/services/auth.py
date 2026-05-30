@@ -9,10 +9,10 @@ from urllib.request import Request as URLRequest, urlopen
 from fastapi import Request
 from sqlalchemy.exc import IntegrityError
 
+from app.core.cache.redis import RedisManager
+from app.core.config.settings import SETTINGS
 from app.core.error import AuthErrorCode, AuthException
-from app.core.logging import get_logger, mask_email
-from app.core.redis import RedisManager
-from app.core.settings import SETTINGS
+from app.core.observability.logging import get_logger, mask_email
 from app.core.task_queue.services.mail import MAIL_QUEUE_SERVICE
 from app.models.oauth import (
     OAuthIdentityProfile,

@@ -1,6 +1,6 @@
 import redis.asyncio as redis
 
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
 
 
 class RedisManager:

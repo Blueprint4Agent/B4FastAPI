@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
+from app.main import register_exception_handlers
 from app.models.api_key import (
     APIKeyCreateForm,
     APIKeyCreateResponse,
@@ -72,6 +73,7 @@ class FakeAPIKeyService:
 
 def create_api_key_test_client(user: UserResponse, with_user_auth: bool = True) -> TestClient:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(api_key.router, prefix="/api/v1/api-keys")
     app.dependency_overrides[APIKeyService] = lambda: FakeAPIKeyService()
     if with_user_auth:

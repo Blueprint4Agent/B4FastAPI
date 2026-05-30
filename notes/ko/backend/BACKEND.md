@@ -29,15 +29,22 @@ src/backend/
       ...
   app/
     core/
-      database.py
-      redis.py
-      settings.py
-      logging.py
-      request_context.py
-      metrics.py
-      health.py
-      tracing.py
-      migrations.py
+      config/
+        settings.py
+      db/
+        session.py
+        migrations.py
+      cache/
+        redis.py
+      observability/
+        logging.py
+        request_context.py
+        metrics.py
+        health.py
+        tracing.py
+      mail/
+        service.py
+        templates.py
       task_queue/
         __init__.py
         bootstrap.py
@@ -82,18 +89,16 @@ src/backend/
 
 - `app/core/`
 1. 애플리케이션 전역 인프라와 횡단 관심사
-2. DB/Redis/설정/로깅 초기화 및 공통 에러 기반
-3. 엔드포인트별 비즈니스 규칙 금지
-4. 환경 변수 접근은 `app/core/settings.py`의 `SETTINGS`로 일원화
-5. router/service/utils 전역에 `os.getenv(...)` 직접 사용 분산 금지
-6. 시작 시 DB 마이그레이션 오케스트레이션은 `app/core/migrations.py`에 배치 (router/service/main 비즈니스 코드에 배치 금지)
-7. 공용 비동기 큐 워커 오케스트레이션은 `app/core/task_queue/worker.py`에 배치
-8. 도메인/서비스별 큐 어댑터(예: 이메일 전송)는 `app/core/task_queue/services/mail.py` 같은 전용 모듈에 배치
-9. 태스크 큐 서비스 등록/부트스트랩 오케스트레이션은 `app/core/task_queue/bootstrap.py`와 `app/core/task_queue/services/__init__.py`에 배치
-10. 요청 상관관계 컨텍스트는 `app/core/request_context.py`에 배치하고, 서비스/큐 어댑터는 컨텍스트를 읽을 수 있지만 직접 transport header를 생성하지 않음
-11. Prometheus metrics 설정은 `app/core/metrics.py`에 배치하고 endpoint 노출을 라우터에 두지 않음
-12. 운영 health check는 `app/core/health.py`에 배치하고 root-level `/health/*` endpoint는 versioned domain router가 아니라 `app/main.py`에서 노출
-13. OpenTelemetry tracing 설정은 `app/core/tracing.py`에 배치하고 `TRACING_ENABLED`로 토글하며 기본값은 비활성화
+2. 엔드포인트별 비즈니스 규칙 금지
+3. `app/core/config/`는 `SETTINGS` 기반 환경 설정을 담당
+4. `app/core/db/`는 DB 엔진/세션 생명주기와 시작 시 스키마 마이그레이션 오케스트레이션을 담당
+5. `app/core/cache/`는 Redis 같은 공용 cache/broker client를 담당
+6. `app/core/observability/`는 logging, request correlation, metrics, tracing, health check를 담당
+7. `app/core/mail/`은 mail provider/service와 email template을 담당
+8. `app/core/error/`는 공통 도메인 에러 기반과 에러 응답 빌더를 담당
+9. `app/core/realtime/`은 SSE 전송 프리미티브, broker fan-out, realtime event schema를 담당
+10. `app/core/task_queue/`는 공용 비동기 큐 워커와 등록된 도메인 큐 서비스를 담당
+11. router/service/utils 전역에 `os.getenv(...)` 직접 사용 분산 금지
 
 - `app/models/`
 1. 데이터 형태 정의: SQLAlchemy 엔티티 및 API/Pydantic 스키마
@@ -102,7 +107,7 @@ src/backend/
 
 - `app/routers/`
 1. HTTP 전송 계층만 담당 (요청 파싱, 응답 매핑, status/response 선언)
-2. 서비스 메서드 호출 및 도메인 예외를 HTTP 에러로 변환
+2. 서비스 메서드 호출 및 도메인 예외를 전역 앱 핸들러로 전파
 3. 도메인 비즈니스 오케스트레이션 로직 포함 금지
 
 - `app/services/`
@@ -136,7 +141,7 @@ src/backend/
 
 - 런타임 애플리케이션 경로:
 
-1. `app/core/database.py`에서 DB 엔진/세션 팩토리 초기화
+1. `app/core/db/session.py`에서 DB 엔진/세션 팩토리 초기화
 2. `app/models/*`에서 SQLAlchemy 모델/스키마 메타데이터 정의
 3. `app/services/*`에서 모델/리포지토리 함수를 사용해 도메인 연산 수행
 
@@ -156,7 +161,7 @@ flowchart TD
     A[Model Changes app/models/*] --> B[Alembic Revision alembic/versions/*.py]
     B --> C[Alembic Upgrade]
     C --> D[Database Schema]
-    E[App Runtime app/core/database.py] --> D
+    E[App Runtime app/core/db/session.py] --> D
     F[Services app/services/*] --> E
     F --> G[Models/Repositories app/models/*]
 ```
@@ -201,6 +206,7 @@ sequenceDiagram
     participant U as Util
     participant DB as Database
     participant X as External MSA/API
+    participant M as App Main Handler
 
     C->>R: HTTP Request
     R->>S: Call service method
@@ -212,7 +218,8 @@ sequenceDiagram
         R-->>C: HTTP Response
     else Domain failure
         S-->>R: Domain exception (ServiceException)
-        R-->>C: HTTP error via service_exception_to_http(...)
+        R-->>C: Exception propagation
+        M-->>C: HTTP error via app/main.py ServiceException handler
     end
 ```
 
@@ -296,7 +303,7 @@ flowchart LR
 
 1. 요청/응답 스키마 매핑, 쿠키/헤더, 응답 선언만 처리
 2. 비즈니스 로직, 복잡한 도메인 분기, DB 직접 접근 금지
-3. 서비스 메서드 호출 + 도메인 예외를 HTTP 에러로 변환
+3. 서비스 메서드 호출 후 도메인 예외는 `app/main.py`로 전파
 
 - Service 규칙:
 
@@ -331,26 +338,28 @@ flowchart LR
 
 1. 라우트 데코레이터 `responses=`에는 해당 핸들러에서 전파 가능한 도메인 에러를 모두 포함
 2. 라우트 데코레이터에 `400/401/500` 같은 raw status 하드코딩 금지
-3. `service_exception_to_http(...)`로 도메인 예외를 변환해 재-raise
+3. 일반 서비스 호출을 도메인 예외 변환만을 위해 `try/except`로 감싸지 않음
 4. 리다이렉트 기반 엔드포인트(예: OAuth callback)는 실패 경로가 리다이렉트라면 `responses=`에 JSON 도메인 에러 모델 문서화 금지
 5. OpenAPI 생성 전에 라우트 데코레이터 응답 계약(JSON vs redirect)을 실제 전송 동작과 일치시킬 것
+6. 라우터는 redirect 실패 계약이나 쿠키 정리 후 재-raise 같은 전송 계층 특수 부수효과가 있을 때만 도메인 예외를 catch 할 수 있음
 
 - Service raise 규칙:
 
 1. 인프라/라이브러리 예외는 서비스 계층에서 캐치
 2. 도메인 예외(`...Exception(code=...)`)로 변환 후 raise
-3. 라우터는 서비스에서 온 도메인 예외만 처리
+3. `app/main.py`의 전역 예외 핸들러가 `ServiceException`을 HTTP JSON 응답으로 변환
 
 ## 5) 예외 처리 및 로깅 패턴
 
 - 책임 분리:
 
 1. 서비스는 상세 실패 원인을 정규화
-2. 라우터는 HTTP 변환 및 전송 계층 에러 로깅 수행
+2. `app/main.py`가 공통 도메인 예외의 HTTP 변환 및 에러 로깅 수행
+3. 라우터는 엔드포인트별 전송 계층 동작만 처리
 
 - 현재 프로젝트 로깅 동작:
 
-1. 라우터는 서비스 예외를 `logger.error(... code=...)`로 로깅
+1. 전역 `ServiceException` 핸들러가 서비스 예외를 `logger.error(... code=...)`로 로깅
 2. 예기치 않은 에러는 `logger.exception(...)`으로 스택트레이스 유지
 3. 이메일 등 민감 데이터는 마스킹 헬퍼 사용 필수
 4. HTTP 요청 상관관계는 `X-Request-ID`와 `X-Trace-ID`를 사용하며, 로그는 request context logging을 통해 두 값을 포함

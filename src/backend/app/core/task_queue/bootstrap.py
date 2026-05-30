@@ -2,7 +2,7 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from typing import Protocol
 
-from app.core.logging import get_logger
+from app.core.observability.logging import get_logger
 
 logger = get_logger("app.core.task_queue.bootstrap")
 

@@ -1,8 +1,8 @@
 from pydantic import BaseModel
 from sqlalchemy import text
 
-from app.core.database import get_session_factory
-from app.core.redis import RedisManager
+from app.core.cache.redis import RedisManager
+from app.core.db.session import get_session_factory
 
 
 class HealthCheckResult(BaseModel):

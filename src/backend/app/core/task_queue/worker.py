@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 from typing import Protocol
 from uuid import uuid4
 
-from app.core.logging import get_logger
-from app.core.redis import RedisManager
+from app.core.cache.redis import RedisManager
+from app.core.observability.logging import get_logger
 
 logger = get_logger("app.core.task_queue.worker")
 

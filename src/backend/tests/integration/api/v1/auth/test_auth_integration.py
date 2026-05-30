@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
-import app.core.database as database
+import app.core.db.session as database
 from app.models.user import User
 from tests.fixtures.payload_data import (
     INVALID_EMAIL,

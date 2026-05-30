@@ -6,6 +6,8 @@ __pycache__/
 src/backend/.env
 src/backend/*.db
 src/backend/*.sqlite3
+src/backend/app/*.db
+src/backend/app/*.sqlite3
 src/backend/app/static/dist/
 
 # Node

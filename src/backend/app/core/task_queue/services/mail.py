@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from app.core.logging import get_logger, mask_email
-from app.core.mail import MAIL_SERVICE
-from app.core.request_context import get_trace_id
-from app.core.settings import SETTINGS, Settings
+from app.core.config.settings import SETTINGS, Settings
+from app.core.mail.service import MAIL_SERVICE
+from app.core.observability.logging import get_logger, mask_email
+from app.core.observability.request_context import get_trace_id
 from app.core.task_queue.worker import RedisTaskQueueWorker, TaskQueueConfig
 
 logger = get_logger("app.core.task_queue.services.mail")

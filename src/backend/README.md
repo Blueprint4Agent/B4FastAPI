@@ -9,7 +9,7 @@ Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BAC
 ## 1) Core Rules
 
 - Layering pattern: `Router -> Service -> Util/DB/MSA`
-- Access environment variables through `SETTINGS` in `app/core/settings.py`
+- Access environment variables through `SETTINGS` in `app/core/config/settings.py`
 - If schema/models change, Alembic migration updates are required
 - RBAC is enforced via dependencies in `app/deps.py` (for example admin-only guards)
 - In `LOGIN_ENABLED=false` bootstrap mode, bootstrap user is provisioned/promoted as `admin`

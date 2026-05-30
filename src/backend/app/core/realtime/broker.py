@@ -2,9 +2,9 @@ import inspect
 
 from redis.asyncio.client import PubSub
 
-from app.core.logging import get_logger
+from app.core.cache.redis import RedisManager
+from app.core.observability.logging import get_logger
 from app.core.realtime.events import RealtimeEvent
-from app.core.redis import RedisManager
 
 logger = get_logger("app.core.realtime.broker")
 

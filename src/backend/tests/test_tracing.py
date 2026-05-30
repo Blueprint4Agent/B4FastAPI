@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from app.core import tracing
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
+from app.core.observability import tracing
 
 
 def test_tracing_setup_is_noop_when_disabled() -> None:

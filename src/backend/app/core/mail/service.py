@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from email.message import EmailMessage
 from urllib.parse import urljoin
 
-from app.core.logging import get_logger, mask_email
-from app.core.mail_templates import build_password_reset_email, build_verification_email
-from app.core.settings import SETTINGS, Settings
+from app.core.config.settings import SETTINGS, Settings
+from app.core.mail.templates import build_password_reset_email, build_verification_email
+from app.core.observability.logging import get_logger, mask_email
 
 logger = get_logger("app.mail")
 

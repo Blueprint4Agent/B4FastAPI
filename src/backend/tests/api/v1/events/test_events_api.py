@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.deps import get_current_user
+from app.main import register_exception_handlers
 from app.models.user import UserResponse
 from app.routers.v1 import events
 from app.services.realtime import RealtimeService
@@ -24,6 +25,7 @@ class FakeRealtimeService:
 
 def create_events_test_client(user: UserResponse, with_user_auth: bool = False) -> TestClient:
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(events.router, prefix="/api/v1/events")
     app.dependency_overrides[RealtimeService] = lambda: FakeRealtimeService()
     if with_user_auth:
