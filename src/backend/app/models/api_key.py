@@ -5,7 +5,7 @@ from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Unique
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.core.database import Base, get_db
+from app.core.db.session import Base, get_db
 
 
 class APIKey(Base):

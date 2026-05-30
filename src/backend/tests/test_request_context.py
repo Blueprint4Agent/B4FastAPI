@@ -2,8 +2,8 @@ import logging
 
 from fastapi.testclient import TestClient
 
-from app.core.logging import configure_request_context_logging, get_logger
-from app.core.request_context import (
+from app.core.observability.logging import configure_request_context_logging, get_logger
+from app.core.observability.request_context import (
     REQUEST_ID_HEADER,
     TRACE_ID_HEADER,
     reset_request_context,

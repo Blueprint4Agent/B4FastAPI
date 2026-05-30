@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from fastapi import Request, Response
 
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
 
 REFRESH_COOKIE_NAME = "template_refresh_token"
 REFRESH_SID_COOKIE_NAME = "template_refresh_sid"

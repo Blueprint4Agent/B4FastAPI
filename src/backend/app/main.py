@@ -8,24 +8,24 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from app.core.database import dispose_db, init_db
-from app.core.error import AuthException
-from app.core.health import HealthCheckResult, ReadinessResponse, get_readiness
-from app.core.logging import configure_request_context_logging, get_logger, mask_email
-from app.core.mail import MAIL_SERVICE
-from app.core.metrics import setup_metrics
-from app.core.migrations import run_startup_schema_migrations
-from app.core.redis import RedisManager
-from app.core.request_context import (
+from app.core.cache.redis import RedisManager
+from app.core.config.settings import SETTINGS
+from app.core.db.migrations import run_startup_schema_migrations
+from app.core.db.session import dispose_db, init_db
+from app.core.error import AuthException, ServiceException, service_exception_to_http
+from app.core.mail.service import MAIL_SERVICE
+from app.core.observability.health import HealthCheckResult, ReadinessResponse, get_readiness
+from app.core.observability.logging import configure_request_context_logging, get_logger, mask_email
+from app.core.observability.metrics import setup_metrics
+from app.core.observability.request_context import (
     add_request_context_headers,
     reset_request_context,
     resolve_request_id,
     resolve_trace_id,
     set_request_context,
 )
-from app.core.settings import SETTINGS
+from app.core.observability.tracing import setup_tracing
 from app.core.task_queue.services import TASK_QUEUE_BOOTSTRAP
-from app.core.tracing import setup_tracing
 from app.models.user import UserResponse, UserRole, Users
 from app.routers.v1 import api_key, auth, events
 from app.utils.token import create_access_token
@@ -33,6 +33,35 @@ from app.utils.token import create_access_token
 logger = get_logger("app.main")
 BOOTSTRAP_USER: UserResponse | None = None
 BOOTSTRAP_ACCESS_TOKEN: str | None = None
+
+
+def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(ServiceException)
+    async def service_exception_handler(request: Request, exc: ServiceException):
+        http_exc = service_exception_to_http(exc)
+        logger.error(
+            "Service exception handled globally (method=%s, path=%s, status=%s, code=%s).",
+            request.method,
+            request.url.path,
+            http_exc.status_code,
+            exc.code.error,
+        )
+        return JSONResponse(status_code=http_exc.status_code, content={"detail": http_exc.detail})
+
+    @app.exception_handler(Exception)
+    async def default_exception_handler(_request, _exc):
+        if isinstance(_exc, HTTPException):
+            logger.error(
+                "HTTP exception handled globally (status=%s, detail=%s).",
+                _exc.status_code,
+                _exc.detail,
+            )
+            return JSONResponse(status_code=_exc.status_code, content={"detail": _exc.detail})
+        logger.exception("Unhandled server exception.")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "INTERNAL_ERROR", "message": "An unexpected error occurred."},
+        )
 
 
 class AppConfigResponse(BaseModel):
@@ -184,20 +213,7 @@ def create_app() -> FastAPI:
         finally:
             reset_request_context(tokens)
 
-    @app.exception_handler(Exception)
-    async def default_exception_handler(_request, _exc):
-        if isinstance(_exc, HTTPException):
-            logger.error(
-                "HTTP exception handled globally (status=%s, detail=%s).",
-                _exc.status_code,
-                _exc.detail,
-            )
-            return JSONResponse(status_code=_exc.status_code, content={"detail": _exc.detail})
-        logger.exception("Unhandled server exception.")
-        return JSONResponse(
-            status_code=500,
-            content={"error": "INTERNAL_ERROR", "message": "An unexpected error occurred."},
-        )
+    register_exception_handlers(app)
 
     @app.get("/ping")
     async def ping():

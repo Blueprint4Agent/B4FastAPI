@@ -2,8 +2,8 @@ import logging
 
 from uvicorn.logging import DefaultFormatter
 
-from app.core.request_context import get_request_id, get_trace_id
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
+from app.core.observability.request_context import get_request_id, get_trace_id
 
 APP_LOGGER_NAME = "uvicorn.app"
 UVICORN_ERROR_LOGGER_NAME = "uvicorn.error"

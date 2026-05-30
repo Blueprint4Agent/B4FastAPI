@@ -4,10 +4,10 @@ import secrets
 
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config.settings import SETTINGS
 from app.core.error import APIKeyErrorCode, APIKeyException
-from app.core.logging import get_logger
+from app.core.observability.logging import get_logger
 from app.core.realtime import APIKeyRealtimeEventType
-from app.core.settings import SETTINGS
 from app.models.api_key import (
     APIKeyCreateForm,
     APIKeyCreateResponse,

@@ -1,12 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from app.core.error import (
-    APIKeyErrorCode,
-    APIKeyException,
-    api_key_error_responses,
-    service_exception_to_http,
-)
-from app.core.logging import get_logger
+from app.core.error import APIKeyErrorCode, api_key_error_responses
+from app.core.observability.logging import get_logger
 from app.deps import get_current_user
 from app.models.api_key import (
     APIKeyCreateForm,
@@ -35,13 +30,7 @@ async def create_api_key(
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
 ) -> APIKeyCreateResponse:
-    try:
-        return await service.create_api_key(user_id=current_user.id, form=form)
-    except APIKeyException as error:
-        logger.error(
-            "API key create failed (user_id=%s, code=%s).", current_user.id, error.code.error
-        )
-        raise service_exception_to_http(error) from error
+    return await service.create_api_key(user_id=current_user.id, form=form)
 
 
 @router.get("", response_model=APIKeysResponse)
@@ -64,16 +53,7 @@ async def delete_api_key(
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
 ) -> APIKeyResponse:
-    try:
-        return await service.delete_api_key(user_id=current_user.id, api_key_id=api_key_id)
-    except APIKeyException as error:
-        logger.error(
-            "API key delete failed (user_id=%s, api_key_id=%s, code=%s).",
-            current_user.id,
-            api_key_id,
-            error.code.error,
-        )
-        raise service_exception_to_http(error) from error
+    return await service.delete_api_key(user_id=current_user.id, api_key_id=api_key_id)
 
 
 @router.patch(
@@ -90,17 +70,8 @@ async def update_api_key_status(
     current_user: UserResponse = Depends(get_current_user),
     service: APIKeyService = Depends(APIKeyService),
 ) -> APIKeyResponse:
-    try:
-        return await service.update_api_key_status(
-            user_id=current_user.id,
-            api_key_id=api_key_id,
-            form=form,
-        )
-    except APIKeyException as error:
-        logger.error(
-            "API key status update failed (user_id=%s, api_key_id=%s, code=%s).",
-            current_user.id,
-            api_key_id,
-            error.code.error,
-        )
-        raise service_exception_to_http(error) from error
+    return await service.update_api_key_status(
+        user_id=current_user.id,
+        api_key_id=api_key_id,
+        form=form,
+    )

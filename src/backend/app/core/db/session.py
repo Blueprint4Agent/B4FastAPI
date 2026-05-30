@@ -4,8 +4,8 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from app.core.settings import SETTINGS
-from app.core.tracing import instrument_sqlalchemy_engine
+from app.core.config.settings import SETTINGS
+from app.core.observability.tracing import instrument_sqlalchemy_engine
 
 
 class Base(DeclarativeBase):

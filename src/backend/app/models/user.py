@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 
-from app.core.database import Base, get_db
+from app.core.db.session import Base, get_db
 from app.core.error import AuthErrorCode, AuthException
 
 EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"

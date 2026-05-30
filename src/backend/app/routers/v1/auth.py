@@ -4,14 +4,9 @@ from fastapi import APIRouter, Body, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.core.error import (
-    AuthErrorCode,
-    AuthException,
-    auth_error_responses,
-    service_exception_to_http,
-)
-from app.core.logging import get_logger, mask_email
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
+from app.core.error import AuthErrorCode, AuthException, auth_error_responses
+from app.core.observability.logging import get_logger
 from app.deps import get_current_admin_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
@@ -59,11 +54,7 @@ async def signup(
     form: SignupForm,
     service: AuthService = Depends(AuthService),
 ) -> UserResponse:
-    try:
-        return await service.signup(form, preferred_language=_resolve_preferred_language(request))
-    except AuthException as error:
-        logger.error("Signup failed (code=%s).", error.code.error)
-        raise service_exception_to_http(error) from error
+    return await service.signup(form, preferred_language=_resolve_preferred_language(request))
 
 
 @router.get(
@@ -76,13 +67,9 @@ async def signup(
     ),
 )
 async def oauth_providers(service: AuthService = Depends(AuthService)) -> OAuthProvidersResponse:
-    try:
-        providers = service.get_oauth_provider_public_configs()
-        logger.debug("OAuth providers fetched (count=%s).", len(providers))
-        return OAuthProvidersResponse(providers=providers)
-    except AuthException as error:
-        logger.error("OAuth provider listing failed (code=%s).", error.code.error)
-        raise service_exception_to_http(error) from error
+    providers = service.get_oauth_provider_public_configs()
+    logger.debug("OAuth providers fetched (count=%s).", len(providers))
+    return OAuthProvidersResponse(providers=providers)
 
 
 @router.get(
@@ -98,13 +85,9 @@ async def oauth_start(
     request: Request,
     service: AuthService = Depends(AuthService),
 ) -> RedirectResponse:
-    try:
-        redirect_uri = str(request.url_for("oauth_callback", provider=provider.value))
-        authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
-        return RedirectResponse(url=authorization_url, status_code=307)
-    except AuthException as error:
-        logger.error("OAuth start failed (provider=%s, code=%s).", provider.value, error.code.error)
-        raise service_exception_to_http(error) from error
+    redirect_uri = str(request.url_for("oauth_callback", provider=provider.value))
+    authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
+    return RedirectResponse(url=authorization_url, status_code=307)
 
 
 @router.get(
@@ -223,13 +206,7 @@ async def oauth_token_login(
         password=form_data.password,
         remember_me=False,
     )
-    try:
-        return await service.login(form, request, refresh_session_id=refresh_session_id)
-    except AuthException as error:
-        logger.error(
-            "Token login failed (email=%s, code=%s).", mask_email(form.email), error.code.error
-        )
-        raise service_exception_to_http(error) from error
+    return await service.login(form, request, refresh_session_id=refresh_session_id)
 
 
 @router.post(
@@ -249,11 +226,7 @@ async def login(
     service: AuthService = Depends(AuthService),
 ) -> LoginResponse:
     refresh_session_id = create_refresh_session_id()
-    try:
-        token_payload = await service.login(form, request, refresh_session_id=refresh_session_id)
-    except AuthException as error:
-        logger.error("Login failed (email=%s, code=%s).", mask_email(form.email), error.code.error)
-        raise service_exception_to_http(error) from error
+    token_payload = await service.login(form, request, refresh_session_id=refresh_session_id)
 
     set_refresh_cookies(
         response=response,
@@ -295,13 +268,7 @@ async def update_me(
     current_user: UserResponse = Depends(get_current_user),
     service: AuthService = Depends(AuthService),
 ) -> UserResponse:
-    try:
-        return await service.update_profile(user_id=current_user.id, form=form)
-    except AuthException as error:
-        logger.error(
-            "Profile update failed (user_id=%s, code=%s).", current_user.id, error.code.error
-        )
-        raise service_exception_to_http(error) from error
+    return await service.update_profile(user_id=current_user.id, form=form)
 
 
 @router.post("/logout")
@@ -338,10 +305,9 @@ async def refresh_token(
             user_id=user_id,
             session_id=session_id,
         )
-    except AuthException as error:
+    except AuthException:
         clear_refresh_cookies(response)
-        logger.error("Refresh token failed (code=%s).", error.code.error)
-        raise service_exception_to_http(error) from error
+        raise
 
     set_refresh_cookies(
         response=response,
@@ -365,12 +331,8 @@ async def verify_email(
     form: VerifyEmailForm,
     service: AuthService = Depends(AuthService),
 ) -> VerifyEmailResponse:
-    try:
-        user = await service.verify_email(form.token)
-        return VerifyEmailResponse(message="Email verified successfully.", user=user)
-    except AuthException as error:
-        logger.error("Email verification failed (code=%s).", error.code.error)
-        raise service_exception_to_http(error) from error
+    user = await service.verify_email(form.token)
+    return VerifyEmailResponse(message="Email verified successfully.", user=user)
 
 
 @router.post(
@@ -382,21 +344,13 @@ async def resend_verification_email(
     form: ResendVerificationForm,
     service: AuthService = Depends(AuthService),
 ) -> ResendVerificationResponse:
-    try:
-        await service.resend_verification_email(
-            form.email,
-            preferred_language=_resolve_preferred_language(request),
-        )
-        return ResendVerificationResponse(
-            message="If an unverified account exists, a verification email has been sent.",
-        )
-    except AuthException as error:
-        logger.error(
-            "Resend verification failed (email=%s, code=%s).",
-            mask_email(form.email),
-            error.code.error,
-        )
-        raise service_exception_to_http(error) from error
+    await service.resend_verification_email(
+        form.email,
+        preferred_language=_resolve_preferred_language(request),
+    )
+    return ResendVerificationResponse(
+        message="If an unverified account exists, a verification email has been sent.",
+    )
 
 
 @router.post(
@@ -411,21 +365,13 @@ async def forgot_password(
     form: ForgotPasswordForm,
     service: AuthService = Depends(AuthService),
 ) -> ForgotPasswordResponse:
-    try:
-        await service.request_password_reset(
-            form.email,
-            preferred_language=_resolve_preferred_language(request),
-        )
-        return ForgotPasswordResponse(
-            message="If the account exists, a password reset email has been sent.",
-        )
-    except AuthException as error:
-        logger.error(
-            "Password reset request failed (email=%s, code=%s).",
-            mask_email(form.email),
-            error.code.error,
-        )
-        raise service_exception_to_http(error) from error
+    await service.request_password_reset(
+        form.email,
+        preferred_language=_resolve_preferred_language(request),
+    )
+    return ForgotPasswordResponse(
+        message="If the account exists, a password reset email has been sent.",
+    )
 
 
 @router.post(
@@ -441,9 +387,5 @@ async def reset_password(
     form: ResetPasswordForm,
     service: AuthService = Depends(AuthService),
 ) -> ResetPasswordResponse:
-    try:
-        await service.reset_password(form.token, form.password)
-        return ResetPasswordResponse(message="Password reset completed successfully.")
-    except AuthException as error:
-        logger.error("Password reset failed (code=%s).", error.code.error)
-        raise service_exception_to_http(error) from error
+    await service.reset_password(form.token, form.password)
+    return ResetPasswordResponse(message="Password reset completed successfully.")

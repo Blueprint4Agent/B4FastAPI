@@ -7,8 +7,8 @@ from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from app.core.database import Base
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
+from app.core.db.session import Base
 
 # Ensure models are imported so Base.metadata includes every mapped table.
 from app.models import (

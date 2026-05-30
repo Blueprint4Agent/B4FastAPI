@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from prometheus_client import CollectorRegistry
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
 
 METRICS_PATH = "/metrics"
 

@@ -7,7 +7,7 @@ from alembic import command
 
 
 def _build_alembic_config(database_url: str) -> AlembicConfig:
-    backend_root = Path(__file__).resolve().parents[2]
+    backend_root = Path(__file__).resolve().parents[3]
     alembic_cfg = AlembicConfig()
     alembic_cfg.set_main_option("script_location", str(backend_root / "alembic"))
     alembic_cfg.set_main_option("prepend_sys_path", ".")

@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.settings import SETTINGS
+from app.core.config.settings import SETTINGS
 from app.utils.cookies import REFRESH_SID_COOKIE_NAME
 from tests.fixtures.payload_data import build_login_payload, build_signup_payload
 from tests.fixtures.scenario_flow_data import DEFAULT_FULL_SYSTEM_SCENARIO

@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-import app.core.database as database
-from app.core.mail import MAIL_SERVICE, NullMailProvider
-from app.core.redis import RedisManager
-from app.core.settings import SETTINGS
+import app.core.db.session as database
+from app.core.cache.redis import RedisManager
+from app.core.config.settings import SETTINGS
+from app.core.mail.service import MAIL_SERVICE, NullMailProvider
 from app.models.user import AuthIdentity, Credential, User, UserResponse, UserRole
 from app.utils.security import hash_password
 from tests.fixtures.scenario_seed_data import (
