@@ -40,23 +40,21 @@ docker/
 1. 환경 파일 초기화:
 
 ```bash
-bash ./docker/scripts/init-env.sh
+make init
 ```
 
 2. 백엔드 실행 (로컬 개발):
 
 ```bash
-cd src/backend
-uv sync
-uv run uvicorn app.main:app --reload --port 8000
+make backend-install
+make backend-dev
 ```
 
 3. 프론트엔드 실행 (로컬 개발):
 
 ```bash
-cd src/frontend
-npm ci
-npm run dev
+make frontend-install
+make frontend-dev
 ```
 
 4. 접속:
@@ -64,48 +62,78 @@ npm run dev
 - 백엔드 API 문서: `http://localhost:8000/docs`
 - 프론트엔드 앱 (Vite): `http://localhost:5173`
 
+## Make 워크플로 훅
+
+사용 가능한 워크플로 훅은 `make help`로 확인합니다.
+
+자주 쓰는 타겟:
+
+```bash
+make install              # 백엔드/프론트엔드 의존성 설치
+make backend-dev          # FastAPI 개발 서버 실행
+make frontend-dev         # Vite 개발 서버 실행
+make build                # 백엔드 환경 및 프론트엔드 아티팩트 빌드
+make test                 # 백엔드/프론트엔드 테스트 실행
+make check                # 백엔드 린트 및 프론트엔드 포맷 체크
+make format               # 백엔드/프론트엔드 포맷팅
+make ci                   # check, test, build 실행
+```
+
+Docker 타겟:
+
+```bash
+make docker-build
+make docker-up
+make docker-logs DOCKER_SERVICE=app
+make docker-down
+make docker-deploy
+make docker-export
+make docker-observability-up
+make docker-observability-down
+```
+
 ## Docker 배포 (Bash 전용)
 
 1. 환경 준비:
 
 ```bash
-bash ./docker/scripts/init-env.sh
+make init
 ```
 
 2. 앱 이미지 빌드:
 
 ```bash
-bash ./docker/scripts/docker-build.sh
+make docker-build
 ```
 
 3. 서비스 기동 (`docker/.env`에 따라 `app` + 선택적 `postgres/redis`):
 
 ```bash
-bash ./docker/scripts/docker-up.sh
+make docker-up
 ```
 
 4. 로그 확인:
 
 ```bash
-bash ./docker/scripts/docker-logs.sh app
+make docker-logs DOCKER_SERVICE=app
 ```
 
 5. 서비스 중지:
 
 ```bash
-bash ./docker/scripts/docker-down.sh
+make docker-down
 ```
 
 6. 원샷 배포 (빌드 + 재기동 + tar 내보내기):
 
 ```bash
-bash ./docker/scripts/docker-deploy.sh
+make docker-deploy
 ```
 
 7. 앱 이미지 tar 내보내기:
 
 ```bash
-bash ./docker/scripts/docker-export.sh
+make docker-export
 ```
 
 내보낸 이미지 파일은 `docker/artifacts/`에 저장됩니다.
@@ -115,15 +143,13 @@ bash ./docker/scripts/docker-export.sh
 백엔드:
 
 ```bash
-cd src/backend
-uv run ruff check . --fix
-uv run ruff format .
+make backend-format
+make backend-test
 ```
 
 프론트엔드:
 
 ```bash
-cd src/frontend
-npm run format
-npm run build
+make frontend-format
+make frontend-build
 ```

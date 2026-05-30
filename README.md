@@ -45,23 +45,21 @@ docker/
 1. Initialize env files:
 
 ```bash
-bash ./docker/scripts/init-env.sh
+make init
 ```
 
 2. Run backend (local development):
 
 ```bash
-cd src/backend
-uv sync
-uv run uvicorn app.main:app --reload --port 8000
+make backend-install
+make backend-dev
 ```
 
 3. Run frontend (local development):
 
 ```bash
-cd src/frontend
-npm ci
-npm run dev
+make frontend-install
+make frontend-dev
 ```
 
 4. Open:
@@ -69,48 +67,78 @@ npm run dev
 - Backend API docs: `http://localhost:8000/docs`
 - Frontend app (Vite): `http://localhost:5173`
 
+## Make Workflow Hooks
+
+Run `make help` to list the available workflow hooks.
+
+Common targets:
+
+```bash
+make install              # Install backend and frontend dependencies
+make backend-dev          # Run FastAPI development server
+make frontend-dev         # Run Vite development server
+make build                # Build backend environment and frontend artifacts
+make test                 # Run backend and frontend tests
+make check                # Run backend lint and frontend format checks
+make format               # Format backend and frontend code
+make ci                   # Run check, test, and build
+```
+
+Docker targets:
+
+```bash
+make docker-build
+make docker-up
+make docker-logs DOCKER_SERVICE=app
+make docker-down
+make docker-deploy
+make docker-export
+make docker-observability-up
+make docker-observability-down
+```
+
 ## Docker Deployment (Bash Only)
 
 1. Prepare env:
 
 ```bash
-bash ./docker/scripts/init-env.sh
+make init
 ```
 
 2. Build app image:
 
 ```bash
-bash ./docker/scripts/docker-build.sh
+make docker-build
 ```
 
 3. Start services (`app` + optional local `postgres/redis` based on `docker/.env`):
 
 ```bash
-bash ./docker/scripts/docker-up.sh
+make docker-up
 ```
 
 4. View logs:
 
 ```bash
-bash ./docker/scripts/docker-logs.sh app
+make docker-logs DOCKER_SERVICE=app
 ```
 
 5. Stop services:
 
 ```bash
-bash ./docker/scripts/docker-down.sh
+make docker-down
 ```
 
 6. One-shot deploy (build + recreate + export tar):
 
 ```bash
-bash ./docker/scripts/docker-deploy.sh
+make docker-deploy
 ```
 
 7. Export app image tar:
 
 ```bash
-bash ./docker/scripts/docker-export.sh
+make docker-export
 ```
 
 Exported image files are stored in `docker/artifacts/`.
@@ -120,15 +148,13 @@ Exported image files are stored in `docker/artifacts/`.
 Backend:
 
 ```bash
-cd src/backend
-uv run ruff check . --fix
-uv run ruff format .
+make backend-format
+make backend-test
 ```
 
 Frontend:
 
 ```bash
-cd src/frontend
-npm run format
-npm run build
+make frontend-format
+make frontend-build
 ```

@@ -15,6 +15,18 @@ If implementation changes behavior, structure, or rules, update related docs in 
 Localized documentation is maintained under `notes/<locale>/...`.
 Keep localized paths synchronized with `README.md`.
 
+## Pre-Commit Verification
+
+Before finalizing a commit, run validation through the root `Makefile` hooks.
+
+1. Use `make help` to confirm available workflow targets when needed.
+2. Run the narrowest relevant Make target for the changed scope:
+   - Backend-only: `make backend-check` and `make backend-test`
+   - Frontend-only: `make frontend-format-check` and `make frontend-test`
+   - Cross-stack or shared workflow changes: `make check` and `make test`
+3. If a required Make target cannot run in the local environment, record the reason in the final response and worklog.
+4. Do not replace Make targets with ad-hoc commands unless the Make target itself is broken or missing.
+
 ## Worklog Policy (Required)
 
 1. Every commit must include a matching worklog entry file under `worklog/`.
