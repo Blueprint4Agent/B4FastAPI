@@ -55,6 +55,7 @@ export function ShowCasePage() {
     const { themeMode, setThemeMode } = useTheme();
     const [sampleInput, setSampleInput] = useState("");
     const [sampleChecked, setSampleChecked] = useState(true);
+    const [sampleUnchecked, setSampleUnchecked] = useState(false);
     const [sampleMenu, setSampleMenu] = useState("profile");
     const [sampleToggle, setSampleToggle] = useState(true);
     const [sampleModalOpen, setSampleModalOpen] = useState(false);
@@ -181,13 +182,22 @@ export function ShowCasePage() {
                                     placeholder="Type something..."
                                 />
                             </ShowcaseItem>
-                            <ShowcaseItem component="FormCheckbox">
-                                <FormCheckbox
-                                    checked={sampleChecked}
-                                    onCheckedChange={setSampleChecked}
-                                    label="Sample checkbox"
-                                />
-                            </ShowcaseItem>
+                            <div className="showcase-catalog__row">
+                                <ShowcaseItem component="FormCheckbox (checked)">
+                                    <FormCheckbox
+                                        checked={sampleChecked}
+                                        onCheckedChange={setSampleChecked}
+                                        label="Checked checkbox"
+                                    />
+                                </ShowcaseItem>
+                                <ShowcaseItem component="FormCheckbox (unchecked)">
+                                    <FormCheckbox
+                                        checked={sampleUnchecked}
+                                        onCheckedChange={setSampleUnchecked}
+                                        label="Unchecked checkbox"
+                                    />
+                                </ShowcaseItem>
+                            </div>
                             <ShowcaseItem component="ToggleSwitch">
                                 <ToggleSwitch
                                     checked={sampleToggle}

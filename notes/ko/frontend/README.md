@@ -23,7 +23,8 @@ npm run dev
 
 API base URL 동작:
 
-- `VITE_API_BASE_URL`이 설정되어 있으면 해당 값을 사용합니다.
+- `VITE_API_BASE_URL`이 설정되어 있으면 해당 값을 사용합니다. 로컬 루프백 별칭
+  (`localhost`, `127.0.0.1`, `::1`)은 인증 쿠키가 same-site로 유지되도록 현재 프론트 호스트에 맞춥니다.
 - 미설정 상태에서 현재 포트가 `5173`(Vite dev)이면 기본값으로 `http(s)://<current-host>:8000`을 사용합니다.
 - 그 외에는 현재 페이지 origin(same-origin)을 기본값으로 사용하며, 백엔드 static 서빙 모드에 유용합니다.
 

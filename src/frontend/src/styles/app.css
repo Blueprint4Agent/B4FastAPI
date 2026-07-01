@@ -2103,9 +2103,15 @@ input:focus {
 }
 
 .checkbox {
+    position: relative;
+    display: grid;
     grid-template-columns: auto 1fr;
     align-items: center;
     gap: 0.55rem;
+    width: fit-content;
+    color: var(--text-soft);
+    cursor: pointer;
+    user-select: none;
 }
 
 .login-remember-options {
@@ -2126,10 +2132,74 @@ input:focus {
     justify-self: start;
 }
 
-.checkbox input {
+.checkbox__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.checkbox__control {
+    position: relative;
     width: 1.1rem;
     height: 1.1rem;
-    border-radius: 0.45rem;
+    border: 1px solid color-mix(in oklab, var(--input-border) 86%, var(--text) 14%);
+    border-radius: 0.38rem;
+    display: grid;
+    place-items: center;
+    background: color-mix(in oklab, var(--input-bg) 92%, transparent 8%);
+    transition:
+        transform 150ms ease,
+        border-color 150ms ease,
+        background-color 150ms ease;
+}
+
+.checkbox__control::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.32rem;
+    height: 0.58rem;
+    border-right: 2px solid var(--button-fg);
+    border-bottom: 2px solid var(--button-fg);
+    opacity: 0;
+    transform: translate(-50%, -58%) rotate(45deg);
+    transform-origin: center;
+}
+
+.checkbox:hover .checkbox__control {
+    transform: translateY(-1px);
+    border-color: color-mix(in oklab, var(--button-border) 58%, var(--input-border) 42%);
+}
+
+.checkbox__input:focus-visible + .checkbox__control {
+    outline: 2px solid color-mix(in oklab, var(--text) 24%, transparent);
+    outline-offset: 2px;
+}
+
+.checkbox__input:checked + .checkbox__control {
+    border-color: var(--button-border);
+    background: var(--button-bg);
+}
+
+.checkbox__input:checked + .checkbox__control::after {
+    opacity: 1;
+}
+
+.checkbox__input:disabled + .checkbox__control,
+.checkbox__input:disabled ~ .checkbox__label {
+    opacity: 0.56;
+    cursor: not-allowed;
+}
+
+.checkbox__label {
+    font:
+        500 0.84rem/1.25 "Inter",
+        system-ui,
+        sans-serif;
 }
 
 .ui-button {

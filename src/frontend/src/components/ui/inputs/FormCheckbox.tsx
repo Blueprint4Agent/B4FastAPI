@@ -22,12 +22,14 @@ export function FormCheckbox({
     return (
         <label className={nextClassName} htmlFor={inputId}>
             <input
+                className="checkbox__input"
                 id={inputId}
                 type="checkbox"
                 checked={checked}
                 onChange={(event) => onCheckedChange(event.target.checked)}
             />
-            <span>{label}</span>
+            <span className="checkbox__control" aria-hidden="true" />
+            <span className="checkbox__label">{label}</span>
         </label>
     );
 }
