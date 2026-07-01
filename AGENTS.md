@@ -37,3 +37,84 @@ Before finalizing a commit, run validation through the root `Makefile` hooks.
    - reason
    - impact
 4. Do not finalize a commit without updating/adding its worklog entry.
+
+## Git Governance
+
+Use the repository harness when preparing branches, commits, or pull requests:
+
+```sh
+make git-governance-check
+```
+
+The harness validates the current branch, commit title, and matching worklog. Use `scripts/validate-git-governance.sh --commit-title "..." --pr-title "..." --pr-body-file <file>` to validate planned metadata before committing or opening a PR.
+
+### Branch Naming
+
+Branch names must use an industry-standard change type and kebab-case description:
+
+```text
+<type>/<short-kebab-title>
+```
+
+Allowed types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`, `build`, `perf`, `style`, `revert`, `hotfix`.
+
+Examples:
+
+- `feat/api-key-pagination`
+- `fix/oauth-callback-state`
+- `docs/frontend-rules`
+- `chore/commit-pr-governance`
+
+### Commit Titles
+
+Commit titles must follow Conventional Commits:
+
+```text
+<type>(optional-scope): <imperative summary>
+```
+
+Examples:
+
+- `feat(frontend): add API key pagination`
+- `fix(auth): preserve oauth callback state`
+- `docs: define PR governance rules`
+
+Commit bodies are required for non-trivial commits and must include:
+
+```text
+Changes:
+- What changed.
+
+Affected Files:
+- Key files or directories changed.
+
+Verification:
+- How the change was tested or reproduced.
+```
+
+Use `COMMIT_BODY_FILE=<file> make git-governance-check` or `scripts/validate-git-governance.sh --commit-body-file <file>` to validate planned commit body sections before committing.
+
+### Pull Request Titles and Descriptions
+
+PR titles must use a visible type tag:
+
+```text
+[type] Concise PR title
+```
+
+Examples:
+
+- `[feat] Add API key pagination`
+- `[fix] Preserve OAuth callback state`
+- `[docs] Define commit and PR governance`
+
+PR descriptions must include:
+
+- Summary
+- Scope
+- Reason
+- Verification
+- Documentation
+- Risk / Impact
+
+When labels are available, apply labels that match the type and affected area, such as `feat`, `fix`, `docs`, `frontend`, `backend`, `infra`, or `tests`.

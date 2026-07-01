@@ -37,3 +37,84 @@
    - reason
    - impact
 4. 워크로그를 업데이트/추가하지 않은 커밋은 완료 처리하면 안 됩니다.
+
+## Git 거버넌스
+
+브랜치, 커밋, PR을 준비할 때 저장소 하네스를 사용합니다.
+
+```sh
+make git-governance-check
+```
+
+하네스는 현재 브랜치, 커밋 제목, 대응 워크로그를 검증합니다. 커밋 또는 PR 생성 전에 메타데이터를 미리 검증하려면 `scripts/validate-git-governance.sh --commit-title "..." --pr-title "..." --pr-body-file <file>` 형식을 사용합니다.
+
+### 브랜치 이름
+
+브랜치 이름은 업계 표준 변경 타입과 kebab-case 설명을 사용합니다.
+
+```text
+<type>/<short-kebab-title>
+```
+
+허용 타입: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`, `build`, `perf`, `style`, `revert`, `hotfix`.
+
+예시:
+
+- `feat/api-key-pagination`
+- `fix/oauth-callback-state`
+- `docs/frontend-rules`
+- `chore/commit-pr-governance`
+
+### 커밋 제목
+
+커밋 제목은 Conventional Commits 형식을 따릅니다.
+
+```text
+<type>(optional-scope): <imperative summary>
+```
+
+예시:
+
+- `feat(frontend): add API key pagination`
+- `fix(auth): preserve oauth callback state`
+- `docs: define PR governance rules`
+
+단순하지 않은 커밋은 커밋 본문을 작성해야 하며 다음 섹션을 포함해야 합니다.
+
+```text
+Changes:
+- 변경한 작업 내용.
+
+Affected Files:
+- 영향받은 주요 파일 또는 디렉터리.
+
+Verification:
+- 재현 또는 검증 방법.
+```
+
+커밋 전에 `COMMIT_BODY_FILE=<file> make git-governance-check` 또는 `scripts/validate-git-governance.sh --commit-body-file <file>`로 커밋 본문 섹션을 검증할 수 있습니다.
+
+### Pull Request 제목과 설명
+
+PR 제목은 눈에 보이는 타입 태그를 사용합니다.
+
+```text
+[type] Concise PR title
+```
+
+예시:
+
+- `[feat] Add API key pagination`
+- `[fix] Preserve OAuth callback state`
+- `[docs] Define commit and PR governance`
+
+PR 설명에는 다음 섹션이 필요합니다.
+
+- Summary
+- Scope
+- Reason
+- Verification
+- Documentation
+- Risk / Impact
+
+라벨을 사용할 수 있다면 `feat`, `fix`, `docs`, `frontend`, `backend`, `infra`, `tests`처럼 변경 타입과 영향 영역에 맞는 라벨을 적용합니다.
