@@ -21,7 +21,7 @@ export function ForgotPasswordEmailSentPage() {
     const showDisabled = !configLoading && !emailEnabled;
 
     return (
-        <main className="page">
+        <main className="page auth-page">
             <ThemeToggle />
             <PanelCard
                 className="auth-panel"

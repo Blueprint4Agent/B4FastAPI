@@ -166,7 +166,7 @@ export function SignupPage() {
     };
 
     return (
-        <main className="page">
+        <main className="page auth-page">
             <ThemeToggle />
             <PanelCard
                 className="auth-panel"

@@ -171,6 +171,15 @@ a {
     padding: 2rem 1rem;
 }
 
+.auth-page {
+    height: 100dvh;
+    min-height: 0;
+    overflow-y: auto;
+    align-items: safe center;
+    justify-items: center;
+    align-content: safe center;
+}
+
 .app-shell {
     height: 100%;
     display: grid;
