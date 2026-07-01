@@ -14,6 +14,8 @@ PYTEST_ARGS ?=
 UV ?= uv
 NPM ?= npm
 DOCKER_COMPOSE ?= docker compose
+MERGE_METHOD ?= merge
+ALLOW_NON_MERGE_METHOD ?= false
 
 .DEFAULT_GOAL := help
 
@@ -35,8 +37,8 @@ build: backend-build frontend-build ## Build backend environment and frontend st
 check: backend-check frontend-format-check ## Run backend lint and frontend format checks
 
 .PHONY: git-governance-check
-git-governance-check: ## Validate git governance; optionally pass COMMIT_TITLE, COMMIT_BODY_FILE, PR_TITLE, PR_BODY_FILE
-	COMMIT_TITLE="$(COMMIT_TITLE)" COMMIT_BODY_FILE="$(COMMIT_BODY_FILE)" PR_TITLE="$(PR_TITLE)" PR_BODY_FILE="$(PR_BODY_FILE)" bash ./scripts/validate-git-governance.sh
+git-governance-check: ## Validate git governance; optionally pass commit, PR, and merge metadata
+	COMMIT_TITLE="$(COMMIT_TITLE)" COMMIT_BODY_FILE="$(COMMIT_BODY_FILE)" PR_TITLE="$(PR_TITLE)" PR_BODY_FILE="$(PR_BODY_FILE)" MERGE_METHOD="$(MERGE_METHOD)" ALLOW_NON_MERGE_METHOD="$(ALLOW_NON_MERGE_METHOD)" bash ./scripts/validate-git-governance.sh
 
 .PHONY: format
 format: backend-format frontend-format ## Format backend and frontend code
