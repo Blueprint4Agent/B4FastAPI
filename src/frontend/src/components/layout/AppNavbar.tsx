@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthContext } from "../../hooks/useAuth";
 import { useAppConfig } from "../../hooks/useFeatures";
 import { useTheme } from "../../hooks/useTheme";
+import { startDesktopWindowDrag } from "../../utils/desktopWindow";
 import { BrandMark, Tooltip } from "../ui";
 import { ProfileDropdown } from "./ProfileDropdown";
 
@@ -43,8 +44,8 @@ export function AppNavbar() {
     };
 
     return (
-        <header className="app-nav">
-            <div className="app-nav__inner">
+        <header className="app-nav" data-tauri-drag-region onMouseDown={startDesktopWindowDrag}>
+            <div className="app-nav__inner" data-tauri-drag-region>
                 <Tooltip content={t("nav.aria.goShowCase")} side="right">
                     <Link
                         to="/show-case"

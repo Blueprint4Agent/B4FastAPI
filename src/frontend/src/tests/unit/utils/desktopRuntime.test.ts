@@ -1,0 +1,21 @@
+import { describe, expect, it } from "vitest";
+
+import { detectDesktopPlatform, isTauriRuntime } from "../../../utils/desktopRuntime";
+
+describe("desktopRuntime", () => {
+    it("detects supported desktop platforms from the webview user agent", () => {
+        expect(detectDesktopPlatform("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")).toBe(
+            "macos",
+        );
+        expect(detectDesktopPlatform("Mozilla/5.0 (Windows NT 10.0; Win64; x64)")).toBe("windows");
+        expect(detectDesktopPlatform("Mozilla/5.0 (X11; Linux x86_64)")).toBe("linux");
+    });
+
+    it("distinguishes a Tauri webview from a browser window", () => {
+        const browserWindow = {} as Window;
+        const tauriWindow = { __TAURI_INTERNALS__: {} } as unknown as Window;
+
+        expect(isTauriRuntime(browserWindow)).toBe(false);
+        expect(isTauriRuntime(tauriWindow)).toBe(true);
+    });
+});

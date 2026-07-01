@@ -21,6 +21,26 @@ npm run dev
 
 - `http://localhost:5173`
 
+브라우저 실행은 계속 기본 프론트엔드 방식입니다. 같은 React 애플리케이션을 선택형
+Tauri 데스크톱 셸에서 실행하려면 다음 명령을 사용합니다.
+
+```bash
+cd src/frontend
+npm run tauri:dev
+```
+
+Rust가 `~/.cargo/bin`에 설치되어 있지만 현재 셸이 해당 경로를 불러오지 않은
+경우 실행기가 명령 PATH에 자동으로 추가합니다. 저장소 루트에서는 동일하게
+`make frontend-desktop-dev`를 사용할 수 있습니다.
+
+Tauri 개발에는 Rust toolchain이 필요합니다. 로컬 데스크톱 셸은 기본적으로
+`http://localhost:8000` API에 연결하며, 다른 API가 필요하면 `VITE_API_BASE_URL`을 설정합니다.
+현재 데스크톱 셸은 온라인 우선입니다. 오프라인에서도 정적 UI asset은 열리지만 인증,
+API 키 관리, 실시간 이벤트 및 서버 데이터에는 FastAPI 연결이 필요합니다. 오프라인 데이터
+캐시와 재동기화는 셸에 포함되지 않은 별도 기능입니다.
+Tauri에서는 네이티브 창 컨트롤이 랜딩, 인증 및 앱 내부 Nav와 같은 타이틀바 영역을
+공유합니다. 브라우저 프론트엔드는 기존 탐색 레이아웃을 유지합니다.
+
 API base URL 동작:
 
 - `VITE_API_BASE_URL`이 설정되어 있으면 해당 값을 사용합니다. 로컬 루프백 별칭
@@ -91,6 +111,12 @@ npm run test:e2e
 ```bash
 cd src/frontend
 npm run build
+```
+
+FastAPI static 경로로 복사하지 않고 데스크톱 셸용 공용 웹 asset만 빌드합니다.
+
+```bash
+npm run build:desktop
 ```
 
 선택적 API 계약 갱신 + 빌드:

@@ -5,13 +5,18 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
+        "dev:tauri": "node scripts/start-tauri-dev.mjs",
         "generate:api": "openapi-typescript http://localhost:8000/openapi.json -o src/api/generated/openapi.ts && prettier src/api/generated/openapi.ts --write",
         "generate:api:optional": "node scripts/generate-openapi.mjs",
         "api:sync:strict": "npm run generate:api",
         "api:sync": "npm run generate:api:optional",
-        "build": "tsc && vite build && node ./scripts/copy-to-backend.mjs",
+        "build:web": "tsc && vite build",
+        "build": "npm run build:web && node ./scripts/copy-to-backend.mjs",
+        "build:desktop": "npm run build:web",
         "build:sync": "npm run api:sync && npm run build",
         "build:strict": "npm run api:sync:strict && npm run build",
+        "tauri": "node scripts/run-tauri.mjs",
+        "tauri:dev": "node scripts/run-tauri.mjs dev",
         "preview": "vite preview",
         "test": "vitest run",
         "test:watch": "vitest",
@@ -25,6 +30,7 @@
         "format:check": "prettier . --check"
     },
     "dependencies": {
+        "@tauri-apps/api": "^2.11.1",
         "i18next": "^25.8.13",
         "lucide-react": "^0.575.0",
         "openapi-fetch": "^0.15.0",
@@ -35,6 +41,7 @@
     },
     "devDependencies": {
         "@playwright/test": "^1.56.1",
+        "@tauri-apps/cli": "^2.11.4",
         "@testing-library/jest-dom": "^6.9.1",
         "@testing-library/react": "^16.3.0",
         "@testing-library/user-event": "^14.6.1",

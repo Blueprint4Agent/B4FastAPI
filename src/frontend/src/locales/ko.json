@@ -4,6 +4,11 @@
         "loadingSubtitle": "세션을 준비하는 동안 잠시만 기다려주세요.",
         "loadingSession": "세션 불러오는 중..."
     },
+    "desktopWindow": {
+        "minimize": "창 최소화",
+        "maximize": "창 최대화 또는 복원",
+        "close": "창 닫기"
+    },
     "landing": {
         "navAria": "랜딩 탐색",
         "eyebrow": "Blueprint4FastAPI",

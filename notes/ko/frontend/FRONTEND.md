@@ -36,6 +36,7 @@ src/frontend/
     utils/
   scripts/
   public/
+  src-tauri/    # 선택형 Tauri 데스크톱 셸; 브라우저 프론트엔드도 계속 지원
 ```
 
 ## 0.2) 프론트엔드 흐름과 결합 구조
@@ -211,12 +212,14 @@ flowchart LR
 - 로컬 개발:
 
 1. `npm run dev`
+2. 선택형 데스크톱 셸은 `npm run tauri:dev` 사용(Rust 필요)
 
 - 프로덕션 빌드:
 
 1. `npm run build`
 2. `npm run build:sync` (선택적 백엔드 OpenAPI 갱신)
 3. `npm run build:strict` (백엔드 OpenAPI 엔드포인트 필수)
+4. `npm run build:desktop`은 FastAPI 복사 없이 공용 asset만 빌드
 
 - 빌드 파이프라인에는 `scripts/copy-to-backend.mjs`를 통한 프론트 아티팩트의 백엔드 static 경로 복사가 포함됩니다.
 

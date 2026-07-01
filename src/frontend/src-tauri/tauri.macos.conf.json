@@ -1,0 +1,26 @@
+{
+    "app": {
+        "windows": [
+            {
+                "title": "B4FastAPI",
+                "width": 1280,
+                "height": 820,
+                "minWidth": 960,
+                "minHeight": 640,
+                "center": true,
+                "decorations": true,
+                "titleBarStyle": "Overlay",
+                "hiddenTitle": true,
+                "trafficLightPosition": {
+                    "x": 16,
+                    "y": 18
+                },
+                "resizable": true,
+                "fullscreen": false
+            }
+        ]
+    },
+    "bundle": {
+        "icon": ["icons/icon-macos-v2.icns"]
+    }
+}

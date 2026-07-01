@@ -39,8 +39,12 @@ src/frontend/
       unit/
         utils/
           apiBase.test.ts
+          desktopRuntime.test.ts
           validation.test.ts
       component/
+        components/
+          layout/
+            DesktopTitleBar.test.tsx
         pages/
           login/
             LoginPage.test.tsx
@@ -161,28 +165,32 @@ When a new frontend domain is added:
 
 1. `src/tests/unit/utils/apiBase.test.ts`
     - Local loopback hostname alignment for same-site authentication cookies.
-2. `src/tests/unit/utils/validation.test.ts`
+2. `src/tests/unit/utils/desktopRuntime.test.ts`
+    - Browser/Tauri runtime distinction and desktop platform detection.
+3. `src/tests/unit/utils/validation.test.ts`
     - Email/password validation success and failure branches.
-3. `src/tests/integration/api/configApi.test.ts`
+4. `src/tests/component/components/layout/DesktopTitleBar.test.tsx`
+    - Browser hidden state, native macOS controls, and Windows window actions.
+5. `src/tests/integration/api/configApi.test.ts`
     - `/config` success and failure API response handling.
-4. `src/tests/component/pages/login/LoginPage.test.tsx`
+6. `src/tests/component/pages/login/LoginPage.test.tsx`
     - Invalid email client-side validation branch.
     - Successful login submit + navigation branch.
     - `INVALID_CREDENTIALS` remaining-attempts branch.
     - `EMAIL_NOT_VERIFIED` + resend verification branch.
-5. `src/tests/component/pages/settings/SettingsPage.test.tsx`
+7. `src/tests/component/pages/settings/SettingsPage.test.tsx`
     - Role badge visibility branch:
       admin role shows badge, user role hides badge.
     - Backend-aligned API key lifecycle flow:
       create -> reveal -> list-visible -> disable -> enable -> delete.
     - Backend-aligned error branches:
       duplicate-name (`API_KEY_NAME_ALREADY_EXISTS`), delete not-found (`API_KEY_NOT_FOUND`).
-6. `src/tests/integration/hooks/useAuth.test.tsx`
+8. `src/tests/integration/hooks/useAuth.test.tsx`
     - refresh bootstrap success branch (no token -> refresh -> me).
     - stored token + `/me` success branch (refresh skip).
     - `/me` fail + refresh fail branch (token clear and logged-out state).
     - logout API failure branch with client-side session clear in `finally`.
-7. `tests/e2e/auth-smoke.spec.ts`
+9. `tests/e2e/auth-smoke.spec.ts`
     - Browser-level `/login` route render smoke.
 
 ## 8.1) Backend Full-System Mapping (Frontend-Reachable Subset)

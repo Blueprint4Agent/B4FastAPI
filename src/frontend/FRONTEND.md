@@ -36,6 +36,7 @@ src/frontend/
     utils/
   scripts/
   public/
+  src-tauri/    # optional Tauri desktop shell; browser frontend remains supported
 ```
 
 ## 0.2) Frontend Flow and Coupling
@@ -223,12 +224,14 @@ flowchart LR
 - Local dev:
 
 1. `npm run dev`
+2. `npm run tauri:dev` for the optional desktop shell (requires Rust)
 
 - Production build:
 
 1. `npm run build`
 2. `npm run build:sync` (optional backend OpenAPI refresh)
 3. `npm run build:strict` (requires backend OpenAPI endpoint)
+4. `npm run build:desktop` builds shared assets without copying them to FastAPI
 
 - The build pipeline includes copying frontend artifacts into backend static path through `scripts/copy-to-backend.mjs`.
 

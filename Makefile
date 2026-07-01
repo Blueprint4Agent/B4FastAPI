@@ -79,9 +79,17 @@ frontend-install: ## Install frontend dependencies
 frontend-dev: ## Run frontend development server
 	cd $(FRONTEND_DIR) && $(NPM) run dev -- --host $(FRONTEND_HOST) --port $(FRONTEND_PORT)
 
+.PHONY: frontend-desktop-dev
+frontend-desktop-dev: ## Run the frontend in the Tauri desktop shell
+	cd $(FRONTEND_DIR) && $(NPM) run tauri:dev
+
 .PHONY: frontend-build
 frontend-build: ## Build frontend static artifacts and copy them to backend static path
 	cd $(FRONTEND_DIR) && $(NPM) run build
+
+.PHONY: frontend-desktop-build
+frontend-desktop-build: ## Build the Tauri desktop application
+	cd $(FRONTEND_DIR) && $(NPM) run tauri -- build
 
 .PHONY: frontend-build-sync
 frontend-build-sync: ## Generate API types optionally, then build frontend
