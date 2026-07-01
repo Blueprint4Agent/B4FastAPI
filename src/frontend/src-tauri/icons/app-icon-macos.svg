@@ -1,0 +1,16 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg x="96" y="96" width="832" height="832" viewBox="0 0 96 96">
+    <rect width="96" height="96" rx="22" fill="#111111"/>
+    <text
+      x="48"
+      y="56"
+      text-anchor="middle"
+      font-family="Space Grotesk, Arial, sans-serif"
+      font-size="28"
+      font-weight="700"
+      fill="#FFFFFF"
+    >
+      B4A
+    </text>
+  </svg>
+</svg>

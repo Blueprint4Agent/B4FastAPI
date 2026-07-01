@@ -23,6 +23,26 @@ Default local URL:
 
 - `http://localhost:5173`
 
+The browser remains the default frontend target. To run the same React application in the
+optional Tauri desktop shell:
+
+```bash
+cd src/frontend
+npm run tauri:dev
+```
+
+The launcher automatically adds `~/.cargo/bin` to the command PATH when Rust is
+installed there but the current shell has not loaded it. From the repository root,
+the equivalent command is `make frontend-desktop-dev`.
+
+Tauri development requires the Rust toolchain. The local desktop shell connects to
+`http://localhost:8000` by default. Set `VITE_API_BASE_URL` when a different API is required.
+The desktop shell is currently online-first: static UI assets open offline, but authentication,
+API key management, realtime events, and server data require FastAPI connectivity. Offline
+data caching and synchronization are separate features and are not provided by the shell.
+In Tauri, native window controls share the same title bar area as landing, authentication, and
+in-app navigation. The browser frontend keeps its existing navigation layout.
+
 API base URL behavior:
 
 - If `VITE_API_BASE_URL` is set, frontend uses that value. Local loopback aliases
@@ -94,6 +114,12 @@ npm run test:e2e
 ```bash
 cd src/frontend
 npm run build
+```
+
+Build only the shared web assets for the desktop shell without copying them into FastAPI:
+
+```bash
+npm run build:desktop
 ```
 
 Optional API contract refresh + build:

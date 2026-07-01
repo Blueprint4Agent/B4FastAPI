@@ -39,8 +39,12 @@ src/frontend/
       unit/
         utils/
           apiBase.test.ts
+          desktopRuntime.test.ts
           validation.test.ts
       component/
+        components/
+          layout/
+            DesktopTitleBar.test.tsx
         pages/
           login/
             LoginPage.test.tsx
@@ -161,28 +165,32 @@ it("<behavior>", async () => {
 
 1. `src/tests/unit/utils/apiBase.test.ts`
     - 인증 쿠키의 same-site 유지를 위한 로컬 루프백 호스트 정렬
-2. `src/tests/unit/utils/validation.test.ts`
+2. `src/tests/unit/utils/desktopRuntime.test.ts`
+    - 브라우저/Tauri 런타임 구분과 데스크톱 플랫폼 감지
+3. `src/tests/unit/utils/validation.test.ts`
     - 이메일/비밀번호 검증의 성공/실패 분기
-3. `src/tests/integration/api/configApi.test.ts`
+4. `src/tests/component/components/layout/DesktopTitleBar.test.tsx`
+    - 브라우저 숨김, macOS 네이티브 컨트롤, Windows 창 액션
+5. `src/tests/integration/api/configApi.test.ts`
     - `/config` 성공/실패 API 응답 처리
-4. `src/tests/component/pages/login/LoginPage.test.tsx`
+6. `src/tests/component/pages/login/LoginPage.test.tsx`
     - 잘못된 이메일의 클라이언트 검증 분기
     - 로그인 성공 submit + 내비게이션 분기
     - `INVALID_CREDENTIALS` 남은 시도 횟수 분기
     - `EMAIL_NOT_VERIFIED` + 인증 메일 재전송 분기
-5. `src/tests/component/pages/settings/SettingsPage.test.tsx`
+7. `src/tests/component/pages/settings/SettingsPage.test.tsx`
     - 역할 배지 표시 분기:
       admin은 배지 표시, user는 배지 숨김
     - 백엔드 정합 API 키 라이프사이클:
       create -> reveal -> list-visible -> disable -> enable -> delete
     - 백엔드 정합 에러 분기:
       duplicate-name (`API_KEY_NAME_ALREADY_EXISTS`), delete not-found (`API_KEY_NOT_FOUND`)
-6. `src/tests/integration/hooks/useAuth.test.tsx`
+8. `src/tests/integration/hooks/useAuth.test.tsx`
     - refresh bootstrap 성공 분기 (토큰 없음 -> refresh -> me)
     - 저장된 토큰 + `/me` 성공 분기 (refresh skip)
     - `/me` 실패 + refresh 실패 분기 (토큰 삭제 및 로그아웃 상태)
     - logout API 실패 시에도 `finally`에서 클라이언트 세션 정리 분기
-6. `tests/e2e/auth-smoke.spec.ts`
+9. `tests/e2e/auth-smoke.spec.ts`
     - 브라우저 레벨 `/login` 라우트 렌더 스모크
 
 ## 8.1) 백엔드 Full-System 매핑 (프론트 도달 가능 부분집합)

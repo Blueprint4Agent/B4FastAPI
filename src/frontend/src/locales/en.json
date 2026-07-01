@@ -4,6 +4,11 @@
         "loadingSubtitle": "Please wait while we prepare your session.",
         "loadingSession": "Loading session..."
     },
+    "desktopWindow": {
+        "minimize": "Minimize window",
+        "maximize": "Maximize or restore window",
+        "close": "Close window"
+    },
     "landing": {
         "navAria": "Landing navigation",
         "eyebrow": "Blueprint4FastAPI",

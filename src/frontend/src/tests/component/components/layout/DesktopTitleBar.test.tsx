@@ -1,0 +1,97 @@
+import { fireEvent, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { DesktopTitleBar } from "../../../../components/layout/DesktopTitleBar";
+import { renderWithRouter } from "../../../utils/renderWithRouter";
+
+const minimizeMock = vi.fn().mockResolvedValue(undefined);
+const toggleMaximizeMock = vi.fn().mockResolvedValue(undefined);
+const closeMock = vi.fn().mockResolvedValue(undefined);
+const startDraggingMock = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("@tauri-apps/api/window", () => ({
+    getCurrentWindow: () => ({
+        minimize: minimizeMock,
+        toggleMaximize: toggleMaximizeMock,
+        close: closeMock,
+        startDragging: startDraggingMock,
+    }),
+}));
+
+function setTauriUserAgent(userAgent: string) {
+    Object.defineProperty(window, "__TAURI_INTERNALS__", {
+        configurable: true,
+        value: {},
+    });
+    Object.defineProperty(window.navigator, "userAgent", {
+        configurable: true,
+        value: userAgent,
+    });
+}
+
+afterEach(() => {
+    Reflect.deleteProperty(window, "__TAURI_INTERNALS__");
+    minimizeMock.mockClear();
+    toggleMaximizeMock.mockClear();
+    closeMock.mockClear();
+    startDraggingMock.mockClear();
+});
+
+describe("DesktopTitleBar", () => {
+    it("stays hidden in the browser frontend", () => {
+        renderWithRouter(<DesktopTitleBar />, "/login");
+
+        expect(screen.queryByRole("button", { name: "Minimize window" })).not.toBeInTheDocument();
+    });
+
+    it("connects custom Windows controls to Tauri window actions", async () => {
+        setTauriUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        renderWithRouter(<DesktopTitleBar />, "/login");
+        const user = userEvent.setup();
+
+        await user.click(screen.getByRole("button", { name: "Minimize window" }));
+        await user.click(screen.getByRole("button", { name: "Maximize or restore window" }));
+        await user.click(screen.getByRole("button", { name: "Close window" }));
+
+        expect(minimizeMock).toHaveBeenCalledTimes(1);
+        expect(toggleMaximizeMock).toHaveBeenCalledTimes(1);
+        expect(closeMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("uses native window controls on macOS", () => {
+        setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+        const { container } = renderWithRouter(<DesktopTitleBar />, "/login");
+
+        expect(container.querySelector(".desktop-titlebar--standalone")).toBeInTheDocument();
+        expect(screen.getByRole("group", { name: "Theme mode" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Close window" })).not.toBeInTheDocument();
+    });
+
+    it("starts native dragging from a standalone navbar surface", () => {
+        setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+        const { container } = renderWithRouter(<DesktopTitleBar />, "/login");
+
+        fireEvent.mouseDown(container.querySelector(".desktop-titlebar--standalone")!, {
+            button: 0,
+        });
+
+        expect(startDraggingMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not drag when a navbar control is pressed", () => {
+        setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+        renderWithRouter(<DesktopTitleBar />, "/login");
+
+        fireEvent.mouseDown(screen.getByRole("button", { name: "Dark mode" }), { button: 0 });
+
+        expect(startDraggingMock).not.toHaveBeenCalled();
+    });
+
+    it("keeps the theme control out of an integrated app navbar", () => {
+        setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+        renderWithRouter(<DesktopTitleBar />, "/settings");
+
+        expect(screen.queryByRole("group", { name: "Theme mode" })).not.toBeInTheDocument();
+    });
+});

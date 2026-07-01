@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { BrandMark, Button } from "../../components/ui";
+import { startDesktopWindowDrag } from "../../utils/desktopWindow";
 import { markLandingStarted } from "../../utils/landing";
 
 type LandingPageProps = {
@@ -15,8 +16,13 @@ export function LandingPage({ loginEnabled }: LandingPageProps) {
 
     return (
         <div className="landing-shell">
-            <header className="landing-nav" aria-label={t("landing.navAria")}>
-                <div className="landing-nav__brand">
+            <header
+                className="landing-nav"
+                aria-label={t("landing.navAria")}
+                data-tauri-drag-region
+                onMouseDown={startDesktopWindowDrag}
+            >
+                <div className="landing-nav__brand" data-tauri-drag-region>
                     <BrandMark className="brand-mark--nav" />
                 </div>
             </header>

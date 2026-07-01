@@ -4,6 +4,7 @@ Blueprint4FastAPI는 다음 구성을 갖춘 풀스택 템플릿입니다.
 
 - 백엔드: FastAPI + SQLAlchemy + Alembic + Redis
 - 프론트엔드: React + TypeScript + OpenAPI 기반 API 타입 생성
+- 선택형 데스크톱 셸: 동일한 React 프론트엔드를 사용하는 Tauri 2
 - 모놀리식 정적 서빙 지원 (프론트 빌드를 백엔드 static 경로로 복사)
 
 ## 문서 시작점
@@ -152,4 +153,18 @@ make backend-test
 ```bash
 make frontend-format
 make frontend-build
+```
+
+브라우저 프론트엔드는 계속 기본 방식입니다. 선택형 로컬 데스크톱 개발은 다음 명령을 사용합니다.
+
+```bash
+cd src/frontend
+npm run tauri:dev
+```
+
+또는 저장소 루트에서 실행할 수 있습니다. 실행기는 현재 셸에 Rust 경로가
+반영되지 않은 경우 표준 설치 경로(`~/.cargo/bin`)를 자동으로 추가합니다.
+
+```bash
+make frontend-desktop-dev
 ```

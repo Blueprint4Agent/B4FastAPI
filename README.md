@@ -4,6 +4,7 @@ Blueprint4FastAPI is a full-stack template with:
 
 - Backend: FastAPI + SQLAlchemy + Alembic + Redis
 - Frontend: React + TypeScript + OpenAPI-generated API types
+- Optional desktop shell: Tauri 2 using the same React frontend
 - Monolithic static serving support (frontend build copied into backend static path)
 
 ## Documentation Entry
@@ -157,4 +158,18 @@ Frontend:
 ```bash
 make frontend-format
 make frontend-build
+```
+
+The browser frontend remains the default. For optional local desktop development:
+
+```bash
+cd src/frontend
+npm run tauri:dev
+```
+
+Or run it from the repository root. The launcher automatically adds the standard
+Rust installation path (`~/.cargo/bin`) when the current shell has not loaded it:
+
+```bash
+make frontend-desktop-dev
 ```

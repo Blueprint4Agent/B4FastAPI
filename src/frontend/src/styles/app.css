@@ -159,6 +159,134 @@ body,
     height: 100%;
 }
 
+.desktop-titlebar {
+    display: none;
+}
+
+html[data-tauri-runtime="true"] {
+    --nav-height: 2.25rem;
+}
+
+html[data-tauri-runtime="true"] .desktop-titlebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 45;
+    height: var(--nav-height);
+}
+
+html[data-tauri-runtime="true"] .desktop-titlebar--standalone {
+    display: flex;
+    align-items: center;
+    padding-left: 5.25rem;
+    border-bottom: 1px solid color-mix(in oklab, var(--panel-border) 85%, transparent 15%);
+    background: color-mix(in oklab, var(--panel) 88%, transparent 12%);
+    backdrop-filter: blur(10px);
+}
+
+html[data-tauri-runtime="true"] .desktop-titlebar--integrated {
+    display: block;
+    pointer-events: none;
+}
+
+.desktop-titlebar__controls {
+    height: 100%;
+    margin-left: auto;
+    display: flex;
+    pointer-events: auto;
+}
+
+.desktop-titlebar__theme {
+    margin-left: auto;
+    padding: 0 1rem;
+    pointer-events: auto;
+}
+
+.desktop-titlebar__theme .theme-toggle {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    padding: 0.1rem 0.25rem;
+}
+
+.desktop-titlebar__theme .theme-toggle-button__option {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+.desktop-titlebar__theme .theme-toggle-button__option svg {
+    width: 0.78rem;
+    height: 0.78rem;
+}
+
+.desktop-titlebar__theme .theme-toggle-button__title {
+    margin-right: 0.1rem;
+    font-size: 0.68rem;
+}
+
+.desktop-titlebar__button {
+    width: 2.9rem;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-soft);
+    background: transparent;
+    cursor: default;
+}
+
+.desktop-titlebar__button:hover {
+    color: var(--text);
+    background: color-mix(in oklab, var(--input-bg) 78%, transparent 22%);
+}
+
+.desktop-titlebar__button--close:hover {
+    color: #ffffff;
+    background: #c42b1c;
+}
+
+.desktop-titlebar__button svg {
+    width: 0.9rem;
+    height: 0.9rem;
+    pointer-events: none;
+}
+
+html[data-tauri-runtime="true"] .page {
+    padding-top: calc(var(--nav-height) + 1rem);
+}
+
+html[data-tauri-runtime="true"] .auth-page > .theme-toggle {
+    display: none;
+}
+
+html[data-tauri-runtime="true"][data-tauri-platform="macos"] .app-nav__inner,
+html[data-tauri-runtime="true"][data-tauri-platform="macos"] .landing-nav__brand {
+    padding-left: 5.25rem;
+}
+
+html[data-tauri-runtime="true"]:not([data-tauri-platform="macos"]) .app-nav__inner {
+    padding-right: 9.6rem;
+}
+
+html[data-tauri-runtime="true"] .app-nav {
+    --nav-brand-box-size: 1.65rem;
+    --nav-brand-icon-size: 1rem;
+    --nav-profile-button-size: 1.65rem;
+    --nav-profile-avatar-size: 1.2rem;
+}
+
+html[data-tauri-runtime="true"] .app-nav__title {
+    font-size: 0.8rem;
+}
+
+html[data-tauri-runtime="true"] .desktop-titlebar__button {
+    width: 2.5rem;
+}
+
 a {
     color: inherit;
     text-underline-offset: 0.2rem;

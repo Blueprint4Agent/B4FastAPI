@@ -1,9 +1,17 @@
-function resolveDefaultApiBase(): string {
-    if (typeof window !== "undefined" && window.location?.origin) {
-        if (window.location.port === "5173") {
-            return `${window.location.protocol}//${window.location.hostname}:8000`;
+type RuntimeLocation = Pick<Location, "hostname" | "origin" | "port" | "protocol">;
+
+export function resolveDefaultApiBase(
+    runtimeLocation: RuntimeLocation | undefined,
+    tauriRuntime: boolean,
+): string {
+    if (tauriRuntime) {
+        return "http://localhost:8000";
+    }
+    if (runtimeLocation?.origin) {
+        if (runtimeLocation.port === "5173") {
+            return `${runtimeLocation.protocol}//${runtimeLocation.hostname}:8000`;
         }
-        return window.location.origin;
+        return runtimeLocation.origin;
     }
     return "http://localhost:8000";
 }
@@ -26,7 +34,11 @@ export function alignLoopbackApiBase(apiBase: string, frontendHostname: string):
 function resolveApiBase(): string {
     const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim();
     if (!configuredBase) {
-        return resolveDefaultApiBase();
+        const runtimeWindow = typeof window === "undefined" ? undefined : window;
+        return resolveDefaultApiBase(
+            runtimeWindow?.location,
+            Boolean(runtimeWindow && "__TAURI_INTERNALS__" in runtimeWindow),
+        );
     }
     if (typeof window === "undefined" || !window.location?.hostname) {
         return configuredBase;
