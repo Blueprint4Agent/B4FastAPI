@@ -45,7 +45,7 @@ export function VerifyEmailPage() {
 
     if (status === "loading") {
         return (
-            <main className="page">
+            <main className="page auth-page">
                 <ThemeToggle />
                 <PanelCard
                     className="auth-panel"
@@ -60,7 +60,7 @@ export function VerifyEmailPage() {
 
     if (status === "error") {
         return (
-            <main className="page">
+            <main className="page auth-page">
                 <ThemeToggle />
                 <PanelCard
                     className="auth-panel"
@@ -82,7 +82,7 @@ export function VerifyEmailPage() {
     }
 
     return (
-        <main className="page">
+        <main className="page auth-page">
             <ThemeToggle />
             <PanelCard
                 className="auth-panel"

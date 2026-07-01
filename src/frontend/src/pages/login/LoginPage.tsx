@@ -187,7 +187,7 @@ export function LoginPage() {
     };
 
     return (
-        <main className="page">
+        <main className="page auth-page">
             <ThemeToggle />
             <div className="auth-panel-stack">
                 <BrandMark className="brand-mark--login" />

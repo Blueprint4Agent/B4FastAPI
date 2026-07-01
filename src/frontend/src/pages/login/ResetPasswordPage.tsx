@@ -130,7 +130,7 @@ export function ResetPasswordPage() {
     };
 
     return (
-        <main className="page">
+        <main className="page auth-page">
             <ThemeToggle />
             <PanelCard
                 className="auth-panel"
