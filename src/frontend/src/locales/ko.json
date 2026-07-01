@@ -327,6 +327,11 @@
                 "noExpiration": "만료 없음",
                 "created": "생성일",
                 "lastUsed": "마지막 사용"
+            },
+            "pagination": {
+                "label": "페이지네이션",
+                "previous": "이전 API 키 페이지",
+                "next": "다음 API 키 페이지"
             }
         }
     },

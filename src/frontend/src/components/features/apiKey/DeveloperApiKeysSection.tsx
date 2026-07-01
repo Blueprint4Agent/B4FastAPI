@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { TFunction } from "i18next";
 import { useTranslation } from "react-i18next";
@@ -12,9 +13,12 @@ import {
     InputField,
     Modal,
     ModalButton,
+    Pagination,
     StatusBadge,
     ToggleSwitch,
 } from "../../ui";
+
+const API_KEY_PAGE_SIZE = 6;
 
 function formatRequestCount(value: number | null | undefined): string {
     if (typeof value !== "number" || Number.isNaN(value)) {
@@ -25,6 +29,7 @@ function formatRequestCount(value: number | null | undefined): string {
 
 type DeveloperApiKeyListProps = {
     items: APIKeyRecord[];
+    slotCount: number;
     toggleBusyId: number | null;
     onToggleStatus: (apiKeyId: number, enabled: boolean) => void;
     onRequestDelete: (item: APIKeyRecord) => void;
@@ -33,11 +38,14 @@ type DeveloperApiKeyListProps = {
 
 function DeveloperApiKeyList({
     items,
+    slotCount,
     toggleBusyId,
     onToggleStatus,
     onRequestDelete,
     t,
 }: DeveloperApiKeyListProps) {
+    const placeholderCount = Math.max(0, slotCount - items.length);
+
     return (
         <div className="developer-key-list">
             {items.map((item) => {
@@ -111,6 +119,13 @@ function DeveloperApiKeyList({
                     </article>
                 );
             })}
+            {Array.from({ length: placeholderCount }, (_, index) => (
+                <article
+                    key={`placeholder-${index}`}
+                    className="developer-key-card developer-key-card--placeholder"
+                    aria-hidden="true"
+                />
+            ))}
         </div>
     );
 }
@@ -296,6 +311,22 @@ type DeveloperApiKeysSectionProps = {
 
 export function DeveloperApiKeysSection({ controller }: DeveloperApiKeysSectionProps) {
     const { t } = useTranslation();
+    const [currentPage, setCurrentPage] = useState(1);
+    const totalPages = Math.max(1, Math.ceil(controller.items.length / API_KEY_PAGE_SIZE));
+    const visibleItems = useMemo(() => {
+        const startIndex = (currentPage - 1) * API_KEY_PAGE_SIZE;
+        return controller.items.slice(startIndex, startIndex + API_KEY_PAGE_SIZE);
+    }, [controller.items, currentPage]);
+
+    useEffect(() => {
+        if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [controller.items.length]);
 
     return (
         <section className="developer-section" aria-label={t("settings.developers.title")}>
@@ -314,13 +345,24 @@ export function DeveloperApiKeysSection({ controller }: DeveloperApiKeysSectionP
             ) : controller.items.length === 0 ? (
                 <p className="developer-section__loading">{t("settings.developers.empty")}</p>
             ) : (
-                <DeveloperApiKeyList
-                    items={controller.items}
-                    toggleBusyId={controller.toggleBusyId}
-                    onToggleStatus={controller.handleToggleStatus}
-                    onRequestDelete={controller.setDeactivateTarget}
-                    t={t}
-                />
+                <div className="developer-section__list-shell">
+                    <DeveloperApiKeyList
+                        items={visibleItems}
+                        slotCount={totalPages > 1 ? API_KEY_PAGE_SIZE : visibleItems.length}
+                        toggleBusyId={controller.toggleBusyId}
+                        onToggleStatus={controller.handleToggleStatus}
+                        onRequestDelete={controller.setDeactivateTarget}
+                        t={t}
+                    />
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        ariaLabel={t("settings.developers.pagination.label")}
+                        previousLabel={t("settings.developers.pagination.previous")}
+                        nextLabel={t("settings.developers.pagination.next")}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
             )}
 
             <CreateApiKeyModal

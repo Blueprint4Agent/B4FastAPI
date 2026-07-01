@@ -327,6 +327,11 @@
                 "noExpiration": "No expiration",
                 "created": "Created",
                 "lastUsed": "Last used"
+            },
+            "pagination": {
+                "label": "Pagination",
+                "previous": "Previous API key page",
+                "next": "Next API key page"
             }
         }
     },

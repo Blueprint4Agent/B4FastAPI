@@ -19,6 +19,7 @@ import {
     MenuList,
     Modal,
     ModalButton,
+    Pagination,
     PanelCard,
     Spinner,
     StatusBadge,
@@ -57,6 +58,20 @@ export function ShowCasePage() {
     const [sampleMenu, setSampleMenu] = useState("profile");
     const [sampleToggle, setSampleToggle] = useState(true);
     const [sampleModalOpen, setSampleModalOpen] = useState(false);
+    const [sampleCardPage, setSampleCardPage] = useState(1);
+    const sampleCards = Array.from({ length: 13 }, (_, index) => ({
+        id: index + 1,
+        title: `Card ${index + 1}`,
+        meta: `Sample item ${String(index + 1).padStart(2, "0")}`,
+    }));
+    const sampleCardPageSize = 6;
+    const sampleCardTotalPages = Math.ceil(sampleCards.length / sampleCardPageSize);
+    const sampleCardStartIndex = (sampleCardPage - 1) * sampleCardPageSize;
+    const visibleSampleCards = sampleCards.slice(
+        sampleCardStartIndex,
+        sampleCardStartIndex + sampleCardPageSize,
+    );
+    const sampleCardPlaceholderCount = Math.max(0, sampleCardPageSize - visibleSampleCards.length);
     const sampleMenuItems = [
         { key: "profile", label: "Profile", icon: UserRound },
         { key: "general", label: "General", icon: SlidersHorizontal },
@@ -201,6 +216,42 @@ export function ShowCasePage() {
                                     <InlineMessage>
                                         Failed to update your profile. Please try again.
                                     </InlineMessage>
+                                </div>
+                            </ShowcaseItem>
+                            <ShowcaseItem
+                                component="Card list + Pagination"
+                                className="showcase-catalog__paginated-card-demo"
+                            >
+                                <div className="showcase-paginated-cards">
+                                    <div className="showcase-paginated-cards__grid">
+                                        {visibleSampleCards.map((item) => (
+                                            <article
+                                                key={item.id}
+                                                className="showcase-paginated-card"
+                                            >
+                                                <h4>{item.title}</h4>
+                                                <p>{item.meta}</p>
+                                            </article>
+                                        ))}
+                                        {Array.from(
+                                            { length: sampleCardPlaceholderCount },
+                                            (_, index) => (
+                                                <article
+                                                    key={`placeholder-${index}`}
+                                                    className="showcase-paginated-card showcase-paginated-card--placeholder"
+                                                    aria-hidden="true"
+                                                />
+                                            ),
+                                        )}
+                                    </div>
+                                    <Pagination
+                                        currentPage={sampleCardPage}
+                                        totalPages={sampleCardTotalPages}
+                                        ariaLabel="Pagination"
+                                        previousLabel="Previous page"
+                                        nextLabel="Next page"
+                                        onPageChange={setSampleCardPage}
+                                    />
                                 </div>
                             </ShowcaseItem>
                         </div>

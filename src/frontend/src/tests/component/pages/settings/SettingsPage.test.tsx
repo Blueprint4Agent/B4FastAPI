@@ -58,6 +58,19 @@ const apiKeyApiHookMock = {
     resolveAPIKeyErrorMessage: resolveAPIKeyErrorMessageMock,
 };
 
+function buildMockApiKey(id: number) {
+    return {
+        id,
+        name: `API Key ${id}`,
+        key_prefix: `sk_live_${id}`,
+        created_at: "2026-04-30T12:00:00Z",
+        request_count: id,
+        last_used_at: null,
+        expires_at: null,
+        revoked_at: null,
+    };
+}
+
 vi.mock("../../../../hooks/useAuth", () => ({
     useAuthContext: () => ({
         user: mockedAuthUser,
@@ -139,6 +152,52 @@ describe("SettingsPage developers scenario", () => {
 
         // Then: admin badge is not rendered for regular user.
         expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+    });
+
+    it("paginates API key cards after six items", async () => {
+        // Given: API keys exceed the frontend card-list page size.
+        mockedApiKeyItems = Array.from({ length: 7 }, (_, index) => buildMockApiKey(index + 1));
+
+        const { container } = renderWithRouter(<SettingsPage />, "/settings");
+        const user = userEvent.setup();
+
+        // When: user opens the developers section.
+        await user.click(screen.getByRole("button", { name: "Developers" }));
+
+        // Then: first page renders six cards and keeps later keys off-screen.
+        await waitFor(() => {
+            expect(screen.getByText("API Key 1")).toBeInTheDocument();
+        });
+        expect(screen.getByText("API Key 6")).toBeInTheDocument();
+        expect(screen.queryByText("API Key 7")).not.toBeInTheDocument();
+
+        // When: user selects the next numbered page.
+        await user.click(screen.getByRole("button", { name: "2" }));
+
+        // Then: the second page renders the remaining card.
+        expect(screen.getByText("API Key 7")).toBeInTheDocument();
+        expect(screen.queryByText("API Key 1")).not.toBeInTheDocument();
+        expect(container.querySelectorAll(".developer-key-card--placeholder")).toHaveLength(5);
+    });
+
+    it("uses an ellipsis pagination window for many API key pages", async () => {
+        // Given: API keys span more pages than the pager should show at once.
+        mockedApiKeyItems = Array.from({ length: 49 }, (_, index) => buildMockApiKey(index + 1));
+
+        renderWithRouter(<SettingsPage />, "/settings");
+        const user = userEvent.setup();
+
+        // When: user opens the developers section.
+        await user.click(screen.getByRole("button", { name: "Developers" }));
+
+        // Then: pagination keeps boundary pages and truncates the middle range.
+        await waitFor(() => {
+            expect(screen.getByRole("button", { name: "1" })).toBeInTheDocument();
+        });
+        expect(screen.getByRole("button", { name: "5" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "9" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "6" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "7" })).not.toBeInTheDocument();
     });
 
     it("follows backend-aligned API key lifecycle flow from seeded principal context", async () => {
