@@ -8,7 +8,6 @@ on:
             - opened
             - synchronize
             - reopened
-            - ready_for_review
     schedule:
         # GitHub cron is UTC. 15:00 UTC is 00:00 KST.
         - cron: "0 15 * * *"

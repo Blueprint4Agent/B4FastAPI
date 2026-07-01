@@ -96,6 +96,8 @@ Use `COMMIT_BODY_FILE=<file> make git-governance-check` or `scripts/validate-git
 
 ### Pull Request Titles and Descriptions
 
+Create PRs as ready for review by default. Use draft PRs only when the user explicitly requests a draft or when a blocker must be resolved before review.
+
 PR titles must use a visible type tag:
 
 ```text
