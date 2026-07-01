@@ -96,6 +96,8 @@ Verification:
 
 ### Pull Request 제목과 설명
 
+PR은 기본적으로 바로 리뷰 가능한 상태로 생성합니다. 사용자가 명시적으로 draft를 요청하거나 리뷰 전에 해결해야 할 blocker가 있을 때만 draft PR을 사용합니다.
+
 PR 제목은 눈에 보이는 타입 태그를 사용합니다.
 
 ```text
