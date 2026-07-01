@@ -950,6 +950,10 @@ a {
     width: min(34rem, 100%);
 }
 
+.showcase-catalog__paginated-card-demo {
+    width: min(42rem, 100%);
+}
+
 .showcase-catalog__section-card {
     border: 1px solid color-mix(in oklab, var(--panel-border) 86%, transparent 14%);
     border-radius: 0.9rem;
@@ -997,6 +1001,51 @@ a {
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+}
+
+.showcase-paginated-cards {
+    width: 100%;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.showcase-paginated-cards__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.showcase-paginated-card {
+    min-height: 5.25rem;
+    border: 1px solid color-mix(in oklab, var(--panel-border) 84%, transparent 16%);
+    border-radius: 0.75rem;
+    padding: 0.65rem;
+    background: color-mix(in oklab, var(--panel) 98%, transparent 2%);
+    display: grid;
+    align-content: start;
+    gap: 0.35rem;
+}
+
+.showcase-paginated-card--placeholder {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.showcase-paginated-card h4,
+.showcase-paginated-card p {
+    margin: 0;
+}
+
+.showcase-paginated-card h4 {
+    font-size: 0.88rem;
+}
+
+.showcase-paginated-card p {
+    color: var(--text-soft);
+    font-size: 0.78rem;
 }
 
 .showcase-catalog .ui-button,
@@ -1284,6 +1333,87 @@ a {
 .ui-dropdown__item:hover {
     border-color: color-mix(in oklab, var(--panel-border) 72%, transparent 28%);
     background: color-mix(in oklab, var(--input-bg) 80%, transparent 20%);
+}
+
+.ui-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.4rem;
+}
+
+.ui-pagination__items {
+    margin: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    list-style: none;
+}
+
+.ui-pagination__button {
+    min-width: 2rem;
+    height: 2rem;
+    border: 1px solid color-mix(in oklab, var(--panel-border) 78%, transparent 22%);
+    border-radius: 0.58rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.45rem;
+    font:
+        600 0.82rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--text);
+    background: color-mix(in oklab, var(--input-bg) 86%, transparent 14%);
+    cursor: pointer;
+    transition: transform 150ms ease;
+}
+
+.ui-pagination__button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--button-border) 70%, var(--panel-border) 30%);
+    background: color-mix(in oklab, var(--input-bg) 96%, transparent 4%);
+}
+
+.ui-pagination__button:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ui-pagination__button--active {
+    color: var(--button-fg);
+    border-color: var(--button-border);
+    background: var(--button-bg);
+}
+
+.ui-pagination__button--active:hover:not(:disabled) {
+    color: var(--button-fg);
+    border-color: var(--button-border);
+    background: var(--button-bg);
+}
+
+.ui-pagination__button--icon {
+    width: 2rem;
+    padding: 0;
+}
+
+.ui-pagination__button svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.ui-pagination__ellipsis {
+    min-width: 1.4rem;
+    text-align: center;
+    font:
+        600 0.82rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--text-soft);
 }
 
 .ui-tooltip {
@@ -1614,6 +1744,11 @@ html[data-theme="dark"] .ui-toggle__track--on {
     color: var(--text-soft);
 }
 
+.developer-section__list-shell {
+    display: grid;
+    gap: 0.8rem;
+}
+
 .developer-create-modal__field-label {
     display: grid;
     gap: 0.45rem;
@@ -1643,6 +1778,9 @@ html[data-theme="dark"] .ui-toggle__track--on {
 .developer-key-list {
     display: grid;
     gap: 0.8rem;
+    max-height: min(44rem, calc(100vh - 18rem));
+    overflow-y: auto;
+    padding-right: 0.25rem;
 }
 
 .developer-key-card {
@@ -1652,6 +1790,12 @@ html[data-theme="dark"] .ui-toggle__track--on {
     padding: 1rem 1.1rem;
     display: grid;
     gap: 0.9rem;
+}
+
+.developer-key-card--placeholder {
+    min-height: 9.2rem;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .developer-key-card__top {
@@ -2491,6 +2635,10 @@ html[data-theme="dark"] .oauth-provider-button__logo--dark {
 
     .settings-profile-save-button.ui-button {
         justify-self: start;
+    }
+
+    .showcase-paginated-cards__grid {
+        grid-template-columns: 1fr;
     }
 
     .app-nav__inner {

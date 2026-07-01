@@ -202,6 +202,18 @@ flowchart LR
 3. Avoid one-off style duplication when a reusable class or component style can be extracted.
 4. Scrollbars must follow the global rules in `src/styles/app.css` so every scrollable container keeps a consistent style.
 
+## 6.1) Collection Navigation and Overflow Rule
+
+- Use industry-standard collection patterns instead of unbounded card rendering:
+
+1. Card collections that can exceed 6 items must use pagination by default.
+2. Use `client-side pagination` only when the current API already returns the complete bounded collection; use `server-side pagination` or `cursor pagination` when the collection can grow without a predictable upper bound.
+3. Pagination controls must render as a numbered pager with a pagination window: boundary pages, nearby sibling pages, and ellipsis truncation, for example `1 2 3 4 5 ... 12` or `1 ... 4 5 6 ... 12`.
+4. Pagination controls must expose accessible labels, `aria-current="page"` for the active page, and previous/next icon buttons.
+5. Paginated card lists must preserve layout stability across pages by reserving the same page-size slots on short final pages, so the content area's height and width do not shrink when fewer items remain.
+6. Long card lists must be wrapped in an overflow-contained `scroll container` with explicit `max-height` or layout constraints, so content does not push navigation, headers, or neighboring panels off-screen.
+7. Avoid nested page-level scrolling. Prefer one bounded content scroll region inside the affected panel and keep global scrollbars following `src/styles/app.css`.
+
 ## 7) Build and Runtime Notes
 
 - Install dependencies:

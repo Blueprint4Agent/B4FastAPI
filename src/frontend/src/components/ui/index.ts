@@ -15,6 +15,7 @@ export { InputField } from "./inputs/InputField";
 export { MenuList } from "./lists/MenuList";
 export type { MenuListItem } from "./lists/MenuList";
 export { Modal } from "./overlays/Modal";
+export { Pagination } from "./navigation/Pagination";
 export { Tooltip } from "./overlays/Tooltip";
 export { InlineMessage } from "./status/InlineMessage";
 export { Spinner } from "./status/Spinner";
