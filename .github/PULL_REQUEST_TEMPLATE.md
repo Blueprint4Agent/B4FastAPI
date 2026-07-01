@@ -9,6 +9,8 @@ Describe the change in one or two sentences.
 - Commit title uses Conventional Commits, for example `feat(frontend): add API key pagination`.
 - Commit body includes `Changes:`, `Affected Files:`, and `Verification:`.
 - Apply labels that match the type and affected area when available.
+- Merge with a merge commit by default. For auto-merge, use `gh pr merge <number> --auto --merge`.
+- Do not use squash or rebase unless the user explicitly requests that method.
 
 ## Scope
 

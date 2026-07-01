@@ -120,3 +120,15 @@ PR descriptions must include:
 - Risk / Impact
 
 When labels are available, apply labels that match the type and affected area, such as `feat`, `fix`, `docs`, `frontend`, `backend`, `infra`, or `tests`.
+
+### Merge Method
+
+Use a merge commit for pull requests by default, including automatic merges:
+
+```sh
+gh pr merge <number> --auto --merge
+```
+
+Do not use squash merge or rebase merge unless the user explicitly requests that method. Validate the planned method through `make git-governance-check`; the default `MERGE_METHOD=merge` rejects other methods unless the explicit-request override `ALLOW_NON_MERGE_METHOD=true` is supplied.
+
+Before enabling auto-merge, confirm the requested method in the resulting `autoMergeRequest`. A merge method cannot be changed after the pull request has merged; if the wrong method is registered, disable auto-merge before required checks complete and register it again with `--merge`.

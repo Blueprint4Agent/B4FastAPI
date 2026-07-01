@@ -6,6 +6,8 @@ COMMIT_TITLE="${COMMIT_TITLE:-}"
 COMMIT_BODY_FILE="${COMMIT_BODY_FILE:-}"
 PR_TITLE="${PR_TITLE:-}"
 PR_BODY_FILE="${PR_BODY_FILE:-}"
+MERGE_METHOD="${MERGE_METHOD:-merge}"
+ALLOW_NON_MERGE_METHOD="${ALLOW_NON_MERGE_METHOD:-false}"
 
 usage() {
     cat <<'EOF'
@@ -17,9 +19,13 @@ Options:
                          Validate required commit body sections.
   --pr-title TITLE       Validate a planned PR title.
   --pr-body-file FILE    Validate required PR description sections.
+  --merge-method METHOD  Validate the planned merge method (default: merge).
+  --allow-non-merge-method
+                         Allow squash or rebase only for an explicit user request.
 
 Environment aliases:
-  COMMIT_TITLE, COMMIT_BODY_FILE, PR_TITLE, PR_BODY_FILE
+  COMMIT_TITLE, COMMIT_BODY_FILE, PR_TITLE, PR_BODY_FILE,
+  MERGE_METHOD, ALLOW_NON_MERGE_METHOD
 EOF
 }
 
@@ -41,6 +47,14 @@ while [ "$#" -gt 0 ]; do
             PR_BODY_FILE="${2:-}"
             shift 2
             ;;
+        --merge-method)
+            MERGE_METHOD="${2:-}"
+            shift 2
+            ;;
+        --allow-non-merge-method)
+            ALLOW_NON_MERGE_METHOD="true"
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -57,6 +71,19 @@ fail() {
     echo "git governance check failed: $1" >&2
     exit 1
 }
+
+case "$MERGE_METHOD" in
+    merge)
+        ;;
+    squash|rebase)
+        if [ "$ALLOW_NON_MERGE_METHOD" != "true" ]; then
+            fail "merge method must be 'merge'; '$MERGE_METHOD' requires an explicit user request and ALLOW_NON_MERGE_METHOD=true"
+        fi
+        ;;
+    *)
+        fail "merge method must be one of: merge, squash, rebase"
+        ;;
+esac
 
 current_branch="$(git branch --show-current)"
 if [ -z "$current_branch" ]; then
