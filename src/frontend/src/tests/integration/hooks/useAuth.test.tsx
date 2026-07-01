@@ -61,8 +61,8 @@ describe("useAuth bootstrap and exception flows", () => {
         logoutApiMock.mockReset();
     });
 
-    it("bootstraps session by refresh when token is missing", async () => {
-        // Given: login-enabled config without stored access token.
+    it("restores login from the session cookie after the tab-scoped token is lost", async () => {
+        // Given: closing a tab removed its access token while the browser session cookie remains.
         getConfigMock.mockResolvedValue({ login_enabled: true });
         refreshMock.mockResolvedValue({ access_token: "refreshed-token" });
         meMock.mockResolvedValue(FULL_SYSTEM_SCENARIO.principal);
@@ -74,7 +74,7 @@ describe("useAuth bootstrap and exception flows", () => {
             </AuthProvider>,
         );
 
-        // Then: refresh-based bootstrap sets authenticated user and token.
+        // Then: refresh-based bootstrap restores the user and a new tab-scoped access token.
         await waitFor(() => {
             expect(screen.getByTestId("loading").textContent).toBe("false");
         });

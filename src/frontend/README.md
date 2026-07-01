@@ -25,7 +25,9 @@ Default local URL:
 
 API base URL behavior:
 
-- If `VITE_API_BASE_URL` is set, frontend uses that value.
+- If `VITE_API_BASE_URL` is set, frontend uses that value. Local loopback aliases
+  (`localhost`, `127.0.0.1`, and `::1`) are aligned with the current frontend host so
+  authentication cookies remain same-site.
 - If not set and current port is `5173` (Vite dev), frontend defaults to `http(s)://<current-host>:8000`.
 - Otherwise, frontend defaults to current page origin (same-origin), useful for backend static serving mode.
 

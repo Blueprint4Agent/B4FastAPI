@@ -38,6 +38,7 @@ src/frontend/
     tests/
       unit/
         utils/
+          apiBase.test.ts
           validation.test.ts
       component/
         pages/
@@ -158,23 +159,25 @@ it("<behavior>", async () => {
 
 ## 8) 현재 시나리오 인벤토리
 
-1. `src/tests/unit/utils/validation.test.ts`
+1. `src/tests/unit/utils/apiBase.test.ts`
+    - 인증 쿠키의 same-site 유지를 위한 로컬 루프백 호스트 정렬
+2. `src/tests/unit/utils/validation.test.ts`
     - 이메일/비밀번호 검증의 성공/실패 분기
-2. `src/tests/integration/api/configApi.test.ts`
+3. `src/tests/integration/api/configApi.test.ts`
     - `/config` 성공/실패 API 응답 처리
-3. `src/tests/component/pages/login/LoginPage.test.tsx`
+4. `src/tests/component/pages/login/LoginPage.test.tsx`
     - 잘못된 이메일의 클라이언트 검증 분기
     - 로그인 성공 submit + 내비게이션 분기
     - `INVALID_CREDENTIALS` 남은 시도 횟수 분기
     - `EMAIL_NOT_VERIFIED` + 인증 메일 재전송 분기
-4. `src/tests/component/pages/settings/SettingsPage.test.tsx`
+5. `src/tests/component/pages/settings/SettingsPage.test.tsx`
     - 역할 배지 표시 분기:
       admin은 배지 표시, user는 배지 숨김
     - 백엔드 정합 API 키 라이프사이클:
       create -> reveal -> list-visible -> disable -> enable -> delete
     - 백엔드 정합 에러 분기:
       duplicate-name (`API_KEY_NAME_ALREADY_EXISTS`), delete not-found (`API_KEY_NOT_FOUND`)
-5. `src/tests/integration/hooks/useAuth.test.tsx`
+6. `src/tests/integration/hooks/useAuth.test.tsx`
     - refresh bootstrap 성공 분기 (토큰 없음 -> refresh -> me)
     - 저장된 토큰 + `/me` 성공 분기 (refresh skip)
     - `/me` 실패 + refresh 실패 분기 (토큰 삭제 및 로그아웃 상태)

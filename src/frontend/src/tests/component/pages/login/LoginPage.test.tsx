@@ -112,6 +112,50 @@ describe("LoginPage", () => {
         expect(navigateMock).toHaveBeenCalledWith("/show-case", { replace: true });
     });
 
+    it("stores remembered email and remember-me preference after successful login", async () => {
+        // Given: successful login response from auth context.
+        loginMock.mockResolvedValue(undefined);
+        renderWithRouter(<LoginPage />, "/login");
+        const user = userEvent.setup();
+
+        // When: remember options are selected and login succeeds.
+        await user.type(screen.getByLabelText("Email"), FULL_SYSTEM_SCENARIO.principal.email);
+        await user.type(screen.getByLabelText("Password"), FULL_SYSTEM_SCENARIO.auth.validPassword);
+        await user.click(screen.getByLabelText("Remember email"));
+        await user.click(screen.getByLabelText("Remember me"));
+        await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+        // Then: login receives remember_me and local preferences are persisted.
+        expect(loginMock).toHaveBeenCalledWith({
+            email: FULL_SYSTEM_SCENARIO.principal.email,
+            password: FULL_SYSTEM_SCENARIO.auth.validPassword,
+            remember_me: true,
+        });
+        expect(window.localStorage.getItem("template_remember_email_enabled")).toBe("true");
+        expect(window.localStorage.getItem("template_remember_email")).toBe(
+            FULL_SYSTEM_SCENARIO.principal.email,
+        );
+        expect(window.localStorage.getItem("template_remember_me_enabled")).toBe("true");
+    });
+
+    it("restores remembered email and remember-me preference on load", () => {
+        // Given: remember preferences were saved in local storage.
+        window.localStorage.setItem("template_remember_email_enabled", "true");
+        window.localStorage.setItem(
+            "template_remember_email",
+            FULL_SYSTEM_SCENARIO.principal.email,
+        );
+        window.localStorage.setItem("template_remember_me_enabled", "true");
+
+        // When: login page is rendered again.
+        renderWithRouter(<LoginPage />, "/login");
+
+        // Then: email and checkbox states are restored.
+        expect(screen.getByLabelText("Email")).toHaveValue(FULL_SYSTEM_SCENARIO.principal.email);
+        expect(screen.getByLabelText("Remember email")).toBeChecked();
+        expect(screen.getByLabelText("Remember me")).toBeChecked();
+    });
+
     it("shows remaining attempts message when backend returns INVALID_CREDENTIALS", async () => {
         // Given: backend-style invalid-credentials detail with remaining attempts.
         loginMock.mockRejectedValue({
