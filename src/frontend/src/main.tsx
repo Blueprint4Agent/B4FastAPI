@@ -3,7 +3,6 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 import { App } from "./App";
-import { ConnectivityBanner } from "./components/layout/ConnectivityBanner";
 import { DesktopTitleBar } from "./components/layout/DesktopTitleBar";
 import { ConnectivityRecovery } from "./hooks/connectivity/ConnectivityRecovery";
 import { ServerConnectivityProvider } from "./hooks/connectivity/useServerConnectivity";
@@ -19,7 +18,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
             <ServerConnectivityProvider>
                 <DesktopTitleBar />
-                <ConnectivityBanner />
                 <AuthProvider>
                     <ConnectivityRecovery />
                     <App />

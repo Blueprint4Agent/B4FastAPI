@@ -11,10 +11,13 @@
     },
     "connectivity": {
         "offline": "Server connection lost. Changes that require the server are unavailable.",
+        "offlineShort": "Server disconnected",
         "reconnecting": "Checking the server connection...",
+        "reconnectingShort": "Reconnecting",
         "retry": "Retry now"
     },
     "serverUnavailable": {
+        "navAria": "Server connection navigation",
         "title": "Server unavailable",
         "subtitle": "The application cannot verify its server configuration.",
         "statusTitle": "Connection required",
@@ -221,6 +224,7 @@
         "settings": "Settings",
         "logoutIdle": "Sign out",
         "logoutBusy": "Signing out...",
+        "logoutUnavailable": "Reconnect to the server before signing out.",
         "aria": {
             "goShowCase": "Go to ShowCase page",
             "openMenu": "Open profile menu"

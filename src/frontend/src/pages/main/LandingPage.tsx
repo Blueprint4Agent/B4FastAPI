@@ -2,8 +2,8 @@ import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
+import { PublicNavbar } from "../../components/layout/PublicNavbar";
 import { BrandMark, Button } from "../../components/ui";
-import { startDesktopWindowDrag } from "../../utils/desktopWindow";
 import { markLandingStarted } from "../../utils/landing";
 
 type LandingPageProps = {
@@ -16,16 +16,7 @@ export function LandingPage({ loginEnabled }: LandingPageProps) {
 
     return (
         <div className="landing-shell">
-            <header
-                className="landing-nav"
-                aria-label={t("landing.navAria")}
-                data-tauri-drag-region
-                onMouseDown={startDesktopWindowDrag}
-            >
-                <div className="landing-nav__brand" data-tauri-drag-region>
-                    <BrandMark className="brand-mark--nav" />
-                </div>
-            </header>
+            <PublicNavbar ariaLabel={t("landing.navAria")} />
             <main className="landing-page">
                 <section className="landing-hero" aria-labelledby="landing-title">
                     <div className="landing-hero__banner-icon" aria-hidden="true">
