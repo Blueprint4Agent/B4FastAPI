@@ -71,6 +71,8 @@ For a packaged desktop build, set `VITE_API_BASE_URL` to the deployed FastAPI or
 running `npm run tauri -- build`. The backend must also allow the packaged Tauri webview origin
 through its CORS policy when browser-enforced HTTP requests are used. The macOS packaged origin
 is `tauri://localhost`; include it in `CORS_ORIGINS` and restart FastAPI after changing the env.
+The GitHub desktop build workflow accepts `api_base_url` on manual runs, then falls back to
+`DESKTOP_API_BASE_URL`, then `http://localhost:8000`.
 
 ## 3) API Type Generation
 

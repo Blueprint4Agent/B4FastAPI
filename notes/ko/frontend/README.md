@@ -68,6 +68,8 @@ API base URL 동작:
 배포된 FastAPI origin으로 설정해야 합니다. 브라우저가 강제하는 HTTP 요청을 사용할 경우
 백엔드 CORS 정책에서도 패키징된 Tauri webview origin을 허용해야 합니다. macOS 패키지
 origin은 `tauri://localhost`이며, `CORS_ORIGINS`에 추가한 후 FastAPI를 재시작해야 합니다.
+GitHub 데스크톱 빌드 워크플로는 수동 실행 시 `api_base_url`을 입력받고,
+그다음 `DESKTOP_API_BASE_URL`, 마지막으로 `http://localhost:8000` 순서로 fallback합니다.
 
 ## 3) API 타입 생성
 

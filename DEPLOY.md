@@ -176,7 +176,40 @@ Default image registry:
 
 - `ghcr.io/<owner>/<repo>`
 
-## 6) Post-Deploy Verification
+## 6) Desktop Build Pipeline
+
+Workflow:
+
+- `.github/workflows/desktop-build.yml`
+
+Triggers:
+
+- Manual `workflow_dispatch`
+- Release published events
+- Version tag pushes matching `v*`
+
+Pipeline jobs:
+
+- macOS Apple Silicon: `macos-14`, target `aarch64-apple-darwin`
+- macOS Intel: `macos-13`, target `x86_64-apple-darwin`
+- Linux x64: `ubuntu-22.04`
+- Windows x64: `windows-latest`
+
+Desktop server origin:
+
+- Manual runs accept `api_base_url`.
+- If `api_base_url` is omitted, the workflow uses repository/environment variable
+  `DESKTOP_API_BASE_URL`.
+- If neither is set, the desktop build falls back to `http://localhost:8000`.
+- The selected value is passed to the frontend as `VITE_API_BASE_URL` before Tauri builds.
+
+Desktop artifacts:
+
+- The workflow uploads generated installers/bundles as GitHub Actions artifacts.
+- Current unsigned artifacts can be used for internal build verification.
+- Public distribution still requires a later signing/notarization step for macOS and Windows.
+
+## 7) Post-Deploy Verification
 
 Check running containers:
 
@@ -195,7 +228,7 @@ Check startup migration log:
 
 - `Database schema migration check complete (target=head).`
 
-## 7) Troubleshooting
+## 8) Troubleshooting
 
 `docker command not found`
 
