@@ -44,6 +44,7 @@ src/frontend/
           desktopRuntime.test.ts
           validation.test.ts
       component/
+        App.test.tsx
         components/
           layout/
             DesktopTitleBar.test.tsx
@@ -58,6 +59,7 @@ src/frontend/
           systemApi.test.ts
         hooks/
           useAuth.test.tsx
+          useFeatures.test.tsx
           useServerConnectivity.test.tsx
       fixtures/
         fullSystemScenarioData.ts
@@ -202,6 +204,10 @@ When a new frontend domain is added:
     - Ready and degraded `/health/ready` response handling.
 12. `src/tests/integration/hooks/useServerConnectivity.test.tsx`
     - Browser polling exclusion and Tauri offline-to-online recovery.
+13. `src/tests/component/App.test.tsx`
+    - Fail-closed protected routing when `/config` is unavailable.
+14. `src/tests/integration/hooks/useFeatures.test.tsx`
+    - Configuration failure remains distinct from explicit login disablement and recovers on retry.
 
 ## 8.1) Backend Full-System Mapping (Frontend-Reachable Subset)
 

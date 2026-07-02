@@ -9,12 +9,22 @@ export function useAppConfig() {
     const { isDesktop, status } = useServerConnectivity();
     const [data, setData] = useState<AppConfig | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<unknown | null>(null);
     const disconnectedRef = useRef(false);
+    const hasConfigRef = useRef(false);
 
     const loadConfig = useCallback(async () => {
+        if (!hasConfigRef.current) {
+            setLoading(true);
+        }
         try {
             const payload = await getConfig();
+            hasConfigRef.current = true;
             setData(payload);
+            setError(null);
+        } catch (nextError) {
+            setError(nextError);
+            throw nextError;
         } finally {
             setLoading(false);
         }
@@ -38,5 +48,5 @@ export function useAppConfig() {
         }
     }, [isDesktop, loadConfig, status]);
 
-    return { data, loading };
+    return { data, loading, error, reload: loadConfig };
 }

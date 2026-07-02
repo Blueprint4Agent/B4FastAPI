@@ -19,8 +19,8 @@ export function AppNavbar() {
     const [busy, setBusy] = useState(false);
     const loginEnabled = appConfig?.login_enabled === true;
 
-    const displayName = user?.name?.trim() || user?.email || "User";
-    const avatarLabel = displayName.slice(0, 1).toUpperCase();
+    const displayName = user?.name?.trim() || user?.email;
+    const avatarLabel = displayName?.slice(0, 1).toUpperCase();
     let pageTitle = t("nav.pageTitles.showCase");
     if (location.pathname === "/settings") {
         pageTitle = t("nav.pageTitles.settings");
@@ -56,17 +56,19 @@ export function AppNavbar() {
                     </Link>
                 </Tooltip>
                 <p className="app-nav__title">{pageTitle}</p>
-                <ProfileDropdown
-                    avatarLabel={avatarLabel}
-                    avatarImageUrl={user?.profile_image_url}
-                    busy={busy}
-                    displayName={displayName}
-                    email={user?.email}
-                    onLogout={() => void onLogout()}
-                    onChangeTheme={setThemeMode}
-                    showLogout={loginEnabled && Boolean(user)}
-                    themeMode={themeMode}
-                />
+                {user && displayName && avatarLabel ? (
+                    <ProfileDropdown
+                        avatarLabel={avatarLabel}
+                        avatarImageUrl={user.profile_image_url}
+                        busy={busy}
+                        displayName={displayName}
+                        email={user.email}
+                        onLogout={() => void onLogout()}
+                        onChangeTheme={setThemeMode}
+                        showLogout={loginEnabled}
+                        themeMode={themeMode}
+                    />
+                ) : null}
             </div>
         </header>
     );

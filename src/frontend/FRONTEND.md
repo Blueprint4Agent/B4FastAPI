@@ -158,6 +158,7 @@ flowchart LR
 2. Desktop reconnect/backoff ownership stays in `src/hooks/connectivity/*`.
 3. Browser runtime must not start desktop readiness polling.
 4. Realtime subscriptions must pause while desktop readiness is unavailable and resume after recovery.
+5. Missing `/config` data must fail closed; only an explicit `login_enabled=false` response may unlock login-disabled routes.
 
 - `pages/components` must not import from `src/api/*` directly; they must consume domain hooks only.
 - API hooks must be placed under `src/hooks/api/<domain>/*`.

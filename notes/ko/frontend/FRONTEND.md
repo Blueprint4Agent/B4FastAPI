@@ -158,6 +158,7 @@ flowchart LR
 2. 데스크톱 재연결/backoff 책임은 `src/hooks/connectivity/*`에 둡니다.
 3. 브라우저 런타임에서는 데스크톱 readiness polling을 시작하면 안 됩니다.
 4. 데스크톱 readiness가 유효하지 않은 동안 실시간 구독을 중단하고 복구 후 다시 시작해야 합니다.
+5. `/config` 데이터가 없으면 fail-closed로 처리하며, 명시적인 `login_enabled=false` 응답만 로그인 비활성화 라우트를 열 수 있습니다.
 
 - `pages/components`는 `src/api/*`를 직접 import하면 안 되고 도메인 훅만 소비해야 합니다.
 - API 훅은 `src/hooks/api/<domain>/*` 아래에 배치해야 합니다.
