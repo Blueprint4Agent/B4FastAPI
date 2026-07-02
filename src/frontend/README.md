@@ -46,6 +46,9 @@ offline banner with an immediate retry action. Browser builds do not run this de
 When connectivity returns, the app revalidates its authentication session and configuration, and
 authenticated realtime subscriptions restart. This reconnect behavior does not queue offline
 mutations or resolve data conflicts.
+If the application has never loaded `/config` successfully, it keeps protected routes locked and
+shows the server-unavailable page. Missing configuration is never interpreted as
+`login_enabled=false`; login-disabled navigation is allowed only after an explicit server response.
 In Tauri, native window controls share the same title bar area as landing, authentication, and
 in-app navigation. The browser frontend keeps its existing navigation layout.
 

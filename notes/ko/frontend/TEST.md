@@ -44,6 +44,7 @@ src/frontend/
           desktopRuntime.test.ts
           validation.test.ts
       component/
+        App.test.tsx
         components/
           layout/
             DesktopTitleBar.test.tsx
@@ -58,6 +59,7 @@ src/frontend/
           systemApi.test.ts
         hooks/
           useAuth.test.tsx
+          useFeatures.test.tsx
           useServerConnectivity.test.tsx
       fixtures/
         fullSystemScenarioData.ts
@@ -202,6 +204,10 @@ it("<behavior>", async () => {
     - `/health/ready`의 ready/degraded 응답 처리
 12. `src/tests/integration/hooks/useServerConnectivity.test.tsx`
     - 브라우저 polling 제외 및 Tauri offline-to-online 복구
+13. `src/tests/component/App.test.tsx`
+    - `/config`를 사용할 수 없을 때 보호 라우팅의 fail-closed 처리
+14. `src/tests/integration/hooks/useFeatures.test.tsx`
+    - 설정 실패와 명시적 로그인 비활성화 구분 및 재시도 복구
 
 ## 8.1) 백엔드 Full-System 매핑 (프론트 도달 가능 부분집합)
 

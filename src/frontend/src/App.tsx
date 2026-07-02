@@ -21,6 +21,8 @@ import { LandingPage } from "./pages/main/LandingPage";
 import { ShowCaseNotFoundPage } from "./pages/main/ShowCaseNotFoundPage";
 import { ShowCasePage } from "./pages/main/ShowCasePage";
 import { SettingsPage } from "./pages/settings/SettingsPage";
+import { ServerUnavailablePage } from "./pages/main/ServerUnavailablePage";
+import { useServerConnectivity } from "./hooks/connectivity/useServerConnectivity";
 
 function ProtectedLayout({
     loginEnabled,
@@ -108,13 +110,40 @@ function NotFoundRoute({
 export function App() {
     useTheme();
     const { t } = useTranslation();
-    const { data: appConfig, loading: configLoading } = useAppConfig();
-    const loginEnabled = appConfig?.login_enabled === true;
+    const {
+        data: appConfig,
+        loading: configLoading,
+        error: configError,
+        reload: reloadConfig,
+    } = useAppConfig();
+    const { checkNow, status: connectivityStatus } = useServerConnectivity();
+    const [retryingConfig, setRetryingConfig] = useState(false);
     const landingStarted = hasStartedFromLanding();
 
     if (configLoading) {
         return <LoadingPage message={t("app.loadingSession")} />;
     }
+    if (!appConfig) {
+        return (
+            <ServerUnavailablePage
+                checking={
+                    retryingConfig ||
+                    connectivityStatus === "checking" ||
+                    connectivityStatus === "reconnecting"
+                }
+                error={configError}
+                onRetry={() => {
+                    setRetryingConfig(true);
+                    void checkNow()
+                        .then(() => reloadConfig())
+                        .catch(() => undefined)
+                        .finally(() => setRetryingConfig(false));
+                }}
+            />
+        );
+    }
+
+    const loginEnabled = appConfig.login_enabled;
 
     return (
         <Routes>
