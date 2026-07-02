@@ -9,20 +9,20 @@ on:
             - synchronize
             - reopened
     schedule:
-        # GitHub cron is UTC. 15:00 UTC is 00:00 KST.
+        # Scheduled main image build. GitHub cron is UTC; 15:00 UTC is 00:00 KST.
         - cron: "0 15 * * *"
     workflow_dispatch:
         inputs:
             ref:
-                description: "Branch, tag, commit SHA, or PR ref to build. Example: main, v1.0.0, 1a2b3c4"
+                description: "Branch, tag, or commit SHA to build. Defaults to main when publishing an image."
                 required: false
                 type: string
             pr_number:
-                description: "Pull request number to build. Takes priority over ref."
+                description: "Pull request number to validate. Takes priority over ref and does not publish by default."
                 required: false
                 type: string
             publish_image:
-                description: "Push the Docker image to GitHub Container Registry"
+                description: "Explicitly build and push the selected ref image to GitHub Container Registry"
                 required: false
                 type: boolean
                 default: false
@@ -48,6 +48,7 @@ jobs:
         outputs:
             checkout-ref: ${{ steps.ref.outputs.checkout-ref }}
             image-version: ${{ steps.version.outputs.image-version }}
+            build-image: ${{ steps.publish.outputs.build-image }}
             publish-image: ${{ steps.publish.outputs.publish-image }}
         steps:
             - name: Resolve checkout ref
@@ -58,6 +59,8 @@ jobs:
                     echo "checkout-ref=refs/pull/${{ inputs.pr_number }}/head" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.ref }}" ]]; then
                     echo "checkout-ref=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_image }}" == "true" ]]; then
+                    echo "checkout-ref=main" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "release" ]]; then
                     echo "checkout-ref=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "schedule" ]]; then
@@ -81,19 +84,24 @@ jobs:
                   elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.ref }}" ]]; then
                     safe_ref="$(echo "${{ inputs.ref }}" | tr '/:@ ' '----' | tr -cd '[:alnum:]_.-')"
                     echo "image-version=manual-${safe_ref}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_image }}" == "true" ]]; then
+                    echo "image-version=manual-main" >> "$GITHUB_OUTPUT"
                   else
                     echo "image-version=${{ github.sha }}" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Resolve publish policy
+            - name: Resolve image build and publish policy
               id: publish
               shell: bash
               run: |
                   if [[ "${{ github.event_name }}" == "release" || "${{ github.ref_type }}" == "tag" || "${{ github.event_name }}" == "schedule" ]]; then
+                    echo "build-image=true" >> "$GITHUB_OUTPUT"
                     echo "publish-image=true" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_image }}" == "true" ]]; then
+                    echo "build-image=true" >> "$GITHUB_OUTPUT"
                     echo "publish-image=true" >> "$GITHUB_OUTPUT"
                   else
+                    echo "build-image=false" >> "$GITHUB_OUTPUT"
                     echo "publish-image=false" >> "$GITHUB_OUTPUT"
                   fi
 
@@ -172,7 +180,7 @@ jobs:
     docker-image:
         name: Docker image
         runs-on: ubuntu-latest
-        if: github.event_name != 'pull_request'
+        if: needs.resolve-ref.outputs.build-image == 'true'
         needs:
             - resolve-ref
             - backend

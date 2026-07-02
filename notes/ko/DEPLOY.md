@@ -144,6 +144,7 @@ bash ./docker/scripts/docker-export.sh
 - 선택적 `ref` 또는 `pr_number` 입력을 받는 수동 `workflow_dispatch`
 - Release published 이벤트
 - `v*` 형식의 버전 태그 push
+- `main` merge마다 Docker 이미지를 자동 빌드하지는 않습니다.
 
 수동 `ref` 예시:
 
@@ -159,15 +160,16 @@ bash ./docker/scripts/docker-export.sh
 
 - Backend: `uv sync --frozen`, Ruff check, Ruff format check, Pytest
 - Frontend: `npm ci`, Prettier check, Vitest, production build
-- Docker: Pull request를 제외하고 `docker/Dockerfile` 기반 이미지 빌드
+- Docker: release/tag, schedule, 명시적 수동 publish 실행에서만 `docker/Dockerfile` 기반 이미지 빌드
 
 이미지 배포:
 
 - Pull request build는 backend/frontend check만 검증합니다.
-- nightly 실행은 이미지를 `nightly-main`으로 push합니다.
-- 기본 수동 실행은 이미지만 빌드하고 push하지 않습니다.
+- schedule 실행은 `main` 이미지를 `nightly-main`으로 push합니다.
+- 기본 수동 실행은 backend/frontend check만 검증합니다.
+- 수동 실행은 `publish_image=true`를 설정한 경우에만 선택한 ref 이미지를 push합니다.
+- 수동 이미지 publish에서 `ref`와 `pr_number`가 모두 비어 있으면 `main`을 기본으로 사용합니다.
 - Release published 이벤트와 `v*` 태그 push는 GitHub Container Registry로 push합니다.
-- 수동 실행은 `publish_image=true`를 설정하면 push합니다.
 
 기본 이미지 registry:
 
