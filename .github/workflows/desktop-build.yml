@@ -8,6 +8,9 @@ on:
                 required: false
                 type: string
                 default: ""
+    schedule:
+        # Scheduled main desktop build. GitHub cron is UTC; 16:00 UTC is 01:00 KST.
+        - cron: "0 16 * * *"
     push:
         tags:
             - "v*"
@@ -16,16 +19,44 @@ on:
             - published
 
 permissions:
-    contents: read
+    contents: write
 
 concurrency:
     group: desktop-build-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
     cancel-in-progress: false
 
 jobs:
+    resolve-release:
+        name: Resolve desktop release metadata
+        runs-on: ubuntu-latest
+        outputs:
+            release-name: ${{ steps.release.outputs.release-name }}
+            tag-name: ${{ steps.release.outputs.tag-name }}
+        steps:
+            - name: Resolve release metadata
+              id: release
+              shell: bash
+              run: |
+                  if [[ "${{ github.event_name }}" == "release" ]]; then
+                    tag_name="${{ github.event.release.tag_name }}"
+                  elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+                    tag_name="${{ github.ref_name }}"
+                  else
+                    tag_name=""
+                  fi
+
+                  echo "tag-name=${tag_name}" >> "$GITHUB_OUTPUT"
+                  if [[ -n "${tag_name}" ]]; then
+                    echo "release-name=B4FastAPI ${tag_name}" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "release-name=" >> "$GITHUB_OUTPUT"
+                  fi
+
     desktop:
         name: ${{ matrix.name }}
         runs-on: ${{ matrix.platform }}
+        needs:
+            - resolve-release
         strategy:
             fail-fast: false
             matrix:
@@ -57,6 +88,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                  ref: ${{ needs.resolve-release.outputs.tag-name || github.ref }}
 
             - name: Install Linux dependencies
               if: runner.os == 'Linux'
@@ -100,12 +133,15 @@ jobs:
               with:
                   projectPath: src/frontend
                   args: ${{ matrix.args }}
+                  tagName: ${{ needs.resolve-release.outputs.tag-name }}
+                  releaseName: ${{ needs.resolve-release.outputs.release-name }}
 
             - name: Upload desktop bundles
               uses: actions/upload-artifact@v4
               with:
                   name: ${{ matrix.artifact-name }}
                   if-no-files-found: error
+                  retention-days: 14
                   path: |
                       src/frontend/src-tauri/target/release/bundle/**/*.AppImage
                       src/frontend/src-tauri/target/release/bundle/**/*.deb

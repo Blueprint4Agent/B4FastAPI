@@ -185,6 +185,7 @@ Workflow:
 Triggers:
 
 - Manual `workflow_dispatch`
+- Scheduled build of `main` at `01:00 KST` (`16:00 UTC`)
 - Release published events
 - Version tag pushes matching `v*`
 
@@ -206,6 +207,9 @@ Desktop server origin:
 Desktop artifacts:
 
 - The workflow uploads generated installers/bundles as GitHub Actions artifacts.
+- Scheduled `main` builds are retained as workflow artifacts for internal verification.
+- Release published events and `v*` tag pushes also upload generated desktop bundles to the
+  matching GitHub Release assets.
 - Current unsigned artifacts can be used for internal build verification.
 - Public distribution still requires a later signing/notarization step for macOS and Windows.
 
