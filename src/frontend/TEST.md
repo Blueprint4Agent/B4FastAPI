@@ -37,6 +37,8 @@ src/frontend/
   src/
     tests/
       unit/
+        hooks/
+          serverConnectivity.test.ts
         utils/
           apiBase.test.ts
           desktopRuntime.test.ts
@@ -53,8 +55,10 @@ src/frontend/
       integration/
         api/
           configApi.test.ts
+          systemApi.test.ts
         hooks/
           useAuth.test.tsx
+          useServerConnectivity.test.tsx
       fixtures/
         fullSystemScenarioData.ts
       setup.ts
@@ -192,6 +196,12 @@ When a new frontend domain is added:
     - logout API failure branch with client-side session clear in `finally`.
 9. `tests/e2e/auth-smoke.spec.ts`
     - Browser-level `/login` route render smoke.
+10. `src/tests/unit/hooks/serverConnectivity.test.ts`
+    - Exponential reconnect delay, cap, and jitter boundaries.
+11. `src/tests/integration/api/systemApi.test.ts`
+    - Ready and degraded `/health/ready` response handling.
+12. `src/tests/integration/hooks/useServerConnectivity.test.tsx`
+    - Browser polling exclusion and Tauri offline-to-online recovery.
 
 ## 8.1) Backend Full-System Mapping (Frontend-Reachable Subset)
 

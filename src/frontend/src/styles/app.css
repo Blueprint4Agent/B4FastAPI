@@ -255,6 +255,55 @@ html[data-tauri-runtime="true"] .desktop-titlebar--integrated {
     pointer-events: none;
 }
 
+.connectivity-banner {
+    position: fixed;
+    top: var(--nav-height);
+    right: 0;
+    left: 0;
+    z-index: 44;
+    display: flex;
+    min-height: 2.35rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.45rem 1rem;
+    border-bottom: 1px solid var(--warn-border);
+    color: var(--warn-text);
+    background: color-mix(in oklab, var(--warn-bg) 88%, var(--panel) 12%);
+    font-size: 0.78rem;
+    box-shadow: 0 0.2rem 0.8rem rgba(22, 33, 48, 0.14);
+}
+
+.connectivity-banner__icon {
+    width: 0.9rem;
+    height: 0.9rem;
+    flex: 0 0 auto;
+}
+
+.connectivity-banner__icon--spin {
+    animation: connectivity-spin 1s linear infinite;
+}
+
+.connectivity-banner__retry {
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--warn-border);
+    border-radius: 0.35rem;
+    color: inherit;
+    background: color-mix(in oklab, var(--panel) 72%, transparent 28%);
+    font: inherit;
+    cursor: pointer;
+}
+
+.connectivity-banner__retry:hover {
+    background: var(--panel);
+}
+
+@keyframes connectivity-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 html[data-tauri-runtime="true"] .page {
     padding-top: calc(var(--nav-height) + 1rem);
 }

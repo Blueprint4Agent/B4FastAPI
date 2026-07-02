@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useEventsApi, type RealtimeEvent } from "../../api/events/useEventsApi";
+import { useServerConnectivity } from "../../connectivity/useServerConnectivity";
 
 type UseRealtimeStreamSubscriptionOptions = {
     enabled: boolean;
@@ -14,11 +15,13 @@ export function useRealtimeStreamSubscription({
     onEvent,
 }: UseRealtimeStreamSubscriptionOptions): void {
     const { streamRealtimeEvents, normalizeEventsStreamError } = useEventsApi();
+    const { isDesktop, status } = useServerConnectivity();
     const streamAbortRef = useRef<AbortController | null>(null);
     const retryTimerRef = useRef<number | null>(null);
+    const connectivityEnabled = !isDesktop || status === "online";
 
     useEffect(() => {
-        if (!enabled) {
+        if (!enabled || !connectivityEnabled) {
             return;
         }
         if (import.meta.env.MODE === "test") {
@@ -77,5 +80,5 @@ export function useRealtimeStreamSubscription({
             active = false;
             cleanup();
         };
-    }, [enabled, normalizeEventsStreamError, onEvent, streamRealtimeEvents]);
+    }, [connectivityEnabled, enabled, normalizeEventsStreamError, onEvent, streamRealtimeEvents]);
 }

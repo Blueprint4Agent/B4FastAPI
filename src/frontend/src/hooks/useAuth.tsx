@@ -22,6 +22,7 @@ type AuthContextValue = {
     updateProfile: (input: { name?: string; profile_image_url?: string | null }) => Promise<void>;
     logout: () => Promise<void>;
     refreshSession: () => Promise<void>;
+    revalidateSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -62,44 +63,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [me, refreshAuth]);
 
+    const revalidateSession = useCallback(async () => {
+        try {
+            const config = (await getConfig()) as AppConfig | undefined;
+            if (config?.login_enabled === false) {
+                if (config.bootstrap_access_token) {
+                    setAccessToken(config.bootstrap_access_token);
+                } else {
+                    clearAccessToken();
+                }
+                setUser(config.bootstrap_user ?? null);
+                return;
+            }
+
+            const token = getAccessToken();
+            if (token) {
+                try {
+                    const nextUser = await me();
+                    setUser(nextUser);
+                    return;
+                } catch {
+                    clearAccessToken();
+                }
+            }
+
+            await refreshSession();
+        } catch {
+            clearAccessToken();
+            setUser(null);
+        }
+    }, [getConfig, me, refreshSession]);
+
     useEffect(() => {
         // Agent customization note:
         // This bootstrap flow is the single place to plug SSO/session policies.
         const bootstrap = async () => {
             try {
-                const config = (await getConfig()) as AppConfig | undefined;
-                if (config?.login_enabled === false) {
-                    if (config.bootstrap_access_token) {
-                        setAccessToken(config.bootstrap_access_token);
-                    } else {
-                        clearAccessToken();
-                    }
-                    setUser(config.bootstrap_user ?? null);
-                    return;
-                }
-
-                const token = getAccessToken();
-                if (token) {
-                    try {
-                        const nextUser = await me();
-                        setUser(nextUser);
-                        return;
-                    } catch {
-                        clearAccessToken();
-                    }
-                }
-
-                await refreshSession();
-            } catch {
-                clearAccessToken();
-                setUser(null);
+                await revalidateSession();
             } finally {
                 setLoading(false);
             }
         };
 
         void bootstrap();
-    }, [getConfig, me, refreshSession]);
+    }, [revalidateSession]);
 
     const value = useMemo<AuthContextValue>(
         () => ({
@@ -126,8 +133,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
             },
             refreshSession,
+            revalidateSession,
         }),
-        [loading, loginAuth, logoutAuth, refreshSession, signupAuth, updateMe, user],
+        [
+            loading,
+            loginAuth,
+            logoutAuth,
+            refreshSession,
+            revalidateSession,
+            signupAuth,
+            updateMe,
+            user,
+        ],
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
