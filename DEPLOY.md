@@ -144,6 +144,7 @@ Triggers:
 - Manual `workflow_dispatch` with optional `ref` or `pr_number`
 - Release published events
 - Version tag pushes matching `v*`
+- No Docker image is built automatically for every `main` merge.
 
 Manual `ref` examples:
 
@@ -159,15 +160,16 @@ Pipeline jobs:
 
 - Backend: `uv sync --frozen`, Ruff check, Ruff format check, Pytest
 - Frontend: `npm ci`, Prettier check, Vitest, production build
-- Docker: build image from `docker/Dockerfile` except on pull requests
+- Docker: build image from `docker/Dockerfile` only for release/tag, schedule, or explicit manual publish runs
 
 Image publishing:
 
 - Pull request builds validate backend/frontend checks only.
-- Nightly runs publish the image as `nightly-main`.
-- Default manual runs build the image without pushing.
+- Scheduled runs publish the `main` image as `nightly-main`.
+- Default manual runs validate backend/frontend checks only.
+- Manual runs publish the selected ref image only when `publish_image=true`.
+- Manual image publishing defaults to `main` when both `ref` and `pr_number` are empty.
 - Release published events and `v*` tag pushes publish to GitHub Container Registry.
-- Manual runs can publish by setting `publish_image=true`.
 
 Default image registry:
 
