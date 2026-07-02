@@ -176,7 +176,39 @@ bash ./docker/scripts/docker-export.sh
 
 - `ghcr.io/<owner>/<repo>`
 
-## 6) 배포 후 검증
+## 6) 데스크톱 빌드 파이프라인
+
+워크플로:
+
+- `.github/workflows/desktop-build.yml`
+
+트리거:
+
+- 수동 `workflow_dispatch`
+- Release published 이벤트
+- `v*` 형식의 버전 태그 push
+
+파이프라인 job:
+
+- macOS Apple Silicon: `macos-14`, target `aarch64-apple-darwin`
+- macOS Intel: `macos-13`, target `x86_64-apple-darwin`
+- Linux x64: `ubuntu-22.04`
+- Windows x64: `windows-latest`
+
+데스크톱 서버 origin:
+
+- 수동 실행은 `api_base_url`을 입력받습니다.
+- `api_base_url`을 생략하면 repository/environment variable `DESKTOP_API_BASE_URL`을 사용합니다.
+- 둘 다 없으면 데스크톱 빌드는 `http://localhost:8000`으로 fallback합니다.
+- 선택된 값은 Tauri 빌드 전에 `VITE_API_BASE_URL`로 프론트엔드에 전달됩니다.
+
+데스크톱 artifact:
+
+- 워크플로는 생성된 installer/bundle을 GitHub Actions artifact로 업로드합니다.
+- 현재 unsigned artifact는 내부 빌드 검증용으로 사용할 수 있습니다.
+- 공개 배포에는 이후 macOS/Windows signing 및 notarization 단계가 필요합니다.
+
+## 7) 배포 후 검증
 
 실행 중 컨테이너 확인:
 
@@ -195,7 +227,7 @@ curl -i http://localhost:8000/config
 
 - `Database schema migration check complete (target=head).`
 
-## 7) 트러블슈팅
+## 8) 트러블슈팅
 
 `docker command not found`
 
