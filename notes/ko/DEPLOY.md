@@ -185,6 +185,7 @@ bash ./docker/scripts/docker-export.sh
 트리거:
 
 - 수동 `workflow_dispatch`
+- 매일 `01:00 KST`에 `main` scheduled build (`16:00 UTC`)
 - Release published 이벤트
 - `v*` 형식의 버전 태그 push
 
@@ -205,6 +206,8 @@ bash ./docker/scripts/docker-export.sh
 데스크톱 artifact:
 
 - 워크플로는 생성된 installer/bundle을 GitHub Actions artifact로 업로드합니다.
+- scheduled `main` 빌드는 내부 검증용 workflow artifact로 보관됩니다.
+- Release published 이벤트와 `v*` 태그 push는 생성된 데스크톱 bundle을 해당 GitHub Release asset에도 업로드합니다.
 - 현재 unsigned artifact는 내부 빌드 검증용으로 사용할 수 있습니다.
 - 공개 배포에는 이후 macOS/Windows signing 및 notarization 단계가 필요합니다.
 
