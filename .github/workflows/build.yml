@@ -81,11 +81,13 @@ jobs:
                     echo "image-version=nightly-main" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.pr_number }}" ]]; then
                     echo "image-version=manual-pr-${{ inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+                  elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_image }}" == "true" && "${{ inputs.ref }}" == "main" ]]; then
+                    echo "image-version=main" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ inputs.ref }}" ]]; then
                     safe_ref="$(echo "${{ inputs.ref }}" | tr '/:@ ' '----' | tr -cd '[:alnum:]_.-')"
                     echo "image-version=manual-${safe_ref}" >> "$GITHUB_OUTPUT"
                   elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.publish_image }}" == "true" ]]; then
-                    echo "image-version=manual-main" >> "$GITHUB_OUTPUT"
+                    echo "image-version=main" >> "$GITHUB_OUTPUT"
                   else
                     echo "image-version=${{ github.sha }}" >> "$GITHUB_OUTPUT"
                   fi

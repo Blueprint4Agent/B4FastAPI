@@ -168,7 +168,8 @@ Image publishing:
 - Scheduled runs publish the `main` image as `nightly-main`.
 - Default manual runs validate backend/frontend checks only.
 - Manual runs publish the selected ref image only when `publish_image=true`.
-- Manual image publishing defaults to `main` when both `ref` and `pr_number` are empty.
+- Manual image publishing defaults to the `main` ref and `main` image tag when both `ref` and `pr_number` are empty.
+- Manual image publishing with `ref=main` also uses the `main` image tag.
 - Release published events and `v*` tag pushes publish to GitHub Container Registry.
 
 Default image registry:

@@ -168,7 +168,8 @@ bash ./docker/scripts/docker-export.sh
 - schedule 실행은 `main` 이미지를 `nightly-main`으로 push합니다.
 - 기본 수동 실행은 backend/frontend check만 검증합니다.
 - 수동 실행은 `publish_image=true`를 설정한 경우에만 선택한 ref 이미지를 push합니다.
-- 수동 이미지 publish에서 `ref`와 `pr_number`가 모두 비어 있으면 `main`을 기본으로 사용합니다.
+- 수동 이미지 publish에서 `ref`와 `pr_number`가 모두 비어 있으면 `main` ref와 `main` 이미지 태그를 기본으로 사용합니다.
+- 수동 이미지 publish에서 `ref=main`을 지정해도 `main` 이미지 태그를 사용합니다.
 - Release published 이벤트와 `v*` 태그 push는 GitHub Container Registry로 push합니다.
 
 기본 이미지 registry:
