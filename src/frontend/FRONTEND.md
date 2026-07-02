@@ -24,6 +24,7 @@ src/frontend/
   src/
     api/          # generated + domain API/error
     hooks/        # api hooks + app hooks
+      connectivity/ # desktop server readiness/reconnect lifecycle
       realtime/   # stream subscription lifecycle hooks (non-API)
         core/     # shared stream lifecycle/reconnect hooks
         <domain>/ # domain-specific stream handlers (apiKey, ...)
@@ -150,6 +151,13 @@ flowchart LR
 2. Use `fetch` streaming in domain API layer so `Authorization` header can be sent.
 3. Reconnect/backoff policy should be implemented in `src/hooks/realtime/core/*`.
 4. Domain event parsing/dispatch logic should be implemented in `src/hooks/realtime/<domain>/*`.
+
+- Desktop connectivity note:
+
+1. Packaged Tauri runtime readiness is checked through `/health/ready`; `navigator.onLine` is only a hint.
+2. Desktop reconnect/backoff ownership stays in `src/hooks/connectivity/*`.
+3. Browser runtime must not start desktop readiness polling.
+4. Realtime subscriptions must pause while desktop readiness is unavailable and resume after recovery.
 
 - `pages/components` must not import from `src/api/*` directly; they must consume domain hooks only.
 - API hooks must be placed under `src/hooks/api/<domain>/*`.

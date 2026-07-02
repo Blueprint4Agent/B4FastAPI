@@ -9,6 +9,11 @@
         "maximize": "창 최대화 또는 복원",
         "close": "창 닫기"
     },
+    "connectivity": {
+        "offline": "서버 연결이 끊겼습니다. 서버가 필요한 작업은 사용할 수 없습니다.",
+        "reconnecting": "서버 연결을 확인하고 있습니다...",
+        "retry": "지금 다시 시도"
+    },
     "landing": {
         "navAria": "랜딩 탐색",
         "eyebrow": "Blueprint4FastAPI",

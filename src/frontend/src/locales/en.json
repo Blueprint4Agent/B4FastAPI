@@ -9,6 +9,11 @@
         "maximize": "Maximize or restore window",
         "close": "Close window"
     },
+    "connectivity": {
+        "offline": "Server connection lost. Changes that require the server are unavailable.",
+        "reconnecting": "Checking the server connection...",
+        "retry": "Retry now"
+    },
     "landing": {
         "navAria": "Landing navigation",
         "eyebrow": "Blueprint4FastAPI",

@@ -37,6 +37,8 @@ src/frontend/
   src/
     tests/
       unit/
+        hooks/
+          serverConnectivity.test.ts
         utils/
           apiBase.test.ts
           desktopRuntime.test.ts
@@ -53,8 +55,10 @@ src/frontend/
       integration/
         api/
           configApi.test.ts
+          systemApi.test.ts
         hooks/
           useAuth.test.tsx
+          useServerConnectivity.test.tsx
       fixtures/
         fullSystemScenarioData.ts
       setup.ts
@@ -192,6 +196,12 @@ it("<behavior>", async () => {
     - logout API 실패 시에도 `finally`에서 클라이언트 세션 정리 분기
 9. `tests/e2e/auth-smoke.spec.ts`
     - 브라우저 레벨 `/login` 라우트 렌더 스모크
+10. `src/tests/unit/hooks/serverConnectivity.test.ts`
+    - 지수 재연결 지연, 최대 지연 및 jitter 경계
+11. `src/tests/integration/api/systemApi.test.ts`
+    - `/health/ready`의 ready/degraded 응답 처리
+12. `src/tests/integration/hooks/useServerConnectivity.test.tsx`
+    - 브라우저 polling 제외 및 Tauri offline-to-online 복구
 
 ## 8.1) 백엔드 Full-System 매핑 (프론트 도달 가능 부분집합)
 

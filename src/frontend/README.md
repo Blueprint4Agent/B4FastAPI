@@ -40,6 +40,12 @@ Tauri development requires the Rust toolchain. The local desktop shell connects 
 The desktop shell is currently online-first: static UI assets open offline, but authentication,
 API key management, realtime events, and server data require FastAPI connectivity. Offline
 data caching and synchronization are separate features and are not provided by the shell.
+The packaged desktop runtime actively checks `GET /health/ready` on startup and every 30 seconds.
+Failed checks use exponential backoff with jitter (up to 30 seconds), and the desktop UI shows an
+offline banner with an immediate retry action. Browser builds do not run this desktop probe.
+When connectivity returns, the app revalidates its authentication session and configuration, and
+authenticated realtime subscriptions restart. This reconnect behavior does not queue offline
+mutations or resolve data conflicts.
 In Tauri, native window controls share the same title bar area as landing, authentication, and
 in-app navigation. The browser frontend keeps its existing navigation layout.
 
@@ -50,6 +56,11 @@ API base URL behavior:
   authentication cookies remain same-site.
 - If not set and current port is `5173` (Vite dev), frontend defaults to `http(s)://<current-host>:8000`.
 - Otherwise, frontend defaults to current page origin (same-origin), useful for backend static serving mode.
+
+For a packaged desktop build, set `VITE_API_BASE_URL` to the deployed FastAPI origin before
+running `npm run tauri -- build`. The backend must also allow the packaged Tauri webview origin
+through its CORS policy when browser-enforced HTTP requests are used. The macOS packaged origin
+is `tauri://localhost`; include it in `CORS_ORIGINS` and restart FastAPI after changing the env.
 
 ## 3) API Type Generation
 

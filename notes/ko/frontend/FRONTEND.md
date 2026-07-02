@@ -24,6 +24,7 @@ src/frontend/
   src/
     api/          # generated + domain API/error
     hooks/        # api hooks + app hooks
+      connectivity/ # 데스크톱 서버 readiness/재연결 라이프사이클
       realtime/   # 스트림 구독 라이프사이클 훅 (비 API)
         core/     # 공통 스트림 라이프사이클/재연결 훅
         <domain>/ # 도메인별 스트림 핸들러 (apiKey, ...)
@@ -150,6 +151,13 @@ flowchart LR
 2. 인증 스트림은 도메인 API 레이어에서 `fetch` 스트리밍 방식으로 구현합니다.
 3. 재연결/backoff 정책은 `src/hooks/realtime/core/*`에서 처리합니다.
 4. 도메인 이벤트 파싱/디스패치는 `src/hooks/realtime/<domain>/*`에서 처리합니다.
+
+- 데스크톱 연결 참고:
+
+1. 패키징된 Tauri 런타임의 readiness는 `/health/ready`로 확인하며 `navigator.onLine`은 보조 신호로만 사용합니다.
+2. 데스크톱 재연결/backoff 책임은 `src/hooks/connectivity/*`에 둡니다.
+3. 브라우저 런타임에서는 데스크톱 readiness polling을 시작하면 안 됩니다.
+4. 데스크톱 readiness가 유효하지 않은 동안 실시간 구독을 중단하고 복구 후 다시 시작해야 합니다.
 
 - `pages/components`는 `src/api/*`를 직접 import하면 안 되고 도메인 훅만 소비해야 합니다.
 - API 훅은 `src/hooks/api/<domain>/*` 아래에 배치해야 합니다.
