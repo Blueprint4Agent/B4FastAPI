@@ -9,6 +9,7 @@ const minimizeMock = vi.fn().mockResolvedValue(undefined);
 const toggleMaximizeMock = vi.fn().mockResolvedValue(undefined);
 const closeMock = vi.fn().mockResolvedValue(undefined);
 const startDraggingMock = vi.fn().mockResolvedValue(undefined);
+const checkNowMock = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@tauri-apps/api/window", () => ({
     getCurrentWindow: () => ({
@@ -16,6 +17,14 @@ vi.mock("@tauri-apps/api/window", () => ({
         toggleMaximize: toggleMaximizeMock,
         close: closeMock,
         startDragging: startDraggingMock,
+    }),
+}));
+
+vi.mock("../../../../hooks/connectivity/useServerConnectivity", () => ({
+    useServerConnectivity: () => ({
+        isDesktop: true,
+        status: "offline",
+        checkNow: checkNowMock,
     }),
 }));
 
@@ -36,6 +45,7 @@ afterEach(() => {
     toggleMaximizeMock.mockClear();
     closeMock.mockClear();
     startDraggingMock.mockClear();
+    checkNowMock.mockClear();
 });
 
 describe("DesktopTitleBar", () => {
@@ -68,6 +78,15 @@ describe("DesktopTitleBar", () => {
         expect(screen.queryByRole("button", { name: "Close window" })).not.toBeInTheDocument();
     });
 
+    it("places disconnected status beside the standalone theme control", () => {
+        setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+        const { container } = renderWithRouter(<DesktopTitleBar />, "/login");
+
+        const tools = container.querySelector(".desktop-titlebar__tools");
+        expect(tools).toContainElement(screen.getByRole("status"));
+        expect(tools).toContainElement(screen.getByRole("group", { name: "Theme mode" }));
+    });
+
     it("starts native dragging from a standalone navbar surface", () => {
         setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
         const { container } = renderWithRouter(<DesktopTitleBar />, "/login");
@@ -86,6 +105,18 @@ describe("DesktopTitleBar", () => {
         fireEvent.mouseDown(screen.getByRole("button", { name: "Dark mode" }), { button: 0 });
 
         expect(startDraggingMock).not.toHaveBeenCalled();
+    });
+
+    it("retries connectivity without starting a window drag", async () => {
+        setTauriUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)");
+        renderWithRouter(<DesktopTitleBar />, "/login");
+        const retryButton = screen.getByRole("button", { name: "Retry now" });
+
+        fireEvent.mouseDown(retryButton, { button: 0 });
+        await userEvent.setup().click(retryButton);
+
+        expect(startDraggingMock).not.toHaveBeenCalled();
+        expect(checkNowMock).toHaveBeenCalledTimes(1);
     });
 
     it("keeps the theme control out of an integrated app navbar", () => {

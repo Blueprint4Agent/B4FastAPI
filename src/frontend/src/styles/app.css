@@ -197,16 +197,33 @@ html[data-tauri-runtime="true"] .desktop-titlebar--integrated {
     pointer-events: auto;
 }
 
-.desktop-titlebar__theme {
+.desktop-titlebar--standalone .desktop-titlebar__controls {
+    margin-left: 0;
+}
+
+.desktop-titlebar__tools {
     margin-left: auto;
     padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
     pointer-events: auto;
 }
 
-.desktop-titlebar__theme .theme-toggle {
+.desktop-titlebar__theme {
+    display: flex;
+    align-items: center;
+}
+
+.desktop-titlebar__theme .theme-toggle,
+.public-nav__actions .theme-toggle {
     position: static;
     inset: auto;
     z-index: auto;
+    box-shadow: none;
+}
+
+.desktop-titlebar__theme .theme-toggle {
     padding: 0.1rem 0.25rem;
 }
 
@@ -255,52 +272,94 @@ html[data-tauri-runtime="true"] .desktop-titlebar--integrated {
     pointer-events: none;
 }
 
-.connectivity-banner {
-    position: fixed;
-    top: var(--nav-height);
-    right: 0;
-    left: 0;
-    z-index: 44;
-    display: flex;
-    min-height: 2.35rem;
+.connectivity-status {
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.55rem;
-    padding: 0.45rem 1rem;
-    border-bottom: 1px solid var(--warn-border);
+    flex: 0 0 auto;
     color: var(--warn-text);
-    background: color-mix(in oklab, var(--warn-bg) 88%, var(--panel) 12%);
-    font-size: 0.78rem;
-    box-shadow: 0 0.2rem 0.8rem rgba(22, 33, 48, 0.14);
 }
 
-.connectivity-banner__icon {
-    width: 0.9rem;
-    height: 0.9rem;
+.connectivity-status__content {
+    min-height: 1.65rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--warn-border);
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: inherit;
+    background: color-mix(in oklab, var(--warn-bg) 78%, var(--panel) 22%);
+    font:
+        600 0.68rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    white-space: nowrap;
+}
+
+.connectivity-status__icon {
+    width: 0.78rem;
+    height: 0.78rem;
     flex: 0 0 auto;
 }
 
-.connectivity-banner__icon--spin {
+.connectivity-status__icon--spin {
     animation: connectivity-spin 1s linear infinite;
 }
 
-.connectivity-banner__retry {
-    padding: 0.25rem 0.55rem;
-    border: 1px solid var(--warn-border);
-    border-radius: 0.35rem;
-    color: inherit;
-    background: color-mix(in oklab, var(--panel) 72%, transparent 28%);
-    font: inherit;
+.connectivity-status__retry {
     cursor: pointer;
 }
 
-.connectivity-banner__retry:hover {
-    background: var(--panel);
+.connectivity-status__retry:hover {
+    background: color-mix(in oklab, var(--warn-bg) 62%, var(--panel) 38%);
+}
+
+.connectivity-status__retry:disabled {
+    cursor: wait;
+    opacity: 1;
+}
+
+.connectivity-status__content--pending {
+    background: color-mix(in oklab, var(--warn-bg) 70%, var(--panel) 30%);
+}
+
+.connectivity-status__content--pending .connectivity-status__icon {
+    animation: connectivity-pulse 0.9s ease-in-out infinite;
+}
+
+.connectivity-status--navbar {
+    width: 7.6rem;
+    justify-content: flex-end;
+}
+
+.connectivity-status--navbar .connectivity-status__content {
+    width: 100%;
+    justify-content: center;
+}
+
+.connectivity-status--titlebar {
+    width: 6.8rem;
+    justify-content: flex-end;
+}
+
+.connectivity-status--titlebar .connectivity-status__content {
+    width: 100%;
+    min-height: 1.45rem;
+    padding: 0.18rem 0.42rem;
+    justify-content: center;
+    font-size: 0.64rem;
 }
 
 @keyframes connectivity-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@keyframes connectivity-pulse {
+    50% {
+        opacity: 0.52;
+        transform: scale(0.94);
     }
 }
 
@@ -313,11 +372,12 @@ html[data-tauri-runtime="true"] .auth-page > .theme-toggle {
 }
 
 html[data-tauri-runtime="true"][data-tauri-platform="macos"] .app-nav__inner,
-html[data-tauri-runtime="true"][data-tauri-platform="macos"] .landing-nav__brand {
+html[data-tauri-runtime="true"][data-tauri-platform="macos"] .public-nav__inner {
     padding-left: 5.25rem;
 }
 
-html[data-tauri-runtime="true"]:not([data-tauri-platform="macos"]) .app-nav__inner {
+html[data-tauri-runtime="true"]:not([data-tauri-platform="macos"]) .app-nav__inner,
+html[data-tauri-runtime="true"]:not([data-tauri-platform="macos"]) .public-nav__inner {
     padding-right: 9.6rem;
 }
 
@@ -334,6 +394,25 @@ html[data-tauri-runtime="true"] .app-nav__title {
 
 html[data-tauri-runtime="true"] .desktop-titlebar__button {
     width: 2.5rem;
+}
+
+html[data-tauri-runtime="true"] .public-nav__actions .theme-toggle {
+    padding: 0.1rem 0.25rem;
+}
+
+html[data-tauri-runtime="true"] .public-nav__actions .theme-toggle-button__option {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+html[data-tauri-runtime="true"] .public-nav__actions .theme-toggle-button__option svg {
+    width: 0.78rem;
+    height: 0.78rem;
+}
+
+html[data-tauri-runtime="true"] .public-nav__actions .theme-toggle-button__title {
+    margin-right: 0.1rem;
+    font-size: 0.68rem;
 }
 
 a {
@@ -513,7 +592,7 @@ a {
     margin: 0;
     padding: 0 1.25rem;
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
 }
 
@@ -528,7 +607,15 @@ a {
     letter-spacing: 0.01em;
 }
 
+.app-nav__actions {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .app-nav__brand {
+    justify-self: start;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -572,7 +659,7 @@ a {
     grid-template-rows: auto minmax(0, 1fr);
 }
 
-.landing-nav {
+.public-nav {
     position: sticky;
     top: 0;
     z-index: 30;
@@ -582,16 +669,47 @@ a {
     backdrop-filter: blur(10px);
 }
 
-.landing-nav__brand {
+.public-nav__inner {
+    width: 100%;
     height: var(--nav-height);
     padding: 0 1.25rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+}
+
+.public-nav__brand {
+    justify-self: start;
     display: inline-flex;
     align-items: center;
 }
 
-.landing-nav .brand-mark--nav {
+.public-nav .brand-mark--nav {
     width: calc(var(--nav-height) - 1.5rem);
     height: calc(var(--nav-height) - 1.5rem);
+}
+
+.public-nav__title {
+    margin: 0;
+    justify-self: center;
+    font:
+        600 0.9rem/1 "Inter",
+        system-ui,
+        sans-serif;
+    color: var(--text-soft);
+    letter-spacing: 0.01em;
+}
+
+.public-nav__actions {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.server-unavailable-page {
+    min-height: 0;
+    height: 100%;
 }
 
 .landing-page {

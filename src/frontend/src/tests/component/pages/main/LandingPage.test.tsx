@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
@@ -22,11 +22,19 @@ function renderLanding(loginEnabled: boolean) {
 }
 
 describe("LandingPage", () => {
+    it("uses the shared public navbar structure", () => {
+        renderLanding(true);
+
+        const nav = screen.getByRole("banner", { name: "Landing navigation" });
+        expect(within(nav).getByText("Blueprint4FastAPI")).toBeInTheDocument();
+        expect(within(nav).getByRole("group", { name: "Theme mode" })).toBeInTheDocument();
+    });
+
     it("marks landing as started and routes to login when login is enabled", async () => {
         renderLanding(true);
 
         const user = userEvent.setup();
-        await user.click(screen.getByRole("button"));
+        await user.click(screen.getByRole("button", { name: "Get started" }));
 
         await waitFor(() => {
             expect(screen.getByTestId("location")).toHaveTextContent("/login");
@@ -38,7 +46,7 @@ describe("LandingPage", () => {
         renderLanding(false);
 
         const user = userEvent.setup();
-        await user.click(screen.getByRole("button"));
+        await user.click(screen.getByRole("button", { name: "Get started" }));
 
         await waitFor(() => {
             expect(screen.getByTestId("location")).toHaveTextContent("/show-case");

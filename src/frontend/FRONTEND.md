@@ -159,6 +159,10 @@ flowchart LR
 3. Browser runtime must not start desktop readiness polling.
 4. Realtime subscriptions must pause while desktop readiness is unavailable and resume after recovery.
 5. Missing `/config` data must fail closed; only an explicit `login_enabled=false` response may unlock login-disabled routes.
+6. Desktop outage status belongs beside the app-navbar profile control or standalone/public-navbar theme control, not in a page-wide overlay.
+7. App and public navbars must use symmetric outer columns and reserve compact status width so status label changes never shift the centered title.
+8. Manual retry UI must avoid flashing transient loading states; keep the disconnected label stable and only show heavier loading affordances after a short delay.
+9. Profile-menu sign-out must be disabled while packaged desktop connectivity is not `online`; do not clear the local user or route to `/login` during a server outage.
 
 - `pages/components` must not import from `src/api/*` directly; they must consume domain hooks only.
 - API hooks must be placed under `src/hooks/api/<domain>/*`.

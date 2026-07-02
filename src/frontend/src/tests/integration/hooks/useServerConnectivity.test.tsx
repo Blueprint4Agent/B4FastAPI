@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ConnectivityBanner } from "../../../components/layout/ConnectivityBanner";
+import { ConnectivityStatus } from "../../../components/layout/ConnectivityStatus";
 import {
     ServerConnectivityProvider,
     useServerConnectivity,
@@ -46,7 +46,7 @@ describe("ServerConnectivityProvider", () => {
         render(
             <ServerConnectivityProvider>
                 <ConnectivityProbe />
-                <ConnectivityBanner />
+                <ConnectivityStatus placement="navbar" />
             </ServerConnectivityProvider>,
         );
 
@@ -69,7 +69,7 @@ describe("ServerConnectivityProvider", () => {
         render(
             <ServerConnectivityProvider>
                 <ConnectivityProbe />
-                <ConnectivityBanner />
+                <ConnectivityStatus placement="navbar" />
             </ServerConnectivityProvider>,
         );
 
@@ -82,7 +82,7 @@ describe("ServerConnectivityProvider", () => {
         const user = userEvent.setup();
         await user.click(screen.getByRole("button", { name: /retry|다시 시도/i }));
 
-        // Then: successful readiness restores online state and removes the outage banner.
+        // Then: successful readiness restores online state and removes the outage status.
         await waitFor(() => {
             expect(screen.getByTestId("connectivity-status")).toHaveTextContent("online");
         });

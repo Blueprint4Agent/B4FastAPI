@@ -42,10 +42,17 @@ API key management, realtime events, and server data require FastAPI connectivit
 data caching and synchronization are separate features and are not provided by the shell.
 The packaged desktop runtime actively checks `GET /health/ready` on startup and every 30 seconds.
 Failed checks use exponential backoff with jitter (up to 30 seconds), and the desktop UI shows an
-offline banner with an immediate retry action. Browser builds do not run this desktop probe.
+offline status beside the app-navbar profile control or standalone titlebar theme control. The
+compact status provides an immediate retry action. Browser builds do not run this desktop probe.
+Landing and server-unavailable pages share the same public navbar with a centered title and theme
+control. Symmetric navbar columns and a reserved connectivity-status width keep the title fixed
+when retry changes the status label. Manual retry clicks keep the compact disconnected label in
+place and delay heavier loading affordances so short server checks do not flicker.
 When connectivity returns, the app revalidates its authentication session and configuration, and
 authenticated realtime subscriptions restart. This reconnect behavior does not queue offline
-mutations or resolve data conflicts.
+mutations or resolve data conflicts. Desktop sign-out from the profile menu is disabled while the
+server is disconnected so the app does not clear the local session and route to login during an
+outage.
 If the application has never loaded `/config` successfully, it keeps protected routes locked and
 shows the server-unavailable page. Missing configuration is never interpreted as
 `login_enabled=false`; login-disabled navigation is allowed only after an explicit server response.

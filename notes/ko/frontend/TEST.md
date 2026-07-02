@@ -47,6 +47,7 @@ src/frontend/
         App.test.tsx
         components/
           layout/
+            AppNavbar.test.tsx
             DesktopTitleBar.test.tsx
         pages/
           login/
@@ -176,7 +177,7 @@ it("<behavior>", async () => {
 3. `src/tests/unit/utils/validation.test.ts`
     - 이메일/비밀번호 검증의 성공/실패 분기
 4. `src/tests/component/components/layout/DesktopTitleBar.test.tsx`
-    - 브라우저 숨김, macOS 네이티브 컨트롤, Windows 창 액션
+    - 브라우저 숨김, macOS 네이티브 컨트롤, Windows 창 액션, standalone 연결 상태 배치
 5. `src/tests/integration/api/configApi.test.ts`
     - `/config` 성공/실패 API 응답 처리
 6. `src/tests/component/pages/login/LoginPage.test.tsx`
@@ -205,9 +206,13 @@ it("<behavior>", async () => {
 12. `src/tests/integration/hooks/useServerConnectivity.test.tsx`
     - 브라우저 polling 제외 및 Tauri offline-to-online 복구
 13. `src/tests/component/App.test.tsx`
-    - `/config`를 사용할 수 없을 때 보호 라우팅의 fail-closed 처리
+    - `/config`를 사용할 수 없을 때 보호 라우팅의 fail-closed 처리, 공용 public Nav 구조, 지연된 재시도 로딩 상태
 14. `src/tests/integration/hooks/useFeatures.test.tsx`
     - 설정 실패와 명시적 로그인 비활성화 구분 및 재시도 복구
+15. `src/tests/component/components/layout/AppNavbar.test.tsx`
+    - 프로필 컨트롤 옆 compact 데스크톱 연결 상태 배치, 안정적인 재시도 문구, 오프라인 로그아웃 차단
+16. `src/tests/component/pages/main/LandingPage.test.tsx`
+    - 공용 public Nav 구조와 랜딩 탐색 동작
 
 ## 8.1) 백엔드 Full-System 매핑 (프론트 도달 가능 부분집합)
 

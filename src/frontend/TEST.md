@@ -47,6 +47,7 @@ src/frontend/
         App.test.tsx
         components/
           layout/
+            AppNavbar.test.tsx
             DesktopTitleBar.test.tsx
         pages/
           login/
@@ -176,7 +177,7 @@ When a new frontend domain is added:
 3. `src/tests/unit/utils/validation.test.ts`
     - Email/password validation success and failure branches.
 4. `src/tests/component/components/layout/DesktopTitleBar.test.tsx`
-    - Browser hidden state, native macOS controls, and Windows window actions.
+    - Browser hidden state, native macOS controls, Windows window actions, and standalone connectivity placement.
 5. `src/tests/integration/api/configApi.test.ts`
     - `/config` success and failure API response handling.
 6. `src/tests/component/pages/login/LoginPage.test.tsx`
@@ -205,9 +206,13 @@ When a new frontend domain is added:
 12. `src/tests/integration/hooks/useServerConnectivity.test.tsx`
     - Browser polling exclusion and Tauri offline-to-online recovery.
 13. `src/tests/component/App.test.tsx`
-    - Fail-closed protected routing when `/config` is unavailable.
+    - Fail-closed protected routing, shared public-navbar structure, and delayed retry loading state when `/config` is unavailable.
 14. `src/tests/integration/hooks/useFeatures.test.tsx`
     - Configuration failure remains distinct from explicit login disablement and recovers on retry.
+15. `src/tests/component/components/layout/AppNavbar.test.tsx`
+    - Compact desktop connectivity status placement beside the profile control, stable retry label, and offline logout blocking.
+16. `src/tests/component/pages/main/LandingPage.test.tsx`
+    - Shared public-navbar structure and landing navigation behavior.
 
 ## 8.1) Backend Full-System Mapping (Frontend-Reachable Subset)
 

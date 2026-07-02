@@ -14,6 +14,8 @@ type ProfileDropdownProps = {
     email?: string;
     onLogout: () => void;
     onChangeTheme: (mode: ThemeMode) => void;
+    logoutDisabled?: boolean;
+    logoutDisabledTitle?: string;
     showLogout: boolean;
     themeMode: ThemeMode;
 };
@@ -26,6 +28,8 @@ export function ProfileDropdown({
     email,
     onLogout,
     onChangeTheme,
+    logoutDisabled = false,
+    logoutDisabledTitle,
     showLogout,
     themeMode,
 }: ProfileDropdownProps) {
@@ -101,7 +105,8 @@ export function ProfileDropdown({
                             className="profile-menu__item profile-menu__item--danger"
                             role="menuitem"
                             onClick={onLogout}
-                            disabled={busy}
+                            disabled={busy || logoutDisabled}
+                            title={logoutDisabled ? logoutDisabledTitle : undefined}
                         >
                             <span className="profile-menu__item-icon" aria-hidden="true">
                                 <LogOut />

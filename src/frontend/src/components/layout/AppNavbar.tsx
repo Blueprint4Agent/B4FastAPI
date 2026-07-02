@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuthContext } from "../../hooks/useAuth";
+import { useServerConnectivity } from "../../hooks/connectivity/useServerConnectivity";
 import { useAppConfig } from "../../hooks/useFeatures";
 import { useTheme } from "../../hooks/useTheme";
 import { startDesktopWindowDrag } from "../../utils/desktopWindow";
 import { BrandMark, Tooltip } from "../ui";
+import { ConnectivityStatus } from "./ConnectivityStatus";
 import { ProfileDropdown } from "./ProfileDropdown";
 
 export function AppNavbar() {
@@ -15,9 +17,11 @@ export function AppNavbar() {
     const location = useLocation();
     const { user, logout } = useAuthContext();
     const { data: appConfig } = useAppConfig();
+    const { checkNow, isDesktop, status: connectivityStatus } = useServerConnectivity();
     const { themeMode, setThemeMode } = useTheme();
     const [busy, setBusy] = useState(false);
     const loginEnabled = appConfig?.login_enabled === true;
+    const logoutBlockedByConnectivity = isDesktop && connectivityStatus !== "online";
 
     const displayName = user?.name?.trim() || user?.email;
     const avatarLabel = displayName?.slice(0, 1).toUpperCase();
@@ -34,6 +38,11 @@ export function AppNavbar() {
     }
 
     const onLogout = async () => {
+        if (logoutBlockedByConnectivity) {
+            void checkNow();
+            return;
+        }
+
         setBusy(true);
         try {
             await logout();
@@ -56,19 +65,24 @@ export function AppNavbar() {
                     </Link>
                 </Tooltip>
                 <p className="app-nav__title">{pageTitle}</p>
-                {user && displayName && avatarLabel ? (
-                    <ProfileDropdown
-                        avatarLabel={avatarLabel}
-                        avatarImageUrl={user.profile_image_url}
-                        busy={busy}
-                        displayName={displayName}
-                        email={user.email}
-                        onLogout={() => void onLogout()}
-                        onChangeTheme={setThemeMode}
-                        showLogout={loginEnabled}
-                        themeMode={themeMode}
-                    />
-                ) : null}
+                <div className="app-nav__actions">
+                    <ConnectivityStatus placement="navbar" />
+                    {user && displayName && avatarLabel ? (
+                        <ProfileDropdown
+                            avatarLabel={avatarLabel}
+                            avatarImageUrl={user.profile_image_url}
+                            busy={busy}
+                            displayName={displayName}
+                            email={user.email}
+                            onLogout={() => void onLogout()}
+                            onChangeTheme={setThemeMode}
+                            logoutDisabled={logoutBlockedByConnectivity}
+                            logoutDisabledTitle={t("nav.logoutUnavailable")}
+                            showLogout={loginEnabled}
+                            themeMode={themeMode}
+                        />
+                    ) : null}
+                </div>
             </div>
         </header>
     );
