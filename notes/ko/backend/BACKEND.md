@@ -259,6 +259,45 @@ flowchart LR
     SSE --> EV
 ```
 
+## 0.5) 백엔드 런타임 루프
+
+백엔드 동작을 추가하거나 변경할 때 다음 루프를 기본 확인 항목으로 사용합니다. 해당하지 않는 루프는 “해당 없음”으로 볼 수 있지만, 커밋 전에 이유가 명확해야 합니다.
+
+### 0.5.1) Request Lifecycle 루프
+
+새 API 동작은 다음 경로를 따라야 합니다.
+
+1. 요청은 `app/routers/v1/*`로 진입
+2. auth/session/request context는 `app/deps.py`를 통해 해석
+3. 라우터는 비즈니스 작업을 `app/services/*`에 위임
+4. 서비스는 model, repository, DB session, shared utility를 통해 읽기/쓰기 수행
+5. 서비스는 도메인 결과를 반환하거나 도메인 예외를 발생
+6. 라우터/전역 핸들러는 결과 또는 에러를 HTTP 응답으로 매핑
+
+라우터가 서비스 오케스트레이션, 직접 DB 정책, 임의 에러 응답 생성을 포함해 이 루프를 우회하면 안 됩니다.
+
+### 0.5.2) Domain Event 루프
+
+백엔드 변경이 즉시 HTTP 응답 밖에서도 반영되어야 한다면 domain event 루프를 사용합니다.
+
+1. 서비스가 상태를 변경하는 도메인 액션 완료
+2. 서비스가 realtime broker 경로를 통해 타입이 있는 도메인 이벤트 발행
+3. realtime transport가 이벤트를 직렬화하고 스트리밍
+4. 프론트엔드 realtime hook이 이벤트를 소비하고 영향을 받는 상태를 refresh 또는 update
+
+라우터에서 transport-specific 이벤트를 직접 발행하지 않습니다. 이벤트 이름과 payload는 `app/core/realtime/domain_events/` 아래에서 도메인 단위와 타입을 유지합니다.
+
+### 0.5.3) Background Task 루프
+
+느리거나, 재시도 가능하거나, HTTP 응답 전에 완료될 필요가 없는 작업은 background task 루프를 사용합니다.
+
+1. 요청 처리 또는 도메인 서비스가 필요한 최소 payload로 task enqueue
+2. worker 소유 서비스가 side effect 실행
+3. 실패는 worker/service 경계에서 logging 및 정규화
+4. 호출자가 후속 상태를 알아야 하면 완료/실패를 status update, domain event, observable log로 노출
+
+queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 장시간 외부 호출을 request handler 안에 숨기지 않습니다.
+
 ## 1) 포맷팅 및 린팅 (Ruff 우선)
 
 - `src/backend/pyproject.toml`은 백엔드 툴링/의존성 설정의 단일 기준입니다.

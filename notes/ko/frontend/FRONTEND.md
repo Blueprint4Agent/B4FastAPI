@@ -66,6 +66,45 @@ flowchart LR
     C --> D
 ```
 
+## 0.3) 프론트엔드 런타임 루프
+
+프론트엔드 동작을 추가하거나 변경할 때 다음 루프를 기본 확인 항목으로 사용합니다. 해당하지 않는 루프는 “해당 없음”으로 볼 수 있지만, 커밋 전에 이유가 명확해야 합니다.
+
+### 0.3.1) API State 루프
+
+사용자 주도 API 동작은 다음 경로를 따라야 합니다.
+
+1. 페이지가 도메인 hook 호출과 사용자 action 처리를 소유
+2. 도메인 hook이 도메인 API wrapper 호출
+3. 도메인 API wrapper가 생성된 OpenAPI 타입과 도메인 에러 매핑 사용
+4. hook이 loading, success, error 상태를 page용으로 정규화
+5. page가 state와 action을 feature component에 props로 전달
+6. UI는 feature component 내부에 API state를 중복하지 않고 hook state에서 갱신
+
+페이지와 feature component는 `src/api/*`를 직접 import하거나 도메인 hook을 우회하면 안 됩니다.
+
+### 0.3.2) Realtime Refresh 루프
+
+백엔드 도메인 이벤트가 화면 상태를 갱신해야 한다면 realtime refresh 루프를 사용합니다.
+
+1. 도메인 realtime hook이 shared realtime core를 통해 구독
+2. 도메인 이벤트 parser가 알려진 event type을 검증하고 dispatch
+3. 영향받은 API state는 도메인 소유 위치 한 곳에서 refetch, invalidate, update
+4. page와 feature component는 갱신된 hook state에서 rerender
+
+재연결/backoff 동작은 `src/hooks/realtime/core/*`에 두고, 도메인 이벤트 처리는 `src/hooks/realtime/<domain>/*`에 둡니다.
+
+### 0.3.3) Desktop Connectivity Recovery 루프
+
+패키징된 데스크톱 동작은 다음 복구 루프를 따라야 합니다.
+
+1. connectivity hook이 `/health/ready`를 확인하고 desktop server readiness 추적
+2. readiness가 유효하지 않은 동안 API와 realtime 작업 중단
+3. 수동 재시도와 backoff 복구는 disconnected UI를 안정적으로 유지
+4. 복구 후 stale API/realtime state를 갱신한 뒤 정상 상호작용 재개
+
+브라우저 런타임에서는 desktop readiness polling을 시작하면 안 되며, desktop outage가 local user/session state를 지우면 안 됩니다.
+
 ## 1) 포맷팅과 린팅
 
 - 프론트 코드 포맷의 기준은 Prettier입니다.

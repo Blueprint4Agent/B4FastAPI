@@ -66,6 +66,45 @@ flowchart LR
     C --> D
 ```
 
+## 0.3) Frontend Runtime Loops
+
+Use these loops as the default check when adding or changing frontend behavior. A loop can be marked not applicable, but the reason should be clear before committing.
+
+### 0.3.1) API State Loop
+
+User-driven API behavior should follow this path:
+
+1. Page owns domain hook invocation and user action handling.
+2. Domain hook calls the domain API wrapper.
+3. Domain API wrapper uses generated OpenAPI types and domain error mapping.
+4. Hook normalizes loading, success, and error state for the page.
+5. Page passes state and actions into feature components through props.
+6. UI refreshes from hook state instead of duplicating API state inside feature components.
+
+Pages and feature components should not import `src/api/*` directly or bypass domain hooks.
+
+### 0.3.2) Realtime Refresh Loop
+
+When backend domain events should update visible UI state, use the realtime refresh loop:
+
+1. Domain realtime hook subscribes through the shared realtime core.
+2. Domain event parser validates and dispatches known event types.
+3. Affected API state is refetched, invalidated, or updated in one domain-owned place.
+4. Pages and feature components rerender from the refreshed hook state.
+
+Keep reconnect/backoff behavior in `src/hooks/realtime/core/*`; keep domain event handling in `src/hooks/realtime/<domain>/*`.
+
+### 0.3.3) Desktop Connectivity Recovery Loop
+
+Packaged desktop behavior should follow this recovery loop:
+
+1. Connectivity hook checks `/health/ready` and tracks desktop server readiness.
+2. API and realtime work pause while readiness is unavailable.
+3. Manual retry and backoff recovery keep disconnected UI stable.
+4. After recovery, stale API/realtime state is refreshed before normal interaction resumes.
+
+Browser runtime must not start desktop readiness polling, and desktop outages must not clear local user/session state.
+
 ## 1) Formatting and Linting
 
 - Prettier is the formatting source of truth for frontend code.

@@ -259,6 +259,45 @@ flowchart LR
     SSE --> EV
 ```
 
+## 0.5) Backend Runtime Loops
+
+Use these loops as the default check when adding or changing backend behavior. A loop can be marked not applicable, but the reason should be clear before committing.
+
+### 0.5.1) Request Lifecycle Loop
+
+New API behavior should follow this path:
+
+1. Request enters `app/routers/v1/*`.
+2. Auth/session/request context is resolved through `app/deps.py`.
+3. Router delegates business work to `app/services/*`.
+4. Service reads/writes through models, repositories, DB sessions, and shared utilities.
+5. Service returns a domain result or raises a domain exception.
+6. Router/global handlers map the result or error to the HTTP response.
+
+Routers should not shortcut this loop by embedding service orchestration, direct DB policy, or ad hoc error response construction.
+
+### 0.5.2) Domain Event Loop
+
+When a backend change should be reflected outside the immediate HTTP response, use the domain event loop:
+
+1. A service completes a state-changing domain action.
+2. The service publishes a typed domain event through the realtime broker path.
+3. Realtime transport serializes and streams the event.
+4. Frontend realtime hooks consume the event and refresh or update affected state.
+
+Do not publish transport-specific events directly from routers. Keep event names and payloads domain-scoped and typed under `app/core/realtime/domain_events/`.
+
+### 0.5.3) Background Task Loop
+
+Use the background task loop for work that is slow, retryable, or not required to complete before the HTTP response:
+
+1. Request handling or domain service enqueues a task with the minimum required payload.
+2. Worker-owned services execute the side effect.
+3. Failures are logged and normalized at the worker/service boundary.
+4. Completion or failure emits a status update, domain event, or observable log when callers need follow-up visibility.
+
+Avoid hiding long-running external calls inside request handlers when a queued task would provide clearer retry and failure behavior.
+
 ## 1) Formatting and Linting (Ruff-First)
 
 - `src/backend/pyproject.toml` is the source of truth for backend tooling/dependency configuration.
