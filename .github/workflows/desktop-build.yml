@@ -87,7 +87,7 @@ jobs:
 
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   ref: ${{ needs.resolve-release.outputs.tag-name || github.ref }}
 
@@ -103,9 +103,9 @@ jobs:
                     xdg-utils
 
             - name: Set up Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: "20"
+                  node-version: "24"
                   cache: npm
                   cache-dependency-path: src/frontend/package-lock.json
 
@@ -126,6 +126,7 @@ jobs:
               run: npm ci
 
             - name: Build desktop app
+              id: tauri
               uses: tauri-apps/tauri-action@v1
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,15 +138,9 @@ jobs:
                   releaseName: ${{ needs.resolve-release.outputs.release-name }}
 
             - name: Upload desktop bundles
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                   name: ${{ matrix.artifact-name }}
                   if-no-files-found: error
                   retention-days: 14
-                  path: |
-                      src/frontend/src-tauri/target/release/bundle/**/*.AppImage
-                      src/frontend/src-tauri/target/release/bundle/**/*.deb
-                      src/frontend/src-tauri/target/release/bundle/**/*.dmg
-                      src/frontend/src-tauri/target/release/bundle/**/*.exe
-                      src/frontend/src-tauri/target/release/bundle/**/*.msi
-                      src/frontend/src-tauri/target/release/bundle/**/*.rpm
+                  path: ${{ steps.tauri.outputs.artifactPaths }}

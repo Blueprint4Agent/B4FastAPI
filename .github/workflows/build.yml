@@ -114,7 +114,7 @@ jobs:
             - resolve-ref
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
 
@@ -152,14 +152,14 @@ jobs:
             - resolve-ref
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
 
             - name: Set up Node.js
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v6
               with:
-                  node-version: "20"
+                  node-version: "24"
                   cache: npm
                   cache-dependency-path: src/frontend/package-lock.json
 
@@ -189,7 +189,7 @@ jobs:
             - frontend
         steps:
             - name: Checkout
-              uses: actions/checkout@v4
+              uses: actions/checkout@v7
               with:
                   ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
 
