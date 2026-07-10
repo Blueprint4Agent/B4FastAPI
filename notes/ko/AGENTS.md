@@ -22,7 +22,7 @@
 커밋 전에는 루프 정렬 확인을 기본 검증 단계로 취급합니다.
 
 1. 백엔드 변경: request lifecycle, domain event, background task 루프를 따랐는지 또는 해당 없음인지 확인합니다.
-2. 프론트엔드 변경: API state, realtime refresh, desktop connectivity recovery 루프를 따랐는지 또는 해당 없음인지 확인합니다.
+2. 프론트엔드 변경: API state, realtime refresh, desktop connectivity recovery, UI composition 루프를 따랐는지 또는 해당 없음인지 확인합니다.
 3. 루프를 의도적으로 건너뛰었다면 커밋되는 변경의 final response와 worklog에 이유를 기록합니다.
 
 ## 커밋 전 검증
