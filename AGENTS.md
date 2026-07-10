@@ -15,6 +15,16 @@ If implementation changes behavior, structure, or rules, update related docs in 
 Localized documentation is maintained under `notes/<locale>/...`.
 Keep localized paths synchronized with `README.md`.
 
+## Loop Check Policy
+
+When a developer explicitly requests loop engineering or asks whether a backend/frontend loop is needed, check the relevant domain guide before implementing.
+
+Before committing, treat loop alignment as a default verification step:
+
+1. Backend changes: confirm the request lifecycle, domain event, and background task loops are either followed or not applicable.
+2. Frontend changes: confirm the API state, realtime refresh, and desktop connectivity recovery loops are either followed or not applicable.
+3. If a loop is intentionally skipped, record the reason in the final response and worklog when the change is committed.
+
 ## Pre-Commit Verification
 
 Before finalizing a commit, run validation through the root `Makefile` hooks.

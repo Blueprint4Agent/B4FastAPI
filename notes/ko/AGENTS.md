@@ -15,6 +15,16 @@
 현지화 문서는 `notes/<locale>/...` 아래에서 관리합니다.
 현지화 경로는 `README.md`와 동기화합니다.
 
+## 루프 확인 정책
+
+개발자가 명시적으로 루프 엔지니어링을 요청하거나 백엔드/프론트엔드 루프가 필요한지 묻는 경우, 구현 전에 관련 도메인 가이드를 확인합니다.
+
+커밋 전에는 루프 정렬 확인을 기본 검증 단계로 취급합니다.
+
+1. 백엔드 변경: request lifecycle, domain event, background task 루프를 따랐는지 또는 해당 없음인지 확인합니다.
+2. 프론트엔드 변경: API state, realtime refresh, desktop connectivity recovery 루프를 따랐는지 또는 해당 없음인지 확인합니다.
+3. 루프를 의도적으로 건너뛰었다면 커밋되는 변경의 final response와 worklog에 이유를 기록합니다.
+
 ## 커밋 전 검증
 
 커밋을 완료하기 전에 루트 `Makefile` 훅을 통해 검증을 실행해야 합니다.
