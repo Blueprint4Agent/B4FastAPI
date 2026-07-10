@@ -22,7 +22,7 @@ When a developer explicitly requests loop engineering or asks whether a backend/
 Before committing, treat loop alignment as a default verification step:
 
 1. Backend changes: confirm the request lifecycle, domain event, and background task loops are either followed or not applicable.
-2. Frontend changes: confirm the API state, realtime refresh, and desktop connectivity recovery loops are either followed or not applicable.
+2. Frontend changes: confirm the API state, realtime refresh, desktop connectivity recovery, and UI composition loops are either followed or not applicable.
 3. If a loop is intentionally skipped, record the reason in the final response and worklog when the change is committed.
 
 ## Pre-Commit Verification

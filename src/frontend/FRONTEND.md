@@ -105,6 +105,20 @@ Packaged desktop behavior should follow this recovery loop:
 
 Browser runtime must not start desktop readiness polling, and desktop outages must not clear local user/session state.
 
+### 0.3.4) UI Composition Loop
+
+Visual and interaction changes should follow this loop before adding new markup, components, or CSS:
+
+1. Check `src/components/ui/*`, `src/components/layout/*`, and existing feature components for a reusable control or pattern.
+2. If the UI is reusable, implement or extend a shared component first and export it from `src/components/ui/index.ts` when applicable.
+3. Use shared styles from `src/styles/app.css`; add a reusable class there when a style is likely to repeat.
+4. Keep feature/page components focused on composition, state wiring, and domain-specific labels.
+5. Verify compact controls have stable dimensions, text fits inside buttons, and internal text/icon spacing is consistent.
+6. For collection controls such as pagination, use the shared button/control style, stable item sizing, disabled/current states, and no layout shift when labels or page numbers change.
+7. Check the result at mobile and desktop widths before committing when the change affects layout or text fit.
+
+Avoid one-off button spacing, inline pagination styles, page-local control CSS, or duplicated component variants unless the local exception is documented.
+
 ## 1) Formatting and Linting
 
 - Prettier is the formatting source of truth for frontend code.
