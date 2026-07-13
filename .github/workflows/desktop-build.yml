@@ -137,10 +137,34 @@ jobs:
                   tagName: ${{ needs.resolve-release.outputs.tag-name }}
                   releaseName: ${{ needs.resolve-release.outputs.release-name }}
 
+            - name: Prepare desktop bundle paths
+              id: desktop-bundles
+              env:
+                  ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
+              run: |
+                  node <<'NODE'
+                  const { appendFileSync } = require("node:fs");
+
+                  const rawArtifactPaths = process.env.ARTIFACT_PATHS || "";
+                  let artifactPaths;
+
+                  try {
+                    artifactPaths = JSON.parse(rawArtifactPaths);
+                  } catch {
+                    artifactPaths = rawArtifactPaths.split(/\r?\n/);
+                  }
+
+                  const paths = (Array.isArray(artifactPaths) ? artifactPaths : [artifactPaths])
+                    .map((path) => String(path).trim())
+                    .filter(Boolean);
+
+                  appendFileSync(process.env.GITHUB_OUTPUT, `paths<<EOF\n${paths.join("\n")}\nEOF\n`);
+                  NODE
+
             - name: Upload desktop bundles
               uses: actions/upload-artifact@v7
               with:
                   name: ${{ matrix.artifact-name }}
                   if-no-files-found: error
                   retention-days: 14
-                  path: ${{ steps.tauri.outputs.artifactPaths }}
+                  path: ${{ steps.desktop-bundles.outputs.paths }}
