@@ -22,6 +22,7 @@ if (existsSync(cargoBin) && !pathEntries.includes(cargoBin)) {
 
 const child = spawn(tauriPath, process.argv.slice(2), {
     env,
+    shell: process.platform === "win32",
     stdio: "inherit",
 });
 
