@@ -17,10 +17,11 @@ if (!existsSync(tauriPath)) {
 
 const env = { ...process.env };
 const cargoBin = join(homedir(), ".cargo", "bin");
-const pathEntries = (env.PATH ?? "").split(delimiter).filter(Boolean);
+const pathKey = Object.keys(env).find((key) => key.toLowerCase() === "path") ?? "PATH";
+const pathEntries = (env[pathKey] ?? "").split(delimiter).filter(Boolean);
 
 if (existsSync(cargoBin) && !pathEntries.includes(cargoBin)) {
-    env.PATH = [cargoBin, ...pathEntries].join(delimiter);
+    env[pathKey] = [cargoBin, ...pathEntries].join(delimiter);
     console.log(`[tauri] Added ${cargoBin} to PATH for this command.`);
 }
 
