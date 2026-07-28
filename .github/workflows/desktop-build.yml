@@ -139,6 +139,7 @@ jobs:
 
             - name: Prepare desktop bundle paths
               id: desktop-bundles
+              shell: bash
               env:
                   ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
               run: |
