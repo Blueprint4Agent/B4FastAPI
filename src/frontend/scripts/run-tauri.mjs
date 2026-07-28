@@ -3,8 +3,12 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { delimiter, join } from "node:path";
 
-const executable = process.platform === "win32" ? "tauri.cmd" : "tauri";
-const tauriPath = join(process.cwd(), "node_modules", ".bin", executable);
+const tauriScriptPath = join(process.cwd(), "node_modules", "@tauri-apps", "cli", "tauri.js");
+const executable = process.platform === "win32" ? process.execPath : "tauri";
+const tauriPath =
+    process.platform === "win32"
+        ? tauriScriptPath
+        : join(process.cwd(), "node_modules", ".bin", executable);
 
 if (!existsSync(tauriPath)) {
     console.error("[tauri] CLI not found. Run `npm ci` in src/frontend first.");
@@ -20,9 +24,12 @@ if (existsSync(cargoBin) && !pathEntries.includes(cargoBin)) {
     console.log(`[tauri] Added ${cargoBin} to PATH for this command.`);
 }
 
-const child = spawn(tauriPath, process.argv.slice(2), {
+const command = process.platform === "win32" ? executable : tauriPath;
+const args =
+    process.platform === "win32" ? [tauriPath, ...process.argv.slice(2)] : process.argv.slice(2);
+
+const child = spawn(command, args, {
     env,
-    shell: process.platform === "win32",
     stdio: "inherit",
 });
 
