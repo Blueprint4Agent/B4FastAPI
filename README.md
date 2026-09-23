@@ -39,7 +39,7 @@ Current locale example (`ko`):
 contracts/
 src/
   backend/
-  frontend/
+  frontend/  # B4React Git submodule
 docker/
   scripts/
 ```
@@ -83,7 +83,7 @@ make backend-dev          # Run FastAPI development server
 make frontend-dev         # Run Vite development server
 make build                # Build backend environment and frontend artifacts
 make test                 # Run backend and frontend tests
-make check                # Run backend lint and frontend format checks
+make check                # Check code, generated types, and API contracts
 make format               # Format backend and frontend code
 make ci                   # Run check, test, and build
 ```
@@ -176,3 +176,21 @@ Rust installation path (`~/.cargo/bin`) when the current shell has not loaded it
 ```bash
 make frontend-desktop-dev
 ```
+
+## Shared frontend repository
+
+B4React lives at [Blueprint4Agent/B4React](https://github.com/Blueprint4Agent/B4React)
+and is pinned at `src/frontend`. Clone with `git clone --recurse-submodules`, or run
+`make frontend-init` in an existing checkout. `make init` and `make frontend-install`
+also initialize the committed pin.
+
+- `make frontend-build`: produce only `src/frontend/dist`.
+- `make frontend-package`: build and copy dist into backend static assets.
+- `make build`: backend environment plus integrated frontend packaging.
+- `make contract-check`: verify backend export and equality with B4React's local snapshot.
+- `make frontend-api-check`: verify generated types without changing child files.
+
+Frontend changes are reviewed and merged in B4React first. Update this repository's
+submodule commit in a PR afterwards; do not track a moving branch in builds.
+See [frontend integration](notes/frontend-submodule.md). Korean frontend source docs
+are owned by B4React at `src/frontend/notes/ko/`; the old paths are entry links.

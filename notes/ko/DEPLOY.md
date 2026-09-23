@@ -17,7 +17,7 @@
 템플릿 환경 파일 초기화:
 
 ```bash
-bash ./docker/scripts/init-env.sh
+make init
 ```
 
 주 배포 환경 파일:
@@ -254,3 +254,12 @@ tar 아티팩트가 생성되지 않음
 
 - `docker-build.sh`는 tar를 내보내지 않습니다.
 - `docker-deploy.sh` 또는 `docker-export.sh`를 사용하세요.
+
+## 프론트 소스와 패키징
+
+로컬 Docker 빌드 전에 `make frontend-init`으로 고정된 B4React를 초기화합니다.
+Build·Desktop CI는 recursive checkout을 사용합니다. 프론트는 자체 dist만 생성하고
+부모 Dockerfile이 FastAPI 정적 경로에 복사합니다. 로컬 통합 실행은
+`make frontend-package` 또는 `make build`를 사용합니다.
+서브모듈 갱신 시 제공자 스냅샷·소비자 계약·생성 타입 검사를 모두 통과해야 합니다.
+기존 데스크톱 bundle 식별자는 이번 분리에서 유지합니다.

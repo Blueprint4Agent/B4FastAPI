@@ -1,4 +1,4 @@
-FROM node:20-alpine AS frontend_builder
+FROM node:24-alpine AS frontend_builder
 
 WORKDIR /workspace/src/frontend
 
@@ -6,7 +6,7 @@ COPY src/frontend/package.json src/frontend/package-lock.json ./
 RUN npm ci
 
 COPY src/frontend/ ./
-RUN npx tsc && npx vite build
+RUN npm run build
 
 
 FROM python:3.12-slim AS backend_runtime

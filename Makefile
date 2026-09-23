@@ -24,17 +24,17 @@ help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Available targets:\n"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  %-28s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 .PHONY: init
-init: ## Initialize backend, frontend, and docker env files
+init: frontend-init ## Initialize backend, frontend, and docker env files
 	bash ./docker/scripts/init-env.sh
 
 .PHONY: install
 install: backend-install frontend-install ## Install backend and frontend dependencies
 
 .PHONY: build
-build: backend-build frontend-build ## Build backend environment and frontend static artifacts
+build: backend-build frontend-package ## Build backend environment and frontend static artifacts
 
 .PHONY: check
-check: backend-check frontend-format-check ## Run backend lint and frontend format checks
+check: backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, types, and pinned API contracts
 
 .PHONY: git-governance-check
 git-governance-check: ## Validate git governance; optionally pass commit, PR, and merge metadata
@@ -74,7 +74,7 @@ backend-test: ## Run backend tests
 	cd $(BACKEND_DIR) && $(UV) run python -m pytest $(PYTEST_ARGS)
 
 .PHONY: frontend-install
-frontend-install: ## Install frontend dependencies
+frontend-install: frontend-init ## Install frontend dependencies
 	cd $(FRONTEND_DIR) && $(NPM) ci
 
 .PHONY: frontend-dev
@@ -86,7 +86,7 @@ frontend-desktop-dev: ## Run the frontend in the Tauri desktop shell
 	cd $(FRONTEND_DIR) && $(NPM) run tauri:dev
 
 .PHONY: frontend-build
-frontend-build: ## Build frontend static artifacts and copy them to backend static path
+frontend-build: ## Build only B4React dist artifacts
 	cd $(FRONTEND_DIR) && $(NPM) run build
 
 .PHONY: frontend-desktop-build
@@ -94,17 +94,17 @@ frontend-desktop-build: ## Build the Tauri desktop application
 	cd $(FRONTEND_DIR) && $(NPM) run tauri -- build
 
 .PHONY: frontend-build-sync
-frontend-build-sync: ## Generate API types optionally, then build frontend
+frontend-build-sync: ## Regenerate local pinned types, then build B4React dist
 	cd $(FRONTEND_DIR) && $(NPM) run build:sync
 
 .PHONY: contract-export contract-check frontend-api-generate frontend-typecheck
 contract-export: ## Export the OpenAPI baseline without running a server
 	cd $(BACKEND_DIR) && $(UV) run python -m app.export_openapi ../../contracts/openapi.json
 
-contract-check: ## Check that the committed OpenAPI baseline matches the backend
+contract-check: frontend-contract-check ## Check backend export and pinned frontend baseline
 	cd $(BACKEND_DIR) && $(UV) run python -m app.export_openapi ../../contracts/openapi.json --check
 
-frontend-api-generate: ## Generate frontend types from the committed OpenAPI baseline
+frontend-api-generate: ## Generate types from B4React own pinned baseline
 	cd $(FRONTEND_DIR) && $(NPM) run generate:api:contract
 
 frontend-typecheck: ## Check frontend TypeScript without building static artifacts
@@ -155,3 +155,16 @@ docker-observability-up: ## Start local observability stack
 docker-observability-down: ## Stop local observability stack
 	@[ -f "$(DOCKER_DIR)/.env" ] || cp "$(DOCKER_DIR)/.env.example" "$(DOCKER_DIR)/.env"
 	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --env-file .env --profile observability down --remove-orphans
+
+.PHONY: frontend-init frontend-package frontend-contract-check frontend-api-check
+frontend-init: ## Initialize submodules at their committed versions
+	git submodule update --init --recursive
+
+frontend-package: frontend-build ## Build and package frontend into backend static dist
+	node scripts/package-frontend.mjs "$(FRONTEND_DIR)/dist" "$(BACKEND_DIR)/app/static/dist"
+
+frontend-contract-check: ## Compare provider and pinned consumer OpenAPI contracts
+	node scripts/check-frontend-contract.mjs "$(FRONTEND_DIR)"
+
+frontend-api-check: ## Detect generated frontend type drift
+	cd $(FRONTEND_DIR) && $(NPM) run api:check

@@ -13,25 +13,14 @@
 
 루트에서 다음 순서로 실행합니다.
 
-```sh
-make contract-export
-make frontend-api-generate
-make contract-check
-make frontend-typecheck
-make check
-make test
-```
+`make contract-export`는 부모의 제공자 계약을 갱신합니다. 검토된 계약을 B4React PR에서
+출처·생성 타입·호출부와 함께 도입하고 머지한 다음 부모 포인터를 갱신합니다.
+[변경 순서](../frontend-submodule.md)를 참고하세요.
+`make frontend-api-generate`는 자식의 자체 계약만 사용합니다.
 
-`contract-check`는 백엔드 추출 결과와 기준 파일을 비교합니다. 두 백엔드의
-호환성 검사나 생성 TypeScript의 변경 검사는 아닙니다. 기존 `generate:api`는
-실행 중인 서버를 사용하며, 기준 파일 기반 생성은 `frontend-api-generate`를
-사용합니다. 선택적 생성의 기존 파일 fallback은 계약 일치를 보장하지 않습니다.
-
-경로, 메서드, 필드 이름, 필수·null 여부, 상태 코드, 인증 요구사항, 이벤트
-payload 변경은 소비자와 제공자 관점에서 함께 검토합니다. operation ID와
-컴포넌트 이름도 가능한 한 유지합니다. 오류 enum 추가는 프론트의 exhaustive
-메시지 매핑 수정이 필요할 수 있습니다. Spring Boot도 같은 동작 시나리오를
-통과해야 하며, 동일한 문서를 제공하는 것만으로 호환성이 보장되지는 않습니다.
+`make check test build`로 검증합니다. `contract-check`는 백엔드 내보내기와
+프론트 계약의 의미상 일치를 검사하고 `frontend-api-check`는 생성 타입의 변경 누락을 검사합니다.
+이 검사는 다른 백엔드 구현의 런타임 호환성을 보장하지 않습니다.
 
 ## HTTP와 오류
 
@@ -112,5 +101,5 @@ payload 변경은 소비자와 제공자 관점에서 함께 검토합니다. op
   생성하므로 실패 응답의 쿠키 삭제는 현재 보장되지 않습니다.
 - TypeScript 생성은 런타임 검증이 아닙니다. 기존 API Key 이벤트 소비자는
   수신 레코드를 부분적으로만 검사합니다.
-- 프론트 독립 패키징, CI 자동 drift 검사, Spring Boot 제공자 테스트,
+- Spring Boot 제공자 테스트,
   DB 이전과 운영 중 스택 교체는 이후 단계입니다.

@@ -130,3 +130,10 @@ PR 설명에는 다음 섹션이 필요합니다.
 - Risk / Impact
 
 라벨을 사용할 수 있다면 `feat`, `fix`, `docs`, `frontend`, `backend`, `infra`, `tests`처럼 변경 타입과 영향 영역에 맞는 라벨을 적용합니다.
+
+## B4React 서브모듈
+
+`src/frontend`는 B4React의 커밋을 고정한 서브모듈입니다. 가이드를 읽기 전에
+`git submodule update --init --recursive`로 초기화합니다. 프론트 소스는 B4React의
+이름 있는 브랜치와 PR에서 먼저 머지하고 부모의 gitlink를 갱신합니다. 부모는 패키징·통합·계약 검사를 담당합니다.
+CI에서 `--remote`를 사용하거나 부모 파일로 자식 계약을 자동 덮어쓰지 않습니다.

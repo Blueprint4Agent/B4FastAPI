@@ -142,3 +142,12 @@ gh pr merge <number> --auto --merge
 Do not use squash merge or rebase merge unless the user explicitly requests that method. Validate the planned method through `make git-governance-check`; the default `MERGE_METHOD=merge` rejects other methods unless the explicit-request override `ALLOW_NON_MERGE_METHOD=true` is supplied.
 
 Before enabling auto-merge, confirm the requested method in the resulting `autoMergeRequest`. A merge method cannot be changed after the pull request has merged; if the wrong method is registered, disable auto-merge before required checks complete and register it again with `--merge`.
+
+## B4React Submodule
+
+`src/frontend` is a pinned B4React Git submodule. Initialize with
+`git submodule update --init --recursive` before reading its guides. Frontend source
+changes belong in a named B4React branch and PR; merge there before updating the
+parent gitlink. Parent commits own packaging, integration, and contract validation.
+Do not run `git submodule update --remote` in CI or automatically regenerate child
+contracts from parent files.
