@@ -97,6 +97,19 @@ frontend-desktop-build: ## Build the Tauri desktop application
 frontend-build-sync: ## Generate API types optionally, then build frontend
 	cd $(FRONTEND_DIR) && $(NPM) run build:sync
 
+.PHONY: contract-export contract-check frontend-api-generate frontend-typecheck
+contract-export: ## Export the OpenAPI baseline without running a server
+	cd $(BACKEND_DIR) && $(UV) run python -m app.export_openapi ../../contracts/openapi.json
+
+contract-check: ## Check that the committed OpenAPI baseline matches the backend
+	cd $(BACKEND_DIR) && $(UV) run python -m app.export_openapi ../../contracts/openapi.json --check
+
+frontend-api-generate: ## Generate frontend types from the committed OpenAPI baseline
+	cd $(FRONTEND_DIR) && $(NPM) run generate:api:contract
+
+frontend-typecheck: ## Check frontend TypeScript without building static artifacts
+	cd $(FRONTEND_DIR) && $(NPM) exec tsc -- --noEmit
+
 .PHONY: frontend-test
 frontend-test: ## Run frontend tests
 	cd $(FRONTEND_DIR) && $(NPM) run test

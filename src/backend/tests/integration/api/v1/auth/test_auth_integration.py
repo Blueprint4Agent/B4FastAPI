@@ -65,6 +65,42 @@ def test_signup_and_login_flow(integration_client: TestClient):
 
 
 @pytest.mark.primary_data
+def test_cookie_refresh_preserves_refresh_token_and_logout_invalidates_session(
+    integration_client: TestClient,
+):
+    """Scenario: browser cookie refresh retains its token and logout invalidates refresh access."""
+    # Given: a registered user logs in through the real service and cookie transport.
+    integration_client.post("/api/v1/auth/signup", json=build_signup_payload())
+    login = integration_client.post("/api/v1/auth/login", json=build_login_payload())
+    assert login.status_code == 200
+    token = login.json()["refresh_token"]
+    sid = integration_client.cookies["template_refresh_sid"]
+    # When: an empty browser refresh request uses cookies instead of explicit token fields.
+    refreshed = integration_client.post("/api/v1/auth/refresh", json={})
+    # Then: the existing refresh value/SID are retained, and logout invalidates them.
+    assert refreshed.status_code == 200
+    assert refreshed.json()["refresh_token"] == token
+    assert integration_client.cookies["template_refresh_sid"] == sid
+    logout = integration_client.post(
+        "/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {refreshed.json()['access_token']}"},
+    )
+    assert logout.status_code == 200
+    assert "template_refresh_token" not in integration_client.cookies
+    assert "template_refresh_sid" not in integration_client.cookies
+    rejected = integration_client.post(
+        "/api/v1/auth/refresh",
+        json={
+            "refresh_token": token,
+            "session_id": sid,
+            "user_id": login.json()["user"]["id"],
+        },
+    )
+    assert rejected.status_code == 401
+    assert rejected.json()["detail"]["error"] == "INVALID_TOKEN"
+
+
+@pytest.mark.primary_data
 def test_me_with_bearer_token(integration_client: TestClient):
     """Scenario: /me returns current user when bearer token is valid."""
     # Given: a signed-up user.

@@ -2,7 +2,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -25,6 +25,7 @@ from app.core.observability.request_context import (
     set_request_context,
 )
 from app.core.observability.tracing import setup_tracing
+from app.core.openapi import register_openapi_contracts
 from app.core.task_queue.services import TASK_QUEUE_BOOTSTRAP
 from app.models.user import UserResponse, UserRole, Users
 from app.routers.v1 import api_key, auth, events
@@ -219,11 +220,20 @@ def create_app() -> FastAPI:
     async def ping():
         return {"status": "ok", "message": "pong"}
 
-    @app.get("/health/live", response_model=HealthCheckResult, include_in_schema=False)
+    @app.get("/health/live", response_model=HealthCheckResult)
     async def health_live():
         return HealthCheckResult(status="ok")
 
-    @app.get("/health/ready", response_model=ReadinessResponse, include_in_schema=False)
+    @app.get(
+        "/health/ready",
+        response_model=ReadinessResponse,
+        responses={
+            status.HTTP_503_SERVICE_UNAVAILABLE: {
+                "model": ReadinessResponse,
+                "description": "One or more required dependencies are unavailable",
+            },
+        },
+    )
     async def health_ready():
         readiness = await get_readiness()
         if readiness.status != "ok":
@@ -269,6 +279,7 @@ def create_app() -> FastAPI:
 
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
 
+    register_openapi_contracts(app)
     return app
 
 

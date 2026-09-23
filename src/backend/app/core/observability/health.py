@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 from sqlalchemy import text
 
@@ -6,11 +8,11 @@ from app.core.db.session import get_session_factory
 
 
 class HealthCheckResult(BaseModel):
-    status: str
+    status: Literal["ok"]
 
 
 class ReadinessResponse(BaseModel):
-    status: str
+    status: Literal["ok", "degraded"]
     checks: dict[str, str]
 
 

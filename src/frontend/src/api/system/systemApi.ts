@@ -1,9 +1,7 @@
+import type { components } from "../generated/openapi";
 import { getApiBase } from "../../utils/apiBase";
 
-export type ServerReadiness = {
-    status: "ok" | "degraded";
-    checks: Record<string, string>;
-};
+export type ServerReadiness = components["schemas"]["ReadinessResponse"];
 
 const SERVER_READINESS_PATH = "/health/ready";
 

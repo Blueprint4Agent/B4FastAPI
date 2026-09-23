@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RealtimeEventType(StrEnum):
@@ -13,6 +13,8 @@ class RealtimeEventType(StrEnum):
 
 
 class RealtimeEvent(BaseModel):
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
     id: str = Field(default_factory=lambda: uuid4().hex)
     type: str
     version: str = "v1"

@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import type { APIKeyRecord } from "../../api/apiKey/useApiKeyApi";
-import type { RealtimeEvent } from "../../api/events/useEventsApi";
+import type { RealtimeEvent, APIKeyRealtimeEventType } from "../../api/events/useEventsApi";
 import { logRealtimeServiceEvent } from "../../../realtime/logging";
 import { useRealtimeStreamSubscription } from "../core/useRealtimeStreamSubscription";
 
@@ -11,8 +11,6 @@ type UseAPIKeyRealtimeSubscriptionOptions = {
     onStatusUpdated: (apiKey: APIKeyRecord) => void;
     onDeleted: (apiKey: APIKeyRecord) => void;
 };
-
-type APIKeyRealtimeEventType = "api_key.created" | "api_key.status_updated" | "api_key.deleted";
 
 function isAPIKeyRealtimeEventType(type: string): type is APIKeyRealtimeEventType {
     return (

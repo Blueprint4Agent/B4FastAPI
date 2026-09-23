@@ -157,9 +157,11 @@ Avoid one-off button spacing, inline pagination styles, page-local control CSS, 
 ## 3) API Contract Rule (`generate:api`, Required)
 
 - Backend OpenAPI is the source of truth for API contracts.
-- Required generation source:
+- Generation sources:
 
-1. `http://localhost:8000/openapi.json`
+1. Versioned baseline: `contracts/openapi.json` — run root `make contract-export`, then `make frontend-api-generate`
+2. Running server: `http://localhost:8000/openapi.json` — existing `npm run generate:api`
+3. SSE and readiness use generated types too; behavioral contracts are recorded in `contracts/README.md`
 
 - Required generated file:
 
@@ -169,7 +171,7 @@ Avoid one-off button spacing, inline pagination styles, page-local control CSS, 
 
 1. Use generated types from `src/api/generated/openapi.ts` in API/hook/page layers.
 2. Do not maintain duplicate handwritten contract types for OpenAPI-backed endpoints.
-3. If backend API schema changes, run `npm run generate:api` before API call site edits.
+3. If backend API schema changes, export the baseline and run root `make frontend-api-generate` before API call site edits.
 4. `npm run build` is server-independent by default (no OpenAPI fetch during build).
 5. Use `npm run build:sync` for optional API refresh + build.
 6. Use `npm run build:strict` (or `npm run generate:api`) when strict OpenAPI refresh from backend is required.
