@@ -34,7 +34,7 @@ Blueprint4FastAPI는 다음 구성을 갖춘 풀스택 템플릿입니다.
 contracts/
 src/
   backend/
-  frontend/
+  frontend/  # B4React Git submodule
 docker/
   scripts/
 ```
@@ -171,3 +171,19 @@ npm run tauri:dev
 ```bash
 make frontend-desktop-dev
 ```
+
+## 공통 프론트 저장소
+
+[B4React](https://github.com/Blueprint4Agent/B4React)는 `src/frontend` 서브모듈로 커밋을 고정합니다.
+`git clone --recurse-submodules`로 복제하거나 기존 체크아웃에서 `make frontend-init`을 실행합니다.
+`make init`, `make frontend-install`도 고정된 커밋을 초기화합니다.
+
+- `make frontend-build`: 자체 `dist`만 생성합니다.
+- `make frontend-package`: 빌드 후 백엔드 정적 경로로 복사합니다.
+- `make build`: 백엔드 환경 준비와 통합 패키징입니다.
+- `make contract-check`: 백엔드 스냅샷 최신성과 프론트 계약 일치를 검사합니다.
+- `make frontend-api-check`: 생성 타입의 변경 누락을 검사합니다.
+
+프론트 변경은 B4React PR에서 먼저 머지하고 부모 PR에서 커밋 포인터를 갱신합니다.
+[서브모듈 통합 가이드](frontend-submodule.md)를 참고하세요. 한국어 프론트 문서는
+`src/frontend/notes/ko/`에서 관리하며 기존 경로는 진입 링크입니다.

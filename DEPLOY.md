@@ -17,7 +17,7 @@ This document defines the concrete deployment flow for this repository.
 Initialize template env files:
 
 ```bash
-bash ./docker/scripts/init-env.sh
+make init
 ```
 
 Primary deployment env file:
@@ -256,3 +256,13 @@ No tar artifact found
 
 - `docker-build.sh` does not export tar.
 - Use `docker-deploy.sh` or `docker-export.sh`.
+
+## Frontend source and packaging
+
+Initialize the pinned B4React submodule before local Docker builds (`make frontend-init`).
+Build and desktop workflows use recursive checkout. The frontend build writes only
+its own dist; the parent Dockerfile copies it into FastAPI static assets.
+For local integrated serving use `make frontend-package` or `make build`.
+B4React owns frontend source and its local contract. A submodule update must pass
+provider snapshot, consumer snapshot, and generated type checks. Desktop bundle
+identity is preserved during this extraction.

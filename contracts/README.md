@@ -13,22 +13,14 @@ The export uses OpenAPI 3.1 and the current API version `0.1.0`; it does not sta
 the lifespan, run migrations, or connect to DB/Redis. The exported title is fixed
 to `B4 API` so deployment branding does not alter the baseline.
 
-From the repository root:
+From the repository root, `make contract-export` updates the provider snapshot.
+Adopt it in a B4React PR with provenance, generated types, and consumer changes;
+then pin the merged child commit here. See [update order](../notes/frontend-submodule.md).
+`make frontend-api-generate` uses only the child's own snapshot.
 
-```sh
-make contract-export
-make frontend-api-generate
-make contract-check
-make frontend-typecheck
-make check
-make test
-```
-
-`contract-check` compares the backend export with the snapshot; it is not a
-cross-backend compatibility test or a generated-TypeScript drift check. The existing
-`npm run generate:api` still fetches the running server; use the baseline generation
-command above for this shared contract. Optional generation fallback is a local
-convenience and is not evidence that a contract is current.
+Run `make check test build` before committing. `contract-check` validates both the
+backend export and semantic equality with the child snapshot. `frontend-api-check`
+detects generated TypeScript drift. These gates do not prove cross-backend runtime compatibility.
 
 Changes to paths, methods, field names, required/null behavior, status codes,
 security requirements, or event payloads must be reviewed with both consumers and
@@ -125,5 +117,4 @@ pass the same behavioral scenarios; publishing this file alone is insufficient.
   not currently guaranteed on this failure path.
 - Generated TypeScript is not runtime payload validation. The existing API-key
   event consumer only partially checks incoming records.
-- Independent frontend packaging, automated CI drift gates, Spring Boot provider
-  tests, database migration portability, and live stack switching are later work.
+- Spring Boot provider tests, database migration portability, and live stack switching are later work.

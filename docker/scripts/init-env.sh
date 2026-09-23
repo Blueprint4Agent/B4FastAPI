@@ -5,6 +5,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOCKER_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROOT_DIR="$(cd "${DOCKER_DIR}/.." && pwd)"
 
+if [ ! -f "${ROOT_DIR}/src/frontend/.env.example" ]; then
+    echo "B4React submodule is missing. Run: git submodule update --init --recursive" >&2
+    exit 1
+fi
+
 echo "[1/3] initialize env files"
 [ -f "${ROOT_DIR}/src/backend/.env" ] || cp "${ROOT_DIR}/src/backend/.env.example" "${ROOT_DIR}/src/backend/.env"
 [ -f "${ROOT_DIR}/src/frontend/.env" ] || cp "${ROOT_DIR}/src/frontend/.env.example" "${ROOT_DIR}/src/frontend/.env"
