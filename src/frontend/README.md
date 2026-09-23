@@ -94,6 +94,18 @@ Generated target:
 
 - `src/api/generated/openapi.ts`
 
+To generate from the versioned contract without a running server, run at the repository root:
+
+```bash
+make contract-export
+make frontend-api-generate
+make contract-check
+make frontend-typecheck
+```
+
+SSE and readiness types are also generated. See `contracts/README.md` for behavior
+that cannot be represented by generated TypeScript alone.
+
 ## 4) Format / Check
 
 ```bash

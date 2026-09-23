@@ -91,6 +91,18 @@ npm run api:sync
 
 - `src/api/generated/openapi.ts`
 
+버전 관리되는 계약 기준 파일에서 서버 없이 생성하려면 루트에서 실행합니다.
+
+```bash
+make contract-export
+make frontend-api-generate
+make contract-check
+make frontend-typecheck
+```
+
+SSE·readiness 타입도 생성 대상입니다. 동작 계약은 `contracts/README.md`와
+`notes/ko/contracts/README.md`를 참고하세요.
+
 ## 4) 포맷 / 체크
 
 ```bash

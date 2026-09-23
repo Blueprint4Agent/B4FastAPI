@@ -2,6 +2,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.core.realtime.contracts import RealtimeStreamEvent
+from app.core.realtime.events import build_realtime_event, encode_sse_event
 from app.deps import get_current_user
 from app.main import register_exception_handlers
 from app.models.user import UserResponse
@@ -18,7 +20,12 @@ class FakeRealtimeService:
         _ = last_event_id
 
         async def _stream():
-            yield 'event: connected\ndata: {"ok":true}\n\n'
+            yield encode_sse_event(
+                build_realtime_event(
+                    "connected",
+                    {"user_id": current_user.id, "channel": f"realtime:user:{current_user.id}"},
+                )
+            )
 
         return _stream()
 
@@ -57,3 +64,8 @@ def test_events_stream_returns_sse_contract(sample_user: UserResponse):
     assert response.headers["content-type"].startswith("text/event-stream")
     assert "event: connected" in response.text
     assert "data:" in response.text
+
+    data = next(line[6:] for line in response.text.splitlines() if line.startswith("data: "))
+    event = RealtimeStreamEvent.model_validate_json(data).root
+    assert event.type == "connected"
+    assert event.payload.user_id == sample_user.id

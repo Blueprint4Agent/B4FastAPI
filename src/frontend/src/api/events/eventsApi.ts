@@ -1,20 +1,11 @@
+import type { components } from "../generated/openapi";
 import { getAccessToken } from "../../store/session";
 import { getApiBase } from "../../utils/apiBase";
 
-export type RealtimeEventType =
-    | "connected"
-    | "ping"
-    | "api_key.created"
-    | "api_key.status_updated"
-    | "api_key.deleted";
-
-export type RealtimeEvent = {
-    id: string;
-    type: RealtimeEventType | string;
-    version: string;
-    ts: string;
-    payload: Record<string, unknown>;
-};
+export type RealtimeEvent = components["schemas"]["RealtimeEvent"];
+export type KnownRealtimeEvent = components["schemas"]["RealtimeStreamEvent"];
+export type RealtimeEventType = KnownRealtimeEvent["type"];
+export type APIKeyRealtimeEventType = components["schemas"]["APIKeyEvent"]["type"];
 
 type RawSSEMessage = {
     id?: string;

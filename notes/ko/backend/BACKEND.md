@@ -472,3 +472,11 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 4. 타입 힌트가 내장 문법 규칙을 따른다
 5. Ruff 체크/포맷팅이 통과한다
 6. DB 변경이 있었다면 Alembic revision 및 upgrade 검증이 완료되었다
+
+## API 계약 기준 관리
+
+- 라우터·모델 변경 시 루트 `make contract-export`로 `contracts/openapi.json`을 갱신하고 `make frontend-api-generate`로 프론트 타입을 생성합니다.
+- `make contract-check`는 백엔드와 기준 파일의 일치를 검사합니다. 동작 계약은 `contracts/README.md`, 한국어는 `notes/ko/contracts/README.md`를 따릅니다.
+- `get_current_user` 사용 라우터는 `current_user_error_responses(...)`로 인증·API Key 오류와 도메인 오류를 병합합니다. 동일 상태 코드의 응답 모델을 덮어쓰지 않습니다.
+- `app/core/openapi.py`는 SSE 데이터 스키마와 기존 INTERNAL_ERROR 응답을 문서화합니다. SSE 본문은 문자열 스트림이며 JSON data 모델은 `x-sse-event-schema`로 연결합니다.
+- 오류 형식·쿠키·refresh 동작을 바꾸려면 문서 변경과 별도의 동작 호환성 검토가 필요합니다.

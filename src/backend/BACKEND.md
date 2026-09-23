@@ -473,3 +473,11 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 4. Type hints follow built-in syntax conventions
 5. Ruff checks and formatting pass
 6. If DB changed, Alembic revision and upgrade verification are completed
+
+## API Contract Baseline Maintenance
+
+- After route/model changes, run root `make contract-export` to update `contracts/openapi.json`, then `make frontend-api-generate` to regenerate frontend types.
+- `make contract-check` verifies backend/snapshot agreement. Behavioral requirements are recorded in `contracts/README.md`.
+- Routes using `get_current_user` must merge dependency errors with domain errors through `current_user_error_responses(...)`; do not overwrite models sharing a status code.
+- `app/core/openapi.py` publishes SSE data models and the existing INTERNAL_ERROR envelope. SSE bodies remain string streams; `x-sse-event-schema` references their JSON data model.
+- Changing error envelopes, cookies, or refresh semantics requires an explicit behavior compatibility review and documentation update.

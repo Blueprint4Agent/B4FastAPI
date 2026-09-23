@@ -157,9 +157,11 @@ flowchart LR
 ## 3) API 계약 규칙 (`generate:api`, 필수)
 
 - 백엔드 OpenAPI는 API 계약의 단일 기준입니다.
-- 필수 생성 소스:
+- 생성 소스:
 
-1. `http://localhost:8000/openapi.json`
+1. 버전 관리 기준: `contracts/openapi.json` — 루트에서 `make contract-export` 후 `make frontend-api-generate`
+2. 실행 중인 서버: `http://localhost:8000/openapi.json` — 기존 `npm run generate:api`
+3. SSE·readiness도 생성 타입을 사용하며 동작 계약은 `contracts/README.md`, 한국어는 `notes/ko/contracts/README.md` 참고
 
 - 필수 생성 파일:
 
@@ -169,7 +171,7 @@ flowchart LR
 
 1. API/hook/page 레이어에서 `src/api/generated/openapi.ts` 타입을 사용
 2. OpenAPI 기반 엔드포인트에 대해 중복된 수기 계약 타입 유지 금지
-3. 백엔드 API 스키마가 바뀌면 API 호출부 수정 전에 `npm run generate:api` 실행
+3. 백엔드 API 스키마가 바뀌면 API 호출부 수정 전에 기준 파일을 추출하고 `make frontend-api-generate` 실행
 4. `npm run build`는 기본적으로 서버 비의존(OpenAPI fetch 없음)
 5. 선택적 API 갱신 + 빌드는 `npm run build:sync` 사용
 6. 백엔드 기준 엄격 OpenAPI 갱신이 필요하면 `npm run build:strict`(또는 `npm run generate:api`) 사용

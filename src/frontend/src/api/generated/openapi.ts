@@ -4,279 +4,6 @@
  */
 
 export interface paths {
-    "/ping": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Ping */
-        get: operations["ping_ping_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Config */
-        get: operations["config_config_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/signup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Signup */
-        post: operations["signup_api_v1_auth_signup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/oauth/providers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Oauth Providers */
-        get: operations["oauth_providers_api_v1_auth_oauth_providers_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/oauth/{provider}/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Oauth Start */
-        get: operations["oauth_start_api_v1_auth_oauth__provider__start_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/oauth/{provider}/callback": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Oauth Callback */
-        get: operations["oauth_callback_api_v1_auth_oauth__provider__callback_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/token": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Oauth Token Login */
-        post: operations["oauth_token_login_api_v1_auth_token_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Login */
-        post: operations["login_api_v1_auth_login_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Me */
-        get: operations["me_api_v1_auth_me_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update Me */
-        patch: operations["update_me_api_v1_auth_me_patch"];
-        trace?: never;
-    };
-    "/api/v1/auth/admin/user-role-stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Admin User Role Stats */
-        get: operations["admin_user_role_stats_api_v1_auth_admin_user_role_stats_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Logout */
-        post: operations["logout_api_v1_auth_logout_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Refresh Token */
-        post: operations["refresh_token_api_v1_auth_refresh_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/verify-email": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify Email */
-        post: operations["verify_email_api_v1_auth_verify_email_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/resend-verification": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resend Verification Email */
-        post: operations["resend_verification_email_api_v1_auth_resend_verification_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/forgot-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Forgot Password */
-        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/reset-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Reset Password */
-        post: operations["reset_password_api_v1_auth_reset_password_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/api-keys": {
         parameters: {
             query?: never;
@@ -329,6 +56,251 @@ export interface paths {
         patch: operations["update_api_key_status_api_v1_api_keys__api_key_id__status_patch"];
         trace?: never;
     };
+    "/api/v1/auth/admin/user-role-stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Admin User Role Stats */
+        get: operations["admin_user_role_stats_api_v1_auth_admin_user_role_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Forgot Password */
+        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description Invalidates all refresh sessions for the authenticated user and expires both refresh cookies. Already-issued access tokens remain valid until their expiry.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_v1_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Me */
+        patch: operations["update_me_api_v1_auth_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Providers */
+        get: operations["oauth_providers_api_v1_auth_oauth_providers_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/{provider}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Callback */
+        get: operations["oauth_callback_api_v1_auth_oauth__provider__callback_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oauth/{provider}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Start */
+        get: operations["oauth_start_api_v1_auth_oauth__provider__start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Refresh Token
+         * @description Refreshes the access token and extends the existing refresh session TTL. The refresh token value is retained. Non-empty JSON fields take precedence over cookies; user_id can be resolved from the session. Browser clients may send an empty JSON object.
+         */
+        post: operations["refresh_token_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resend Verification Email */
+        post: operations["resend_verification_email_api_v1_auth_resend_verification_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Password */
+        post: operations["reset_password_api_v1_auth_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signup */
+        post: operations["signup_api_v1_auth_signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oauth Token Login */
+        post: operations["oauth_token_login_api_v1_auth_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify Email */
+        post: operations["verify_email_api_v1_auth_verify_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events/stream": {
         parameters: {
             query?: never;
@@ -346,16 +318,84 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Config */
+        get: operations["config_config_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Live */
+        get: operations["health_live_health_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Ready */
+        get: operations["health_ready_health_ready_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ping": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ping */
+        get: operations["ping_ping_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** APIKeyCreateForm */
         APIKeyCreateForm: {
-            /** Name */
-            name: string;
             /** Expires At */
             expires_at?: string | null;
+            /** Name */
+            name: string;
         };
         /** APIKeyCreateResponse */
         APIKeyCreateResponse: {
@@ -365,6 +405,10 @@ export interface components {
         };
         /** APIKeyErrorDetail */
         APIKeyErrorDetail: {
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Error
              * @example API_KEY_NOT_FOUND
@@ -379,34 +423,55 @@ export interface components {
                 | "API_KEY_UPDATE_FAILED";
             /** Message */
             message: string;
-            /** Details */
-            details?: {
-                [key: string]: unknown;
-            } | null;
         };
         /** APIKeyErrorResponse */
         APIKeyErrorResponse: {
             detail: components["schemas"]["APIKeyErrorDetail"];
         };
+        /** APIKeyEvent */
+        APIKeyEvent: {
+            /** Id */
+            id: string;
+            payload: components["schemas"]["APIKeyEventPayload"];
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "api_key.created" | "api_key.deleted" | "api_key.status_updated";
+            /**
+             * Version
+             * @default v1
+             */
+            version: string;
+        };
+        /** APIKeyEventPayload */
+        APIKeyEventPayload: {
+            api_key: components["schemas"]["APIKeyResponse"];
+        };
         /** APIKeyResponse */
         APIKeyResponse: {
-            /** Id */
-            id: number;
-            /** Name */
-            name: string;
-            /** Key Prefix */
-            key_prefix: string;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
-            /** Request Count */
-            request_count: number;
-            /** Last Used At */
-            last_used_at?: string | null;
             /** Expires At */
             expires_at?: string | null;
+            /** Id */
+            id: number;
+            /** Key Prefix */
+            key_prefix: string;
+            /** Last Used At */
+            last_used_at?: string | null;
+            /** Name */
+            name: string;
+            /** Request Count */
+            request_count: number;
             /** Revoked At */
             revoked_at?: string | null;
         };
@@ -424,22 +489,26 @@ export interface components {
         AppConfigResponse: {
             /** Api Base Path */
             api_base_path: string;
-            /** Login Enabled */
-            login_enabled: boolean;
-            /** Frontend Base Path */
-            frontend_base_path: string;
+            /** Bootstrap Access Token */
+            bootstrap_access_token?: string | null;
+            bootstrap_user?: components["schemas"]["UserResponse"] | null;
             /** Email Enabled */
             email_enabled: boolean;
+            /** Frontend Base Path */
+            frontend_base_path: string;
+            /** Login Enabled */
+            login_enabled: boolean;
             /** Oauth Enabled */
             oauth_enabled: boolean;
             /** Oauth Providers */
             oauth_providers: string[];
-            bootstrap_user?: components["schemas"]["UserResponse"] | null;
-            /** Bootstrap Access Token */
-            bootstrap_access_token?: string | null;
         };
         /** AuthErrorDetail */
         AuthErrorDetail: {
+            /** Details */
+            details?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Error
              * @example INVALID_TOKEN
@@ -464,10 +533,6 @@ export interface components {
                 | "OAUTH_PROVIDER_REQUEST_FAILED";
             /** Message */
             message: string;
-            /** Details */
-            details?: {
-                [key: string]: unknown;
-            } | null;
         };
         /** AuthErrorResponse */
         AuthErrorResponse: {
@@ -475,10 +540,15 @@ export interface components {
         };
         /** Body_oauth_token_login_api_v1_auth_token_post */
         Body_oauth_token_login_api_v1_auth_token_post: {
+            /** Client Id */
+            client_id?: string | null;
+            /**
+             * Client Secret
+             * Format: password
+             */
+            client_secret?: string | null;
             /** Grant Type */
             grant_type?: string | null;
-            /** Username */
-            username: string;
             /**
              * Password
              * Format: password
@@ -489,22 +559,45 @@ export interface components {
              * @default
              */
             scope: string;
-            /** Client Id */
-            client_id?: string | null;
-            /**
-             * Client Secret
-             * Format: password
-             */
-            client_secret?: string | null;
+            /** Username */
+            username: string;
         };
         /** Body_refresh_token_api_v1_auth_refresh_post */
         Body_refresh_token_api_v1_auth_refresh_post: {
             /** Refresh Token */
             refresh_token?: string | null;
-            /** User Id */
-            user_id?: number | null;
             /** Session Id */
             session_id?: string | null;
+            /** User Id */
+            user_id?: number | null;
+        };
+        /** ConnectedEvent */
+        ConnectedEvent: {
+            /** Id */
+            id: string;
+            payload: components["schemas"]["ConnectedPayload"];
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "connected";
+            /**
+             * Version
+             * @default v1
+             */
+            version: string;
+        };
+        /** ConnectedPayload */
+        ConnectedPayload: {
+            /** Channel */
+            channel: string;
+            /** User Id */
+            user_id: number;
         };
         /** ForgotPasswordForm */
         ForgotPasswordForm: {
@@ -520,6 +613,24 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HealthCheckResult */
+        HealthCheckResult: {
+            /**
+             * Status
+             * @constant
+             */
+            status: "ok";
+        };
+        /** InternalErrorResponse */
+        InternalErrorResponse: {
+            /**
+             * Error
+             * @constant
+             */
+            error: "INTERNAL_ERROR";
+            /** Message */
+            message: string;
         };
         /** LoginForm */
         LoginForm: {
@@ -565,6 +676,68 @@ export interface components {
             /** Providers */
             providers: components["schemas"]["OAuthProviderPublicConfig"][];
         };
+        /** PingEvent */
+        PingEvent: {
+            /** Id */
+            id: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "ping";
+            /**
+             * Version
+             * @default v1
+             */
+            version: string;
+        };
+        /** ReadinessResponse */
+        ReadinessResponse: {
+            /** Checks */
+            checks: {
+                [key: string]: string;
+            };
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "degraded";
+        };
+        /** RealtimeEvent */
+        RealtimeEvent: {
+            /** Id */
+            id: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+            /** Type */
+            type: string;
+            /**
+             * Version
+             * @default v1
+             */
+            version: string;
+        };
+        /** RealtimeStreamEvent */
+        RealtimeStreamEvent:
+            | components["schemas"]["ConnectedEvent"]
+            | components["schemas"]["PingEvent"]
+            | components["schemas"]["APIKeyEvent"];
         /** RefreshResponse */
         RefreshResponse: {
             /** Access Token */
@@ -589,10 +762,10 @@ export interface components {
         };
         /** ResetPasswordForm */
         ResetPasswordForm: {
-            /** Token */
-            token: string;
             /** Password */
             password: string;
+            /** Token */
+            token: string;
         };
         /** ResetPasswordResponse */
         ResetPasswordResponse: {
@@ -617,24 +790,24 @@ export interface components {
         };
         /** UserResponse */
         UserResponse: {
-            /** Id */
-            id: number;
-            /** Email */
-            email: string;
-            /** Name */
-            name: string;
-            role: components["schemas"]["UserRole"];
-            /** Profile Image Url */
-            profile_image_url?: string | null;
-            /** Oauth Providers */
-            oauth_providers?: string[];
-            /** Is Verified */
-            is_verified: boolean;
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Email */
+            email: string;
+            /** Id */
+            id: number;
+            /** Is Verified */
+            is_verified: boolean;
+            /** Name */
+            name: string;
+            /** Oauth Providers */
+            oauth_providers?: string[];
+            /** Profile Image Url */
+            profile_image_url?: string | null;
+            role: components["schemas"]["UserRole"];
         };
         /**
          * UserRole
@@ -643,25 +816,25 @@ export interface components {
         UserRole: "user" | "admin";
         /** UserRoleStatsResponse */
         UserRoleStatsResponse: {
-            /** Total Users */
-            total_users: number;
             /** Active Users */
             active_users: number;
             /** Admin Users */
             admin_users: number;
+            /** Total Users */
+            total_users: number;
         };
         /** ValidationError */
         ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
             /** Location */
             loc: (string | number)[];
             /** Message */
             msg: string;
             /** Error Type */
             type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
         };
         /** VerifyEmailForm */
         VerifyEmailForm: {
@@ -683,7 +856,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    ping_ping_get: {
+    list_api_keys_api_v1_api_keys_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -698,32 +871,66 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["APIKeysResponse"];
                 };
             };
-        };
-    };
-    config_config_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AppConfigResponse"];
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
     };
-    signup_api_v1_auth_signup_post: {
+    create_api_key_api_v1_api_keys_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -732,7 +939,670 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SignupForm"];
+                "application/json": components["schemas"]["APIKeyCreateForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyCreateResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_NAME_ALREADY_EXISTS",
+                     *         "message": "API key name already exists."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_CREATE_FAILED",
+                     *         "message": "Failed to create API key."
+                     *       }
+                     *     }
+                     */
+                    "application/json":
+                        | components["schemas"]["APIKeyErrorResponse"]
+                        | components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_api_key_api_v1_api_keys__api_key_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                api_key_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    update_api_key_status_api_v1_api_keys__api_key_id__status_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                api_key_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["APIKeyStatusUpdateForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["APIKeyResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_UPDATE_FAILED",
+                     *         "message": "Failed to update API key state."
+                     *       }
+                     *     }
+                     */
+                    "application/json":
+                        | components["schemas"]["APIKeyErrorResponse"]
+                        | components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_user_role_stats_api_v1_auth_admin_user_role_stats_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserRoleStatsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["APIKeyErrorResponse"]
+                        | components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    forgot_password_api_v1_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ForgotPasswordResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "EMAIL_DISABLED",
+                     *         "message": "Email-based features are disabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description Two separate Set-Cookie headers: template_refresh_token and template_refresh_sid; HttpOnly, Path=/; HTTPS uses Secure and SameSite=None, HTTP uses SameSite=Lax. Persistent expiry is set only with remember_me=true. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_CREDENTIALS",
+                     *         "message": "Incorrect email or password."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "details": {
+                     *           "remaining_seconds": 120
+                     *         },
+                     *         "error": "ACCOUNT_LOCKED",
+                     *         "message": "Account is temporarily locked."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description Separate expiry headers for template_refresh_token and template_refresh_sid at Path=/. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    me_api_v1_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    update_me_api_v1_auth_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileForm"];
             };
         };
         responses: {
@@ -745,8 +1615,19 @@ export interface operations {
                     "application/json": components["schemas"]["UserResponse"];
                 };
             };
-            /** @description Conflict */
-            409: {
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -754,8 +1635,25 @@ export interface operations {
                     /**
                      * @example {
                      *       "detail": {
-                     *         "error": "EMAIL_ALREADY_EXISTS",
-                     *         "message": "User with this email already exists."
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
                      *       }
                      *     }
                      */
@@ -780,12 +1678,14 @@ export interface operations {
                     /**
                      * @example {
                      *       "detail": {
-                     *         "error": "SIGNUP_FAILED",
-                     *         "message": "Failed to create the user account."
+                     *         "error": "PROFILE_UPDATE_FAILED",
+                     *         "message": "Failed to update profile."
                      *       }
                      *     }
                      */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
@@ -856,7 +1756,55 @@ export interface operations {
                      *       }
                      *     }
                      */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    oauth_callback_api_v1_auth_oauth__provider__callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path: {
+                provider: components["schemas"]["OAuthProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success redirects to the frontend and sets refresh cookies. Provider/domain failures redirect to the frontend failure path with error query parameters. */
+            307: {
+                headers: {
+                    /** @description Redirect destination */
+                    Location?: string;
+                    /** @description Two separate Set-Cookie headers: template_refresh_token and template_refresh_sid; HttpOnly, Path=/; HTTPS uses Secure and SameSite=None, HTTP uses SameSite=Lax. Persistent expiry is set only with remember_me=true. */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
@@ -873,13 +1821,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
+            307: {
                 headers: {
+                    /** @description Redirect destination */
+                    Location?: string;
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": unknown;
-                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {
@@ -938,360 +1886,9 @@ export interface operations {
                      *       }
                      *     }
                      */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-        };
-    };
-    oauth_callback_api_v1_auth_oauth__provider__callback_get: {
-        parameters: {
-            query?: {
-                code?: string | null;
-                state?: string | null;
-                error?: string | null;
-            };
-            header?: never;
-            path: {
-                provider: components["schemas"]["OAuthProvider"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            307: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    oauth_token_login_api_v1_auth_token_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/x-www-form-urlencoded": components["schemas"]["Body_oauth_token_login_api_v1_auth_token_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "INVALID_CREDENTIALS",
-                     *         "message": "Incorrect email or password."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "LOGIN_DISABLED",
-                     *         "message": "Login is currently disabled."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "ACCOUNT_LOCKED",
-                     *         "message": "Account is temporarily locked.",
-                     *         "details": {
-                     *           "remaining_seconds": 120
-                     *         }
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-        };
-    };
-    login_api_v1_auth_login_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginForm"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "INVALID_CREDENTIALS",
-                     *         "message": "Incorrect email or password."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "LOGIN_DISABLED",
-                     *         "message": "Login is currently disabled."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Locked */
-            423: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "ACCOUNT_LOCKED",
-                     *         "message": "Account is temporarily locked.",
-                     *         "details": {
-                     *           "remaining_seconds": 120
-                     *         }
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-        };
-    };
-    me_api_v1_auth_me_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-        };
-    };
-    update_me_api_v1_auth_me_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateProfileForm"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "PROFILE_UPDATE_FAILED",
-                     *         "message": "Failed to update profile."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-        };
-    };
-    admin_user_role_stats_api_v1_auth_admin_user_role_stats_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserRoleStatsResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "INVALID_TOKEN",
-                     *         "message": "Invalid refresh token."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "INSUFFICIENT_ROLE",
-                     *         "message": "User does not have enough permissions."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-        };
-    };
-    logout_api_v1_auth_logout_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
@@ -1301,7 +1898,10 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: never;
+            cookie?: {
+                template_refresh_token?: string;
+                template_refresh_sid?: string;
+            };
         };
         requestBody?: {
             content: {
@@ -1312,6 +1912,8 @@ export interface operations {
             /** @description Successful Response */
             200: {
                 headers: {
+                    /** @description Two separate Set-Cookie headers: template_refresh_token and template_refresh_sid; HttpOnly, Path=/; HTTPS uses Secure and SameSite=None, HTTP uses SameSite=Lax. Persistent expiry is set only with remember_me=true. */
+                    "Set-Cookie"?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -1361,71 +1963,13 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-        };
-    };
-    verify_email_api_v1_auth_verify_email_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyEmailForm"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Unexpected server error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["VerifyEmailResponse"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "INVALID_TOKEN",
-                     *         "message": "Invalid refresh token."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "USER_NOT_FOUND",
-                     *         "message": "User not found."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
@@ -1461,54 +2005,13 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-        };
-    };
-    forgot_password_api_v1_auth_forgot_password_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ForgotPasswordForm"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Unexpected server error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ForgotPasswordResponse"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "EMAIL_DISABLED",
-                     *         "message": "Email-based features are disabled."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["AuthErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
@@ -1595,29 +2098,18 @@ export interface operations {
                     "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
-        };
-    };
-    list_api_keys_api_v1_api_keys_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Unexpected server error */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIKeysResponse"];
+                    "application/json": components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
     };
-    create_api_key_api_v1_api_keys_post: {
+    signup_api_v1_auth_signup_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -1626,7 +2118,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["APIKeyCreateForm"];
+                "application/json": components["schemas"]["SignupForm"];
             };
         };
         responses: {
@@ -1636,7 +2128,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["APIKeyCreateResponse"];
+                    "application/json": components["schemas"]["UserResponse"];
                 };
             };
             /** @description Conflict */
@@ -1648,12 +2140,12 @@ export interface operations {
                     /**
                      * @example {
                      *       "detail": {
-                     *         "error": "API_KEY_NAME_ALREADY_EXISTS",
-                     *         "message": "API key name already exists."
+                     *         "error": "EMAIL_ALREADY_EXISTS",
+                     *         "message": "User with this email already exists."
                      *       }
                      *     }
                      */
-                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                    "application/json": components["schemas"]["AuthErrorResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1674,141 +2166,30 @@ export interface operations {
                     /**
                      * @example {
                      *       "detail": {
-                     *         "error": "API_KEY_CREATE_FAILED",
-                     *         "message": "Failed to create API key."
+                     *         "error": "SIGNUP_FAILED",
+                     *         "message": "Failed to create the user account."
                      *       }
                      *     }
                      */
-                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["InternalErrorResponse"];
                 };
             };
         };
     };
-    delete_api_key_api_v1_api_keys__api_key_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                api_key_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIKeyResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "API_KEY_NOT_FOUND",
-                     *         "message": "API key not found."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["APIKeyErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_api_key_status_api_v1_api_keys__api_key_id__status_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                api_key_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["APIKeyStatusUpdateForm"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["APIKeyResponse"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "API_KEY_NOT_FOUND",
-                     *         "message": "API key not found."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["APIKeyErrorResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Internal Server Error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "detail": {
-                     *         "error": "API_KEY_UPDATE_FAILED",
-                     *         "message": "Failed to update API key state."
-                     *       }
-                     *     }
-                     */
-                    "application/json": components["schemas"]["APIKeyErrorResponse"];
-                };
-            };
-        };
-    };
-    stream_events_api_v1_events_stream_get: {
+    oauth_token_login_api_v1_auth_token_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["Body_oauth_token_login_api_v1_auth_token_post"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -1816,7 +2197,103 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "INVALID_CREDENTIALS",
+                     *         "message": "Incorrect email or password."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "LOGIN_DISABLED",
+                     *         "message": "Login is currently disabled."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Locked */
+            423: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "details": {
+                     *           "remaining_seconds": 120
+                     *         },
+                     *         "error": "ACCOUNT_LOCKED",
+                     *         "message": "Account is temporarily locked."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    verify_email_api_v1_auth_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyEmailForm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyEmailResponse"];
                 };
             };
             /** @description Unauthorized */
@@ -1834,6 +2311,252 @@ export interface operations {
                      *     }
                      */
                     "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    stream_events_api_v1_events_stream_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Accepted for diagnostics only; events are not replayed. */
+                "last-event-id"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description SSE frames; each data field contains a RealtimeStreamEvent JSON value. No replay is provided; re-fetch affected resources after reconnecting. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json":
+                        | components["schemas"]["AuthErrorResponse"]
+                        | components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "API_KEY_USER_MISMATCH",
+                     *         "message": "API key does not belong to the authenticated user."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["APIKeyErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "detail": {
+                     *         "error": "USER_NOT_FOUND",
+                     *         "message": "User not found."
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AuthErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    config_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppConfigResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    health_live_health_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthCheckResult"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+        };
+    };
+    health_ready_health_ready_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
+                };
+            };
+            /** @description One or more required dependencies are unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadinessResponse"];
+                };
+            };
+        };
+    };
+    ping_ping_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Unexpected server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InternalErrorResponse"];
                 };
             };
         };

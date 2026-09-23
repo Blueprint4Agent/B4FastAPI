@@ -15,6 +15,7 @@ Blueprint4FastAPI는 다음 구성을 갖춘 풀스택 템플릿입니다.
 4. 프론트엔드 엔지니어링 규칙: `src/frontend/FRONTEND.md`
 5. 백엔드 빠른 가이드: `src/backend/README.md`
 6. 프론트엔드 빠른 가이드: `src/frontend/README.md`
+7. 공통 API 계약: `contracts/README.md` (`contracts/openapi.json`)
 
 한국어 문서:
 
@@ -25,10 +26,12 @@ Blueprint4FastAPI는 다음 구성을 갖춘 풀스택 템플릿입니다.
 5. 프론트엔드 엔지니어링 규칙: `notes/ko/frontend/FRONTEND.md`
 6. 백엔드 빠른 가이드: `notes/ko/backend/README.md`
 7. 프론트엔드 빠른 가이드: `notes/ko/frontend/README.md`
+8. API 계약: `notes/ko/contracts/README.md`
 
 ## 저장소 구조
 
 ```text
+contracts/
 src/
   backend/
   frontend/

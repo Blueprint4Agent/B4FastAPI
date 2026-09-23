@@ -351,3 +351,10 @@ Review gate before merging new domain tests:
 1. Confirm docstring + Given/When/Then format compliance
 2. Confirm API vs Integration data boundary is preserved
 3. Run `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest`
+
+## Shared Contract Regression Checks
+
+`tests/test_openapi_contract.py` checks reference integrity, protected-route auth
+responses, readiness 503, SSE/redirect transport declarations, both 500 envelopes,
+and event data models. It runs under `api_test` without external services.
+`make contract-check` separately checks freshness of the committed JSON baseline.

@@ -1,11 +1,12 @@
 from urllib.parse import urlencode, urljoin
 
-from fastapi import APIRouter, Body, Depends, Query, Request, Response
+from fastapi import APIRouter, Body, Depends, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.core.config.settings import SETTINGS
 from app.core.error import AuthErrorCode, AuthException, auth_error_responses
+from app.core.error.response_contracts import current_user_error_responses
 from app.core.observability.logging import get_logger
 from app.deps import get_current_admin_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
@@ -32,6 +33,18 @@ from app.utils.token import create_refresh_session_id
 
 router = APIRouter()
 logger = get_logger("app.router.auth")
+
+REFRESH_COOKIE_HEADERS = {
+    "Set-Cookie": {
+        "description": "Two separate Set-Cookie headers: template_refresh_token and "
+        "template_refresh_sid; HttpOnly, Path=/; HTTPS uses Secure and SameSite=None, "
+        "HTTP uses SameSite=Lax. Persistent expiry is set only with remember_me=true.",
+        "schema": {"type": "string"},
+    }
+}
+REDIRECT_HEADERS = {
+    "Location": {"description": "Redirect destination", "schema": {"type": "string"}}
+}
 
 
 def _resolve_preferred_language(request: Request) -> str | None:
@@ -74,11 +87,16 @@ async def oauth_providers(service: AuthService = Depends(AuthService)) -> OAuthP
 
 @router.get(
     "/oauth/{provider}/start",
-    responses=auth_error_responses(
-        AuthErrorCode.LOGIN_DISABLED,
-        AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
-        AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
-    ),
+    response_class=RedirectResponse,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    responses={
+        status.HTTP_307_TEMPORARY_REDIRECT: {"headers": REDIRECT_HEADERS},
+        **auth_error_responses(
+            AuthErrorCode.LOGIN_DISABLED,
+            AuthErrorCode.OAUTH_PROVIDER_NOT_ENABLED,
+            AuthErrorCode.OAUTH_PROVIDER_CONFIG_INVALID,
+        ),
+    },
 )
 async def oauth_start(
     provider: OAuthProvider,
@@ -87,14 +105,21 @@ async def oauth_start(
 ) -> RedirectResponse:
     redirect_uri = str(request.url_for("oauth_callback", provider=provider.value))
     authorization_url = await service.build_oauth_authorization_url(provider, redirect_uri)
-    return RedirectResponse(url=authorization_url, status_code=307)
+    return RedirectResponse(url=authorization_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
 @router.get(
     "/oauth/{provider}/callback",
     name="oauth_callback",
     response_class=RedirectResponse,
-    status_code=307,
+    status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+    responses={
+        status.HTTP_307_TEMPORARY_REDIRECT: {
+            "description": "Success redirects to the frontend and sets refresh cookies. "
+            "Provider/domain failures redirect to the frontend failure path with error query parameters.",
+            "headers": {**REDIRECT_HEADERS, **REFRESH_COOKIE_HEADERS},
+        }
+    },
 )
 async def oauth_callback(
     provider: OAuthProvider,
@@ -114,7 +139,9 @@ async def oauth_callback(
             f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
             SETTINGS.OAUTH_FRONTEND_FAILURE_PATH.lstrip("/"),
         )
-        return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
+        return RedirectResponse(
+            url=f"{failure_url}?{failure_query}", status_code=status.HTTP_307_TEMPORARY_REDIRECT
+        )
 
     # OAuth callback contract requires both authorization code and state.
     try:
@@ -139,7 +166,9 @@ async def oauth_callback(
             f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
             SETTINGS.OAUTH_FRONTEND_FAILURE_PATH.lstrip("/"),
         )
-        return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
+        return RedirectResponse(
+            url=f"{failure_url}?{failure_query}", status_code=status.HTTP_307_TEMPORARY_REDIRECT
+        )
 
     refresh_session_id = create_refresh_session_id()
     try:
@@ -168,13 +197,15 @@ async def oauth_callback(
             f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
             SETTINGS.OAUTH_FRONTEND_FAILURE_PATH.lstrip("/"),
         )
-        return RedirectResponse(url=f"{failure_url}?{failure_query}", status_code=307)
+        return RedirectResponse(
+            url=f"{failure_url}?{failure_query}", status_code=status.HTTP_307_TEMPORARY_REDIRECT
+        )
 
     success_url = urljoin(
         f"{SETTINGS.APP_BASE_URL.rstrip('/')}/",
         SETTINGS.OAUTH_FRONTEND_SUCCESS_PATH.lstrip("/"),
     )
-    response = RedirectResponse(url=success_url, status_code=307)
+    response = RedirectResponse(url=success_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
     set_refresh_cookies(
         response=response,
         request=request,
@@ -212,12 +243,15 @@ async def oauth_token_login(
 @router.post(
     "/login",
     response_model=LoginResponse,
-    responses=auth_error_responses(
-        AuthErrorCode.LOGIN_DISABLED,
-        AuthErrorCode.INVALID_CREDENTIALS,
-        AuthErrorCode.EMAIL_NOT_VERIFIED,
-        AuthErrorCode.ACCOUNT_LOCKED,
-    ),
+    responses={
+        status.HTTP_200_OK: {"headers": REFRESH_COOKIE_HEADERS},
+        **auth_error_responses(
+            AuthErrorCode.LOGIN_DISABLED,
+            AuthErrorCode.INVALID_CREDENTIALS,
+            AuthErrorCode.EMAIL_NOT_VERIFIED,
+            AuthErrorCode.ACCOUNT_LOCKED,
+        ),
+    },
 )
 async def login(
     request: Request,
@@ -238,7 +272,7 @@ async def login(
     return token_payload
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, responses=current_user_error_responses())
 async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
     return current_user
 
@@ -246,9 +280,8 @@ async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResp
 @router.get(
     "/admin/user-role-stats",
     response_model=UserRoleStatsResponse,
-    responses=auth_error_responses(
-        AuthErrorCode.INVALID_TOKEN,
-        AuthErrorCode.INSUFFICIENT_ROLE,
+    responses=current_user_error_responses(
+        auth_error_responses(AuthErrorCode.INSUFFICIENT_ROLE),
     ),
 )
 async def admin_user_role_stats(
@@ -261,7 +294,9 @@ async def admin_user_role_stats(
 @router.patch(
     "/me",
     response_model=UserResponse,
-    responses=auth_error_responses(AuthErrorCode.PROFILE_UPDATE_FAILED),
+    responses=current_user_error_responses(
+        auth_error_responses(AuthErrorCode.PROFILE_UPDATE_FAILED),
+    ),
 )
 async def update_me(
     form: UpdateProfileForm,
@@ -271,7 +306,23 @@ async def update_me(
     return await service.update_profile(user_id=current_user.id, form=form)
 
 
-@router.post("/logout")
+@router.post(
+    "/logout",
+    description="Invalidates all refresh sessions for the authenticated user and expires both "
+    "refresh cookies. Already-issued access tokens remain valid until their expiry.",
+    responses={
+        **current_user_error_responses(),
+        status.HTTP_200_OK: {
+            "headers": {
+                "Set-Cookie": {
+                    "description": "Separate expiry headers for template_refresh_token and "
+                    "template_refresh_sid at Path=/.",
+                    "schema": {"type": "string"},
+                }
+            },
+        },
+    },
+)
 async def logout(
     response: Response,
     current_user: UserResponse = Depends(get_current_user),
@@ -285,10 +336,32 @@ async def logout(
 @router.post(
     "/refresh",
     response_model=RefreshResponse,
-    responses=auth_error_responses(
-        AuthErrorCode.INVALID_TOKEN,
-        AuthErrorCode.USER_NOT_FOUND,
-    ),
+    description="Refreshes the access token and extends the existing refresh session TTL. "
+    "The refresh token value is retained. Non-empty JSON fields take precedence over cookies; "
+    "user_id can be resolved from the session. Browser clients may send an empty JSON object.",
+    openapi_extra={
+        "parameters": [
+            {
+                "name": "template_refresh_token",
+                "in": "cookie",
+                "required": False,
+                "schema": {"type": "string"},
+            },
+            {
+                "name": "template_refresh_sid",
+                "in": "cookie",
+                "required": False,
+                "schema": {"type": "string"},
+            },
+        ]
+    },
+    responses={
+        status.HTTP_200_OK: {"headers": REFRESH_COOKIE_HEADERS},
+        **auth_error_responses(
+            AuthErrorCode.INVALID_TOKEN,
+            AuthErrorCode.USER_NOT_FOUND,
+        ),
+    },
 )
 async def refresh_token(
     request: Request,

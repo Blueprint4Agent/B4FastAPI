@@ -351,3 +351,10 @@ def test_me_requires_authentication(sample_user):
 1. docstring + Given/When/Then 형식 준수 확인
 2. API vs Integration 데이터 경계 유지 확인
 3. `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest` 실행
+
+## 공통 계약 회귀 검사
+
+`tests/test_openapi_contract.py`는 참조 무결성, 보호된 API의 인증 오류 선언,
+readiness 503, SSE/리다이렉트 미디어 형식, 도메인·예상하지 못한 500 응답,
+이벤트 data 모델을 검사합니다. 외부 서비스 없이 `api_test`로 실행됩니다.
+`make contract-check`는 커밋된 JSON 기준 파일의 최신 여부를 별도로 검사합니다.

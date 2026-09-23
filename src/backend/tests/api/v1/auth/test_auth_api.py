@@ -70,13 +70,12 @@ class FakeAuthService:
         user_id: int | None,
         session_id: str | None,
     ) -> tuple[RefreshResponse, str, bool]:
-        _ = request
-        _ = refresh_token
         _ = user_id
         return (
             RefreshResponse(
                 access_token="rotated-access-token",
-                refresh_token="rotated-refresh-token",
+                refresh_token=refresh_token
+                or request.cookies.get("template_refresh_token", "refresh-token-mock-value"),
                 token_type="bearer",
             ),
             session_id or "session-mock-001",
@@ -238,19 +237,47 @@ def test_login_success_returns_token_contract(sample_user: UserResponse):
     assert payload["refresh_token"]
 
 
-def test_refresh_success_returns_rotated_token_contract(sample_user: UserResponse):
-    """Scenario: refresh route returns rotated access/refresh token payload."""
+@pytest.mark.parametrize("https", [False, True])
+@pytest.mark.parametrize("remember_me", [False, True])
+def test_login_cookie_contract(sample_user: UserResponse, https: bool, remember_me: bool):
+    """Scenario: login cookie attributes follow transport security and persistence choices."""
+    # Given: the router and a fake auth service, without external dependencies.
+    client = create_auth_test_client(sample_user)
+    # When: login requests session or persistent cookies over HTTP or forwarded HTTPS.
+    response = client.post(
+        "/api/v1/auth/login",
+        json=build_login_payload(email=sample_user.email, remember_me=remember_me),
+        headers={"X-Forwarded-Proto": "https"} if https else {},
+    )
+    # Then: both cookies match the published transport contract.
+    assert response.status_code == 200
+    cookies = response.headers.get_list("set-cookie")
+    assert len(cookies) == 2
+    assert {cookie.split("=", 1)[0] for cookie in cookies} == {
+        "template_refresh_token",
+        "template_refresh_sid",
+    }
+    for cookie in cookies:
+        assert "HttpOnly" in cookie
+        assert "Path=/" in cookie
+        assert ("Secure" in cookie) is https
+        assert ("SameSite=none" if https else "SameSite=lax") in cookie
+        assert ("Max-Age=" in cookie) is remember_me
+
+
+def test_refresh_success_returns_token_contract(sample_user: UserResponse):
+    """Scenario: refresh route returns an access token and the retained refresh token."""
     client = create_auth_test_client(sample_user)
 
     # Given/When: refresh request payload is submitted.
     response = client.post("/api/v1/auth/refresh", json=AUTH_REFRESH_REQUEST_PAYLOAD)
 
-    # Then: refresh contract contains rotated token values.
+    # Then: refresh contract retains the refresh token supplied to the service.
     assert response.status_code == 200
     payload = response.json()
     assert payload["token_type"] == "bearer"
     assert payload["access_token"] == "rotated-access-token"
-    assert payload["refresh_token"] == "rotated-refresh-token"
+    assert payload["refresh_token"] == AUTH_REFRESH_REQUEST_PAYLOAD["refresh_token"]
 
 
 def test_me_requires_authentication(sample_user: UserResponse):
