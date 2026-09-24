@@ -186,6 +186,20 @@ URL·CORS·로컬 OTLP 주소도 맞춰야 합니다. 호스트 개발 시 `PROM
 
 ### DB·관측성 접근 설정
 
+#### Collector 트레이스 배치
+
+트레이스 파이프라인은 `OTLP receiver -> batch processor -> Tempo/debug exporters`입니다.
+Collector 0.114.0 기본값인 200ms 타임아웃과 8192개 스팬 전송 기준을 사용합니다.
+8192는 최대 배치 크기가 아닌 전송을 시작하는 기준입니다. 백엔드 SDK의 기존
+`BatchSpanProcessor`와 별개로 Collector에서 수신한 스팬을 모아 전송합니다.
+[배치 프로세서 문서](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.114.0/processor/batchprocessor/README.md)를 참고하세요.
+
+마운트된 설정 파일 변경은 실행 중인 Collector를 재시작해야 반영됩니다.
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/.env --profile observability restart otel-collector
+```
+
 #### Prometheus 수집 대상과 공통 네트워크
 
 앱·Prometheus·Grafana 등 Compose 서비스는 이미 같은
