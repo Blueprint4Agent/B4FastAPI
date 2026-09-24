@@ -398,7 +398,7 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 
 - 현재 프로젝트 로깅 동작:
 
-1. 전역 `ServiceException` 핸들러가 서비스 예외를 `logger.error(... code=...)`로 로깅
+1. 전역 `ServiceException` 핸들러가 `exception_log_level`로 레벨을 결정하고 `logger.log(... code=...)`로 로깅
 2. 예기치 않은 에러는 `logger.exception(...)`으로 스택트레이스 유지
 3. 이메일 등 민감 데이터는 마스킹 헬퍼 사용 필수
 4. HTTP 요청 상관관계는 `X-Request-ID`와 `X-Trace-ID`를 사용하며, 로그는 request context logging을 통해 두 값을 포함
@@ -527,3 +527,22 @@ trace ID를 설정하고 검증·observer·handler·재시도·DLQ 처리까지 
 작업 trace ID는 원래 요청과 로그를 연결하기 위한 값이며 OTel 부모 span을 연결하거나
 새로 생성하지 않습니다. Redis 등 자동 계측 span의 trace ID는 별개일 수 있습니다.
 HTTP 로그 정책은 유지하며 enqueue DEBUG 로그에도 envelope의 ID를 기록합니다.
+
+## 전역 예외 로그 레벨
+
+`app/core/observability/error_logging.py`에서 전역 핸들러의 레벨을 결정합니다.
+
+- 도메인 HTTP 5xx: 에러 코드와 관계없이 ERROR.
+- INVALID_CREDENTIALS, INVALID_TOKEN, ACCOUNT_LOCKED, INSUFFICIENT_ROLE,
+  OAUTH_IDENTITY_CONFLICT, API_KEY_INVALID, API_KEY_USER_MISMATCH: WARNING.
+- HTTP 429: WARNING.
+- 그 외 도메인 4xx: INFO. 이름·이메일 중복, 리소스 없음,
+  LOGIN_DISABLED, EMAIL_DISABLED, EMAIL_NOT_VERIFIED 등을 포함합니다.
+- 기존 일반 HTTPException fallback은 401/403/429에 WARNING,
+  그 외 4xx에 INFO, 5xx 또는 예상 밖 상태 범주에 ERROR를 사용합니다.
+- 예상하지 못한 일반 예외는 스택을 포함한 ERROR를 유지합니다.
+
+로그 레벨만 변경하며 응답 상태·본문·에러 코드·핸들러 등록은 유지합니다.
+프레임워크의 검증·HTTP 핸들러와 OAuth 리다이렉트 로그는 기존 동작을 유지합니다.
+메일·Worker 재시도 로그는 이번 정책 범위에 포함하지 않습니다.
+HTTP INFO·WARNING의 컨텍스트 표시는 기존 formatter 정책을 따릅니다.
