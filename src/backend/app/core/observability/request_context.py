@@ -2,6 +2,7 @@ from contextvars import ContextVar, Token
 from uuid import uuid4
 
 from fastapi import Request, Response
+from opentelemetry import trace
 
 REQUEST_ID_HEADER = "X-Request-ID"
 TRACE_ID_HEADER = "X-Trace-ID"
@@ -48,9 +49,16 @@ def resolve_request_id(request: Request) -> str:
     return _clean_header_value(request.headers.get(REQUEST_ID_HEADER)) or _generate_request_id()
 
 
+def _active_trace_id() -> str:
+    context = trace.get_current_span().get_span_context()
+    # Unsampled spans still have a valid correlation ID.
+    return trace.format_trace_id(context.trace_id) if context.is_valid else ""
+
+
 def resolve_trace_id(request: Request) -> str:
     return (
-        _extract_traceparent_trace_id(request.headers.get(TRACEPARENT_HEADER))
+        _active_trace_id()
+        or _extract_traceparent_trace_id(request.headers.get(TRACEPARENT_HEADER))
         or _clean_header_value(request.headers.get(TRACE_ID_HEADER))
         or _generate_trace_id()
     )
@@ -74,7 +82,7 @@ def get_request_id() -> str:
 
 
 def get_trace_id() -> str:
-    return _TRACE_ID.get()
+    return _active_trace_id() or _TRACE_ID.get()
 
 
 def add_request_context_headers(
