@@ -23,6 +23,7 @@ class Settings(BaseModel):
     CORS_ORIGINS: str = os.getenv("CORS_ORIGINS", "http://localhost:5173")
     TRUST_PROXY_HEADERS: bool = os.getenv("TRUST_PROXY_HEADERS", "false").lower() == "true"
     TRACING_ENABLED: bool = os.getenv("TRACING_ENABLED", "false").lower() == "true"
+    LOGS_ENABLED: bool = os.getenv("LOGS_ENABLED", "false").lower() == "true"
     OTEL_SERVICE_NAME: str = os.getenv("OTEL_SERVICE_NAME", "blueprint4fastapi-backend")
     OTEL_EXPORTER_OTLP_ENDPOINT: str = os.getenv(
         "OTEL_EXPORTER_OTLP_ENDPOINT",

@@ -566,3 +566,19 @@ The worker records scheduled retries at WARNING without a stack trace, and final
 DLQ moves at ERROR with the original exception stack. Task/trace IDs remain available
 through the worker context. Retry counts, delays, queue payloads, and delivery behavior
 are unchanged. This policy does not change other observer or startup failure logs.
+
+## OTLP Log Export
+
+`LOGS_ENABLED=true` enables `log_export.setup_log_export()` during app creation.
+It uses the standard OTel LoggingHandler from instrumentation-logging and a
+BatchLogRecordProcessor with the existing OTLP endpoint/resource settings.
+TRACING_ENABLED is independent. One handler is attached to uvicorn and, when it
+does not propagate, uvicorn.access. Application loggers already propagate to
+uvicorn. Do not attach it to the root logger (exporter diagnostics must not loop).
+Console formatting remains separate; OTLP exports the message and structured
+request_id, trace_id and task_id attributes from RequestContextFilter, even when
+the console suppresses IDs at INFO. Native span context remains SDK-owned.
+The provider registers its normal process-exit shutdown/flush hook; setup is
+idempotent across repeated app creation. Batch queues are in memory and are not
+a durable audit log. This does not collect other containers or arbitrary root
+loggers. Existing error ownership, masking and LOG_LEVEL policies still apply.

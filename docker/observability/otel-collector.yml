@@ -10,6 +10,9 @@ processors:
   batch: {}
 
 exporters:
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
   otlp/tempo:
     endpoint: tempo:4317
     tls:
@@ -20,6 +23,10 @@ exporters:
 
 service:
   pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki]
     traces:
       receivers: [otlp]
       processors: [batch]

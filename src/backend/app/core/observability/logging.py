@@ -109,7 +109,8 @@ def configure_request_context_logging() -> None:
         for handler in logger.handlers:
             if not any(isinstance(item, RequestContextFilter) for item in handler.filters):
                 handler.addFilter(context_filter)
-            handler.setFormatter(formatter)
+            if isinstance(handler, logging.StreamHandler):
+                handler.setFormatter(formatter)
 
 
 def mask_email(email: str) -> str:
