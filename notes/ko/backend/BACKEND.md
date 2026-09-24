@@ -480,3 +480,25 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 - `get_current_user` 사용 라우터는 `current_user_error_responses(...)`로 인증·API Key 오류와 도메인 오류를 병합합니다. 동일 상태 코드의 응답 모델을 덮어쓰지 않습니다.
 - `app/core/openapi.py`는 SSE 데이터 스키마와 기존 INTERNAL_ERROR 응답을 문서화합니다. SSE 본문은 문자열 스트림이며 JSON data 모델은 `x-sse-event-schema`로 연결합니다.
 - 오류 형식·쿠키·refresh 동작을 바꾸려면 문서 변경과 별도의 동작 호환성 검토가 필요합니다.
+
+## 서비스 관측 데코레이터
+
+`app.core.observability.service`의 `@observe_service("api_key.create")`를
+비동기 서비스 메서드에 적용합니다. API Key 생성·조회·삭제·상태 변경에 적용되어 있습니다.
+고정 작업명, 결과(`success`, `error`, `cancelled`, `aborted`), 소요 시간(ms),
+도메인 에러 코드 또는 `INTERNAL_ERROR`를 완료 시 DEBUG 로그 한 건으로 기록합니다.
+기존 요청 컨텍스트 로깅을 사용하며 상세 오류 로그는 전역 핸들러가 담당합니다.
+
+`TRACING_ENABLED=true`이면 활성 컨텍스트 아래에 서비스 span을 생성합니다.
+기존 SQL·Redis 계측이 켜져 있으면 서비스 span 아래에 연결됩니다. 시작 시 기존
+tracing provider/exporter 설정이 필요합니다. 완료 로그는 DEBUG 수준에서 출력합니다.
+작업명과 소요 시간은 span 이름과 기본 타임스탬프를 사용하며 사용자 정의 속성은 결과와 에러 코드만 기록합니다.
+성공 span은 기본 UNSET 상태를 유지합니다.
+새 Prometheus 메트릭은 추가하지 않습니다.
+
+작업명에 요청 데이터를 넣지 않습니다. 데코레이터는 인자·반환값·예외 메시지·스택을
+기록하지 않습니다. 이 제한은 해당 데코레이터에 적용되며 다른 계측의 수집 정책은 별개입니다.
+반환값·예외·취소·함수 메타데이터를 보존합니다. span 생명주기는 `start_as_current_span`이 관리하며,
+데코레이터에서 관측 처리 오류를 조용히 무시하지 않습니다.
+동기 함수와 async generator는 지원하지 않습니다. 라우터·SSE iterator 대신 서비스 경계에 적용합니다.
+성공은 이벤트 발행을 포함한 메서드 전체의 정상 반환을 뜻하며 트랜잭션·전달 보장을 추가하지 않습니다.

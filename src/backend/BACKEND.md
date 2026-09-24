@@ -481,3 +481,28 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 - Routes using `get_current_user` must merge dependency errors with domain errors through `current_user_error_responses(...)`; do not overwrite models sharing a status code.
 - `app/core/openapi.py` publishes SSE data models and the existing INTERNAL_ERROR envelope. SSE bodies remain string streams; `x-sse-event-schema` references their JSON data model.
 - Changing error envelopes, cookies, or refresh semantics requires an explicit behavior compatibility review and documentation update.
+
+## Service Observation Decorator
+
+Use `@observe_service("api_key.create")` from `app.core.observability.service` on
+async service methods. API Key create/list/delete/status operations use it.
+It emits one DEBUG completion log with a static operation name, outcome
+(`success`, `error`, `cancelled`, or `aborted`), duration in milliseconds, and a
+domain error code or `INTERNAL_ERROR`. Existing request context logging applies.
+Detailed error logging remains owned by the global handler.
+
+With `TRACING_ENABLED=true`, it creates a span under the active context, including
+SQL/Redis child spans when their existing instrumentation is enabled. Startup must
+configure the existing tracing provider/exporter. With tracing disabled, completion
+logs require DEBUG logging. Span name and native timestamps provide the operation
+and duration; only outcome and error code are custom span attributes. Successful
+spans keep the default UNSET status. No new Prometheus metrics are introduced.
+
+Never use request-derived operation names. The decorator does not capture arguments,
+return values, exception messages, or stack traces; this restriction applies to this
+decorator, not other instrumentation. It preserves results, exceptions, cancellation,
+and function metadata. Span lifecycle uses `start_as_current_span`; telemetry errors
+are not silently suppressed by this decorator.
+Sync functions and async generators are rejected. Apply it at the service boundary,
+not on FastAPI routes or SSE iterators. Success means the entire method returned,
+including awaited event publication; it does not add transaction or delivery guarantees.
