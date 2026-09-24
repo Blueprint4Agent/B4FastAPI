@@ -194,6 +194,20 @@ service as described below (`docker-up` preserves existing infrastructure).
 
 ### Database and observability access
 
+#### Collector trace batching
+
+The trace pipeline is `OTLP receiver -> batch processor -> Tempo/debug exporters`.
+It uses Collector 0.114.0 defaults: a 200ms timeout and an 8192-span send trigger.
+The trigger is not a maximum batch size. This combines incoming spans before
+export independently of the backend SDK's existing `BatchSpanProcessor`.
+See the [batch processor documentation](https://github.com/open-telemetry/opentelemetry-collector/blob/v0.114.0/processor/batchprocessor/README.md).
+
+After changing the mounted Collector config, restart the running Collector to apply it:
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/.env --profile observability restart otel-collector
+```
+
 #### Prometheus target and shared network
 
 App, Prometheus, Grafana, and the other Compose services already share the same
