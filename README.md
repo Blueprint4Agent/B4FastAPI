@@ -124,7 +124,8 @@ New keys receive example defaults. Local comments are replaced by example commen
 the original file remains in the backup. Additional keys are reported and retained
 in a separate section at the end. Missing keys, duplicate keys, invalid syntax,
 or outdated comments/layout fail the check.
-Backend and Docker example keys must match, except Docker's `APP_IMAGE`.
+Backend and Docker example keys must match, except Docker's `APP_IMAGE`,
+`GRAFANA_ADMIN_USER`, and `GRAFANA_ADMIN_PASSWORD`.
 Values may differ by environment; their contents are never printed.
 
 Add shared backend settings to both `src/backend/.env.example` and
@@ -150,6 +151,34 @@ connections, or settings in running containers. Docker deployment now also
 requires `uv` for this check.
 
 ## Docker Deployment
+
+### Database and observability access
+
+- Local PostgreSQL initializes its user, password, and database from `DB_USER`,
+  `DB_PASSWORD`, and `DB_NAME`. The app uses the same resolved credentials.
+  Existing PostgreSQL volumes keep their existing accounts: changing `.env` alone
+  does not change a database password. Update the database account separately;
+  do not delete the volume to rotate credentials.
+- A non-empty `REDIS_PASSWORD` enables password authentication on local Redis,
+  the app connection, and its healthcheck. Empty remains supported for local
+  development; configure a strong password for deployment. PostgreSQL still has
+  a development default password, so set `DB_PASSWORD` for deployment as well.
+- Database usernames/passwords and Redis passwords are URL-encoded by the backend.
+  Enter the original password in `.env`, not a pre-encoded URL component. Quote
+  literal values containing `$` with single quotes to prevent Compose interpolation.
+- DB, Redis, Grafana, Prometheus, Tempo, and OTLP host ports bind to `127.0.0.1`.
+  Container-to-container traffic still uses Compose service names. Access from a
+  remote workstation requires an SSH tunnel or a separately configured proxy.
+  The app remains published on port 8000 as before.
+- Grafana anonymous access is disabled. Run `make docker-env-sync`, then set
+  `GRAFANA_ADMIN_PASSWORD` in `docker/.env` before `make docker-observability-up`.
+  Grafana refuses to start with an empty password, `admin`, or `CHANGE_ME*`.
+  `GRAFANA_ADMIN_USER` defaults to `admin`. These settings initialize new Grafana
+  volumes; existing installations require changing the stored password through
+  Grafana's UI or administrator CLI. Keep `.env` aligned with that password.
+
+These settings take effect when containers are recreated. Env sync/check only
+validates keys/layout; it does not rotate existing database or Grafana credentials.
 
 1. Prepare env:
 

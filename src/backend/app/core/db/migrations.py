@@ -13,7 +13,7 @@ def _build_alembic_config(database_url: str) -> AlembicConfig:
     alembic_cfg.set_main_option("prepend_sys_path", ".")
     alembic_cfg.set_main_option("path_separator", "os")
     alembic_cfg.set_main_option("version_path_separator", "os")
-    alembic_cfg.set_main_option("sqlalchemy.url", database_url)
+    alembic_cfg.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
     return alembic_cfg
 
 
