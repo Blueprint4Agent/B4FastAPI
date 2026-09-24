@@ -27,6 +27,22 @@ help: ## Show available Make targets
 init: frontend-init ## Initialize backend, frontend, and docker env files
 	bash ./docker/scripts/init-env.sh
 
+.PHONY: env-sync env-check docker-env-sync docker-env-check env-contract-check
+env-contract-check: ## Check shared development/deployment example keys without local env files
+	$(UV) run --project $(BACKEND_DIR) python scripts/env.py contract-check
+
+env-sync: ## Sync development env keys and template layout with backups
+	$(UV) run --project $(BACKEND_DIR) python scripts/env.py sync --scope dev
+
+env-check: ## Check development env keys, layout, and template consistency
+	$(UV) run --project $(BACKEND_DIR) python scripts/env.py check --scope dev
+
+docker-env-sync: ## Sync deployment env keys and template layout with backups
+	$(UV) run --project $(BACKEND_DIR) python scripts/env.py sync --scope docker
+
+docker-env-check: ## Check deployment env keys, layout, and template consistency
+	$(UV) run --project $(BACKEND_DIR) python scripts/env.py check --scope docker
+
 .PHONY: install
 install: backend-install frontend-install ## Install backend and frontend dependencies
 
@@ -34,7 +50,7 @@ install: backend-install frontend-install ## Install backend and frontend depend
 build: backend-build frontend-package ## Build backend environment and frontend static artifacts
 
 .PHONY: check
-check: backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, types, and pinned API contracts
+check: env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
 
 .PHONY: git-governance-check
 git-governance-check: ## Validate git governance; optionally pass commit, PR, and merge metadata

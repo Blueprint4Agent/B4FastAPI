@@ -16,6 +16,7 @@ dist/
 src/frontend/.env
 
 # Local infra
+.env-backups/
 docker/.env
 docker/artifacts/
 

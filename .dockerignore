@@ -1,4 +1,5 @@
 .git
+.env-backups
 .gitignore
 .gitattributes
 .vscode
