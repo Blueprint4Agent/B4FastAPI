@@ -118,8 +118,8 @@ sync는 예제의 주석·빈 줄·키 순서에 맞춰 파일을 재구성하�
 직접 작성한 주석은 예제 주석으로 교체되며 원본은 백업에서 확인할 수 있습니다.
 예제에 없는 키는 알림 후 파일 끝의 별도 구역에 보존합니다. 누락·중복 키,
 잘못된 문법, 주석·배치 불일치는 검사 실패로 처리합니다. 백엔드와 Docker 예제의
-키는 Docker 전용 `APP_IMAGE`, `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`를
-제외하고 일치해야 합니다. 환경별 값 차이는
+키는 `scripts/env.py`에 명시한 Docker 전용 이미지·Compose 프로젝트·호스트 포트·
+Grafana 로그인 설정을 제외하고 일치해야 합니다. 환경별 값 차이는
 허용하며 값의 내용은 출력하지 않습니다.
 
 공통 백엔드 설정은 `src/backend/.env.example`과 `docker/.env.example` 양쪽에
@@ -143,6 +143,45 @@ sync는 기존 파일을 변경하기 전에 루트 `.env-backups/`에 시각이
 설정은 검사하지 않습니다. 이 검사로 인해 Docker 배포에도 `uv`가 필요합니다.
 
 ## Docker 배포
+
+### 프로젝트 이름과 호스트 포트
+
+컨테이너 이름은 Compose가 `<프로젝트>-<서비스>-1` 형태로 생성합니다.
+기본 `COMPOSE_PROJECT_NAME=docker`는 기존 프로젝트의 볼륨 이름을 유지합니다.
+새로 생성되는 컨테이너 이름은 `docker-postgres-1` 같은 형태이며, 기존 고정 이름의
+컨테이너는 명시적으로 재생성하기 전까지 유지됩니다. 스크립트는 서비스 이름을
+사용하므로 두 이름 방식 모두 지원합니다. 별도 설치는 `docker/.env`에서 고유한
+프로젝트 이름과 사용하지 않는 호스트 포트를 지정합니다.
+
+```dotenv
+COMPOSE_PROJECT_NAME=b4fastapi
+POSTGRES_HOST_PORT=5433
+REDIS_HOST_PORT=6380
+```
+
+| 호스트 포트 설정 | 기본값 | 컨테이너 내부 포트 |
+| --- | --- | --- |
+| `APP_HOST_PORT` | 8000 | 8000 |
+| `POSTGRES_HOST_PORT` | 5432 | 5432 |
+| `REDIS_HOST_PORT` | 6379 | 6379 |
+| `GRAFANA_HOST_PORT` | 3000 | 3000 |
+| `PROMETHEUS_HOST_PORT` | 9090 | 9090 |
+| `TEMPO_HOST_PORT` | 3200 | 3200 |
+| `OTEL_GRPC_HOST_PORT` | 4317 | 4317 |
+| `OTEL_HTTP_HOST_PORT` | 4318 | 4318 |
+
+위 예제에서 호스트 백엔드의 `src/backend/.env`는 `DB_PORT=5433`,
+`REDIS_PORT=6380`을 사용하고 Docker 앱은 `DB_PORT=5432`, `REDIS_PORT=6379`를
+유지합니다. 전체 스택을 여러 개 실행하면 모든 공개 포트를 서로 다르게 설정하고,
+빌드가 다를 경우 `APP_IMAGE` 태그도 구분하세요. 포트를 바꾸면 호스트 접근용
+URL·CORS·로컬 OTLP 주소도 맞춰야 합니다. 현재 Prometheus 수집 대상은
+`host.docker.internal:8000`으로 고정되어 있어 필요한 경우 별도로 변경해야 합니다.
+
+`make docker-env-sync`로 설정 키를 추가합니다. 프로젝트 이름을 바꾸면 별도
+컨테이너·볼륨이 생성되며 기존 데이터가 자동 이전되지는 않습니다. 현재 설치는
+의도적으로 이전할 때까지 `docker`를 유지하세요. 기존 DB·Redis의 호스트 포트
+변경은 아래 안내대로 해당 서비스를 명시적으로 재생성해야 적용됩니다.
+`docker-up`은 기존 인프라를 유지합니다.
 
 ### DB·관측성 접근 설정
 
@@ -175,7 +214,7 @@ PostgreSQL에는 실제 존재하는 DB 이름과 일치하는 인증정보를 �
 - DB·Redis·Grafana·Prometheus·Tempo·OTLP의 호스트 포트는 `127.0.0.1`에만
   바인딩합니다. 컨테이너끼리는 기존 Compose 서비스 이름으로 통신합니다.
   외부 PC에서 접근하려면 SSH 터널 또는 별도로 설정한 프록시를 사용합니다.
-  앱의 8000번 포트 공개 방식은 기존과 같습니다.
+  앱은 기존처럼 모든 호스트 인터페이스에 공개하며 `APP_HOST_PORT`(기본 8000)를 사용합니다.
 - Grafana 익명 접근은 비활성화합니다. `make docker-env-sync` 후 `docker/.env`의
   `GRAFANA_ADMIN_PASSWORD`를 지정하고 `make docker-observability-up`을 실행하세요.
   빈 비밀번호, `admin`, `CHANGE_ME*` 값이면 Grafana 시작을 거부합니다.
