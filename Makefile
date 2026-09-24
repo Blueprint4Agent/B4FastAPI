@@ -152,9 +152,9 @@ docker-observability-up: ## Start local observability stack
 	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --env-file .env --profile observability up -d tempo otel-collector prometheus grafana
 
 .PHONY: docker-observability-down
-docker-observability-down: ## Stop local observability stack
+docker-observability-down: ## Stop only local observability services
 	@[ -f "$(DOCKER_DIR)/.env" ] || cp "$(DOCKER_DIR)/.env.example" "$(DOCKER_DIR)/.env"
-	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --env-file .env --profile observability down --remove-orphans
+	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --env-file .env --profile observability stop grafana prometheus otel-collector tempo
 
 .PHONY: frontend-init frontend-package frontend-contract-check frontend-api-check
 frontend-init: ## Initialize submodules at their committed versions

@@ -101,6 +101,11 @@ make docker-observability-up
 make docker-observability-down
 ```
 
+`make docker-observability-down` stops only Grafana, Prometheus, OpenTelemetry
+Collector, and Tempo. The app, PostgreSQL, and Redis keep running. Stopped
+containers and their data volumes are retained; use `make docker-observability-up`
+to start the observability services again.
+
 ## Docker Deployment (Bash Only)
 
 1. Prepare env:
