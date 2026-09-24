@@ -118,7 +118,7 @@ sync는 예제의 주석·빈 줄·키 순서에 맞춰 파일을 재구성하�
 직접 작성한 주석은 예제 주석으로 교체되며 원본은 백업에서 확인할 수 있습니다.
 예제에 없는 키는 알림 후 파일 끝의 별도 구역에 보존합니다. 누락·중복 키,
 잘못된 문법, 주석·배치 불일치는 검사 실패로 처리합니다. 백엔드와 Docker 예제의
-키는 `scripts/env.py`에 명시한 Docker 전용 이미지·Compose 프로젝트·호스트 포트·
+키는 `scripts/env.py`에 명시한 Docker 전용 이미지·Compose 프로젝트·호스트 포트·수집 대상·
 Grafana 로그인 설정을 제외하고 일치해야 합니다. 환경별 값 차이는
 허용하며 값의 내용은 출력하지 않습니다.
 
@@ -174,8 +174,9 @@ REDIS_HOST_PORT=6380
 `REDIS_PORT=6380`을 사용하고 Docker 앱은 `DB_PORT=5432`, `REDIS_PORT=6379`를
 유지합니다. 전체 스택을 여러 개 실행하면 모든 공개 포트를 서로 다르게 설정하고,
 빌드가 다를 경우 `APP_IMAGE` 태그도 구분하세요. 포트를 바꾸면 호스트 접근용
-URL·CORS·로컬 OTLP 주소도 맞춰야 합니다. 현재 Prometheus 수집 대상은
-`host.docker.internal:8000`으로 고정되어 있어 필요한 경우 별도로 변경해야 합니다.
+URL·CORS·로컬 OTLP 주소도 맞춰야 합니다. 호스트 개발 시 `PROMETHEUS_BACKEND_TARGET`을
+실제 백엔드 포트에 맞춥니다. Docker 앱의 수집 대상은 `APP_HOST_PORT`와 관계없이
+`app:8000`입니다.
 
 `make docker-env-sync`로 설정 키를 추가합니다. 프로젝트 이름을 바꾸면 별도
 컨테이너·볼륨이 생성되며 기존 데이터가 자동 이전되지는 않습니다. 현재 설치는
@@ -184,6 +185,31 @@ URL·CORS·로컬 OTLP 주소도 맞춰야 합니다. 현재 Prometheus 수집 �
 `docker-up`은 기존 인프라를 유지합니다.
 
 ### DB·관측성 접근 설정
+
+#### Prometheus 수집 대상과 공통 네트워크
+
+앱·Prometheus·Grafana 등 Compose 서비스는 이미 같은
+`<COMPOSE_PROJECT_NAME>_default` 네트워크를 사용합니다. 앱과 관측성 명령에서
+같은 프로젝트 이름을 유지하면 되며 별도 외부 공통 네트워크는 필요하지 않습니다.
+
+`make docker-env-sync` 후 `docker/.env`에 수집 대상 하나를 지정합니다.
+
+| 백엔드 실행 방식 | PROMETHEUS_BACKEND_TARGET |
+| --- | --- |
+| 호스트에서 `make backend-dev` (기본 포트) | `host.docker.internal:8000` |
+| 호스트 백엔드를 8001번 포트로 실행 | `host.docker.internal:8001` |
+| 같은 Compose 프로젝트에서 `make docker-up` | `app:8000` |
+
+설정 후 `make docker-observability-up`으로 반영합니다. 백엔드가 사용하는 env에서
+`METRICS_ENABLED=true`도 설정하고 필요하면 백엔드를 재시작·재생성하세요.
+호스트 백엔드는 Docker에서 접근 가능한 주소에 바인딩해야 합니다.
+`make backend-dev` 기본값은 `0.0.0.0`이며 Linux 호스트 접근도 host-gateway
+매핑으로 지원합니다. 대상에는 host:port만 입력하며 `/metrics` 경로는 별도 설정되어
+있습니다. Prometheus는 컨테이너 시작 시 설정 파일을 생성·검사합니다.
+기존 대시보드·이력 호환성을 위해 두 모드 모두 `b4fastapi-backend-local` job
+라벨을 유지합니다. Prometheus의 `/targets` 화면에서 수집 상태를 확인할 수 있습니다.
+
+#### DB 드라이버
 
 `DB_NAME`의 의미는 드라이버에 따라 다릅니다. DB 전환 시 두 값을 함께 변경합니다.
 
