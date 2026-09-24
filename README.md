@@ -213,6 +213,25 @@ make docker-build
 make docker-up
 ```
 
+Requires `uv` and Docker Compose with `up --wait --wait-timeout` support.
+Infrastructure selection reads the app environment resolved by Compose, including
+quoting, comments, interpolation, and service environment overrides. Existing
+PostgreSQL/Redis containers are preserved with `--no-recreate`; missing containers
+are created and stopped containers are started. Each startup stage waits up to
+120 seconds by default (`HEALTH_TIMEOUT_SECONDS=180 make docker-up` to override).
+The app healthcheck calls `/health/ready`, which checks both database and Redis.
+Startup fails if services do not become healthy; it does not automatically roll back.
+
+When intentionally changing local infrastructure credentials or configuration,
+recreate only the affected service explicitly, then recreate/redeploy the app:
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --no-deps --force-recreate postgres
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --no-deps --force-recreate redis
+```
+
+Recreating PostgreSQL does not rotate credentials already stored in its data volume.
+
 4. View logs:
 
 ```bash
@@ -225,11 +244,16 @@ make docker-logs DOCKER_SERVICE=app
 make docker-down
 ```
 
-6. One-shot deploy (build + recreate + export tar):
+6. One-shot deploy (env check + build + recreate app + wait for readiness + export tar):
 
 ```bash
 make docker-deploy
 ```
+
+Only the app is forced to recreate; existing local DB/Redis containers retain their
+configuration. A readiness failure stops deployment before image export. Image
+export uses Compose's resolved app image name, matching build rather than parsing
+`APP_IMAGE` separately from `.env`.
 
 7. Export app image tar:
 

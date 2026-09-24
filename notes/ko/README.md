@@ -204,6 +204,24 @@ make docker-build
 make docker-up
 ```
 
+`uv`와 `up --wait --wait-timeout`을 지원하는 Docker Compose가 필요합니다.
+인프라 선택은 Compose가 해석한 앱 환경변수를 기준으로 하므로 따옴표·주석·변수
+치환·서비스 환경변수 우선순위를 반영합니다. 기존 PostgreSQL·Redis 컨테이너는
+`--no-recreate`로 보존하고, 없으면 생성하며 중지 상태면 시작합니다. 각 기동 단계는
+기본 120초까지 기다립니다 (`HEALTH_TIMEOUT_SECONDS=180 make docker-up`으로 변경).
+앱 healthcheck는 DB와 Redis 연결을 확인하는 `/health/ready`를 호출합니다.
+준비 상태에 도달하지 못하면 실패하며 자동 롤백은 수행하지 않습니다.
+
+로컬 인프라의 인증정보나 설정을 의도적으로 바꿀 때는 해당 서비스만 명시적으로
+재생성한 뒤 앱도 재생성하거나 재배포합니다.
+
+```bash
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --no-deps --force-recreate postgres
+docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --no-deps --force-recreate redis
+```
+
+PostgreSQL 재생성만으로 기존 데이터 볼륨에 저장된 계정 비밀번호는 바뀌지 않습니다.
+
 4. 로그 확인:
 
 ```bash
@@ -216,11 +234,16 @@ make docker-logs DOCKER_SERVICE=app
 make docker-down
 ```
 
-6. 원샷 배포 (빌드 + 재기동 + tar 내보내기):
+6. 원샷 배포 (환경 검사 + 빌드 + 앱 재생성 + 준비 대기 + tar 내보내기):
 
 ```bash
 make docker-deploy
 ```
+
+앱만 강제 재생성하며 기존 로컬 DB·Redis 컨테이너의 설정은 유지합니다.
+준비 확인에 실패하면 이미지 내보내기 전에 배포가 중단됩니다. 이미지 내보내기도
+`.env`의 `APP_IMAGE`를 따로 파싱하지 않고 Compose가 해석한 앱 이미지명을 사용해
+빌드와 동일한 기준을 따릅니다.
 
 7. 앱 이미지 tar 내보내기:
 
