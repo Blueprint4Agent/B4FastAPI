@@ -12,10 +12,12 @@ fi
 
 [ -f "${DOCKER_DIR}/.env" ] || cp "${DOCKER_DIR}/.env.example" "${DOCKER_DIR}/.env"
 
-APP_IMAGE="$(awk -F= '/^APP_IMAGE=/{print substr($0, index($0, "=")+1); exit}' "${DOCKER_DIR}/.env")"
-APP_IMAGE="${APP_IMAGE%\"}"
-APP_IMAGE="${APP_IMAGE#\"}"
-APP_IMAGE="${APP_IMAGE:-blueprint4fastapi:local}"
+cd "${DOCKER_DIR}"
+APP_IMAGE="$(docker compose --env-file .env config --images app)"
+if [ -z "${APP_IMAGE}" ] || [[ "${APP_IMAGE}" == *$'\n'* ]]; then
+    echo "Expected exactly one resolved app image from Compose." >&2
+    exit 1
+fi
 mkdir -p "${ARTIFACTS_DIR}"
 
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"

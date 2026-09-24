@@ -143,7 +143,7 @@ docker-build: ## Build docker app image
 	bash ./docker/scripts/docker-build.sh
 
 .PHONY: docker-up
-docker-up: ## Start docker app and required local infra
+docker-up: ## Start required infra and wait for app readiness
 	bash ./docker/scripts/docker-up.sh
 
 .PHONY: docker-down
@@ -159,7 +159,7 @@ docker-export: ## Export docker app image to docker/artifacts
 	bash ./docker/scripts/docker-export.sh
 
 .PHONY: docker-deploy
-docker-deploy: ## Build, recreate, and export docker app image
+docker-deploy: ## Build, recreate app only, wait for readiness, and export image
 	bash ./docker/scripts/docker-deploy.sh
 
 .PHONY: docker-observability-up

@@ -13,62 +13,40 @@ fi
 
 [ -f "${ENV_FILE}" ] || cp "${DOCKER_DIR}/.env.example" "${ENV_FILE}"
 
-read_env() {
-    local key="$1"
-    awk -F= -v key="${key}" '$1==key {print substr($0, index($0, "=") + 1); exit}' "${ENV_FILE}" | sed 's/^"//; s/"$//'
-}
-
-to_lower() {
-    echo "$1" | tr '[:upper:]' '[:lower:]'
-}
-
-db_driver="$(read_env DB_DRIVER)"
-db_host="$(read_env DB_HOST)"
-redis_in_memory="$(to_lower "$(read_env REDIS_IN_MEMORY)")"
-redis_host="$(read_env REDIS_HOST)"
-
-use_local_postgres=false
-if [[ "${db_driver}" == postgresql* ]] && [ "${db_host}" = "postgres" ]; then
-    use_local_postgres=true
-fi
-
-use_local_redis=false
-if [ "${redis_in_memory}" = "false" ] && [ "${redis_host}" = "redis" ]; then
-    use_local_redis=true
-fi
-
-wait_for_container_health() {
-    local container_name="$1"
-    local deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS))
-
-    while [ "${SECONDS}" -lt "${deadline}" ]; do
-        local status
-        status="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{if .State.Running}}running{{else}}stopped{{end}}{{end}}' "${container_name}" 2>/dev/null || true)"
-
-        if [ "${status}" = "healthy" ] || [ "${status}" = "running" ]; then
-            echo "[health] ${container_name}: ${status}"
-            return 0
-        fi
-
-        sleep 2
-    done
-
-    echo "[health] timeout waiting for ${container_name}" >&2
-    docker logs "${container_name}" --tail 80 >&2 || true
-    return 1
-}
-
+# Read only the resolved app environment; never print the full Compose model.
 cd "${DOCKER_DIR}"
+ROOT_DIR="$(cd "${DOCKER_DIR}/.." && pwd)"
+if ! command -v "${UV:-uv}" >/dev/null 2>&1; then
+    echo "uv command not found. Install uv to read the resolved Compose settings." >&2
+    exit 1
+fi
+if [[ ! "${HEALTH_TIMEOUT_SECONDS}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "HEALTH_TIMEOUT_SECONDS must be a positive integer." >&2
+    exit 1
+fi
+
+infra_names="$(docker compose --env-file .env config --format json app |
+    "${UV:-uv}" run --project "${ROOT_DIR}/src/backend" python -c '
+import json
+import sys
+settings = json.load(sys.stdin)["services"]["app"].get("environment", {})
+if settings.get("DB_DRIVER", "").startswith("postgresql") and settings.get("DB_HOST") == "postgres":
+    print("postgres")
+if str(settings.get("REDIS_IN_MEMORY", "true")).lower() == "false" and settings.get("REDIS_HOST") == "redis":
+    print("redis")
+')"
 
 infra_services=()
-[ "${use_local_postgres}" = true ] && infra_services+=("postgres")
-[ "${use_local_redis}" = true ] && infra_services+=("redis")
+while IFS= read -r service; do
+    [ -z "${service}" ] || infra_services+=("${service}")
+done <<< "${infra_names}"
 
 if [ "${#infra_services[@]}" -gt 0 ]; then
-    docker compose --env-file .env up -d "$@" "${infra_services[@]}"
-
-    [ "${use_local_postgres}" = true ] && wait_for_container_health "b4fastapi-postgres"
-    [ "${use_local_redis}" = true ] && wait_for_container_health "b4fastapi-redis"
+    # Existing infrastructure is preserved, including its current configuration.
+    docker compose --env-file .env up -d --no-deps --no-recreate \
+        --wait --wait-timeout "${HEALTH_TIMEOUT_SECONDS}" "${infra_services[@]}"
 fi
 
-docker compose --env-file .env up -d "$@" app
+# Caller flags (including deploy's --force-recreate) apply to the app only.
+docker compose --env-file .env up -d --no-deps "$@" \
+    --wait --wait-timeout "${HEALTH_TIMEOUT_SECONDS}" app
