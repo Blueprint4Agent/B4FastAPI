@@ -23,6 +23,7 @@ def setup_tracing(app: FastAPI) -> None:
         return
 
     provider = _get_or_create_tracer_provider()
+    # The SDK wraps user middleware, so request context can read the server span.
     FastAPIInstrumentor.instrument_app(
         app,
         tracer_provider=provider,

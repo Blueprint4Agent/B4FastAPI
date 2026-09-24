@@ -48,6 +48,10 @@ pass the same behavioral scenarios; publishing this file alone is insufficient.
   describes both existing shapes. Framework routing failures such as unknown
   paths/methods are outside the domain-error contract.
 - Request correlation headers are `X-Request-ID` and `X-Trace-ID`.
+  FastAPI uses the valid active OpenTelemetry trace ID for `X-Trace-ID` and logs;
+  an inbound `X-Trace-ID` cannot override it. Without an active span, the existing
+  traceparent / X-Trace-ID / generated-ID fallback applies. A correlation ID alone
+  does not guarantee an exported trace (for example unsampled requests).
 
 ## Authentication, cookies, and OAuth
 

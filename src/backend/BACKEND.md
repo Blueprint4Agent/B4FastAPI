@@ -409,7 +409,7 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 1. Always include error code in failure logs
 2. Avoid duplicate error logs for the same failure path
 3. Preserve original cause on re-raise (`raise ... from error`)
-4. Preserve inbound `X-Request-ID` when present and prefer W3C `traceparent` trace ids when provided by upstream clients or gateways
+4. Preserve inbound `X-Request-ID` when present and prefer the active OpenTelemetry trace ID; without an active span, use the existing header fallback
 5. Keep application log messages in the existing event style: `Event description (key=%s, other_key=%s).`
 
 ## 6) Mandatory Pre-Commit Checks
@@ -506,3 +506,17 @@ are not silently suppressed by this decorator.
 Sync functions and async generators are rejected. Apply it at the service boundary,
 not on FastAPI routes or SSE iterators. Success means the entire method returned,
 including awaited event publication; it does not add transaction or delivery guarantees.
+
+## Trace ID Correlation
+
+Logs and `X-Trace-ID` use the valid active OpenTelemetry span's trace ID first.
+The FastAPI instrumentor wraps user middleware, so the request context middleware
+sees the server span. Inbound `traceparent` is handled by OTel's propagator; a
+conflicting `X-Trace-ID` does not override an active span. Unsampled valid spans
+still provide correlation IDs, although their traces may not be stored in Tempo.
+When no valid span exists (including tracing-disabled/excluded requests), retain
+the existing fallback: traceparent trace ID, X-Trace-ID, then a generated ID.
+Fallback IDs are correlation values, not a promise that a trace exists in Tempo.
+`X-Request-ID` behavior is unchanged. Log records also resolve the active span
+when emitted, falling back to the request ContextVar. Queue trace propagation
+is a separate concern and is not implemented by this change.

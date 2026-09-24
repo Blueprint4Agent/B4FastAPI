@@ -409,7 +409,7 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 1. 실패 로그에 에러 코드를 항상 포함
 2. 동일 실패 경로에서 중복 에러 로그 방지
 3. 재-raise 시 원인 보존 (`raise ... from error`)
-4. 인바운드 `X-Request-ID`가 있으면 보존하고, upstream client/gateway가 제공한 W3C `traceparent` trace id를 우선 사용
+4. 인바운드 `X-Request-ID`가 있으면 보존하고, 활성 OpenTelemetry trace ID를 우선 사용하고 활성 span이 없으면 기존 헤더 대체 순서를 사용
 5. 애플리케이션 로그 메시지는 기존 event style인 `Event description (key=%s, other_key=%s).` 형태 유지
 
 ## 6) 커밋 전 필수 체크
@@ -502,3 +502,14 @@ tracing provider/exporter 설정이 필요합니다. 완료 로그는 DEBUG 수�
 데코레이터에서 관측 처리 오류를 조용히 무시하지 않습니다.
 동기 함수와 async generator는 지원하지 않습니다. 라우터·SSE iterator 대신 서비스 경계에 적용합니다.
 성공은 이벤트 발행을 포함한 메서드 전체의 정상 반환을 뜻하며 트랜잭션·전달 보장을 추가하지 않습니다.
+
+## Trace ID 연결
+
+로그와 `X-Trace-ID`는 유효한 활성 OpenTelemetry span의 trace ID를 우선 사용합니다.
+FastAPI 계측이 사용자 미들웨어 바깥을 감싸므로 요청 컨텍스트 미들웨어에서 서버 span을 읽습니다.
+인바운드 `traceparent`는 OTel propagator가 처리하며, 다른 `X-Trace-ID`가 활성 span을 덮어쓰지 않습니다.
+샘플링되지 않은 span도 유효한 ID를 사용하지만 Tempo에 저장되지 않을 수 있습니다.
+활성 span이 없으면(트레이싱 비활성화·제외 경로 등) 기존 순서인 traceparent의 ID,
+X-Trace-ID, 새로 생성한 ID를 사용합니다. 이 대체 ID는 Tempo에 trace가 존재한다는 보장이 아닙니다.
+`X-Request-ID` 동작은 유지합니다. 로그 생성 시에도 활성 span을 먼저 조회하고 없으면
+요청 ContextVar를 사용합니다. 큐의 trace 전파는 별도 작업이며 이번 변경에 포함하지 않습니다.

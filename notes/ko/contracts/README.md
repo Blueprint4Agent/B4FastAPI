@@ -37,6 +37,10 @@
   도메인 500의 `detail` 형식과 구분하여 현재 동작을 그대로 기록합니다.
   없는 경로·메서드 같은 프레임워크 오류는 도메인 오류 계약 밖입니다.
 - 요청 추적 헤더는 `X-Request-ID`, `X-Trace-ID`입니다.
+  FastAPI는 유효한 활성 OpenTelemetry trace ID를 `X-Trace-ID`와 로그에 사용합니다.
+  인바운드 `X-Trace-ID`는 활성 span을 덮어쓰지 않습니다. 활성 span이 없으면 기존의
+  traceparent / X-Trace-ID / 생성 ID 순서를 사용합니다. 샘플링 제외 등으로 인해
+  상관관계 ID가 있어도 trace가 내보내지지 않을 수 있습니다.
 
 ## 인증·쿠키·OAuth
 
