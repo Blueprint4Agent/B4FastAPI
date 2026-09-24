@@ -106,7 +106,50 @@ Collector, and Tempo. The app, PostgreSQL, and Redis keep running. Stopped
 containers and their data volumes are retained; use `make docker-observability-up`
 to start the observability services again.
 
-## Docker Deployment (Bash Only)
+## Environment File Maintenance
+
+```bash
+make env-sync          # Update development env files (backend/frontend)
+make env-check         # Check development env keys and layout
+make docker-env-sync   # Update deployment env file (docker/.env)
+make docker-env-check  # Check deployment env keys and layout
+make env-contract-check # Check shared backend/Docker example keys only
+```
+
+Requires `uv`; development commands also require the initialized B4React submodule.
+Each command uses the selected directories' `.env.example` files.
+Sync rebuilds the file using the example's comments, blank lines, and key order,
+preserving existing value tokens (including empty values, quoting, and escapes).
+New keys receive example defaults. Local comments are replaced by example comments;
+the original file remains in the backup. Additional keys are reported and retained
+in a separate section at the end. Missing keys, duplicate keys, invalid syntax,
+or outdated comments/layout fail the check.
+Backend and Docker example keys must match, except Docker's `APP_IMAGE`.
+Values may differ by environment; their contents are never printed.
+
+Add shared backend settings to both `src/backend/.env.example` and
+`docker/.env.example`. `make env-contract-check` reports which example is missing
+each key and fails on mismatches, without requiring actual `.env` files or the
+frontend submodule. It also runs through `make check`, `make ci`, and GitHub CI's
+backend checks as a required validation step alongside lint/format checks. The regular
+env commands enforce this same comparison; `docker-env-check` additionally catches
+keys missing from the actual deployment `.env`. Frontend `VITE_*` settings are
+separate. Keys present only in a local `.env` are reported as additional keys;
+declare new shared settings in the examples to enforce deployment coverage.
+
+Before changing an existing file, sync saves a timestamped backup under the root
+`.env-backups/` directory, excluded from Git and Docker builds. Backups are readable
+only by their owner. No backup is created for unchanged or newly created files.
+Missing files are created from their examples. Comment-only and ordering changes
+also trigger a sync and backup; unchanged files are not rewritten.
+
+`make docker-deploy` (including direct execution of its script) runs `docker-env-check`
+before building or recreating containers. Fix reported keys or run `make docker-env-sync`
+and review new settings before retrying. This does not validate credentials,
+connections, or settings in running containers. Docker deployment now also
+requires `uv` for this check.
+
+## Docker Deployment
 
 1. Prepare env:
 

@@ -134,6 +134,9 @@ jobs:
               working-directory: src/backend
               run: uv sync --frozen
 
+            - name: Check development and deployment env contract
+              run: make env-contract-check
+
             - name: Ruff check
               working-directory: src/backend
               run: uv run ruff check .
