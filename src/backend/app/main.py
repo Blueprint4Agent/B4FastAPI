@@ -14,6 +14,7 @@ from app.core.db.migrations import run_startup_schema_migrations
 from app.core.db.session import dispose_db, init_db
 from app.core.error import AuthException, ServiceException, service_exception_to_http
 from app.core.mail.service import MAIL_SERVICE
+from app.core.observability.error_logging import exception_log_level
 from app.core.observability.health import HealthCheckResult, ReadinessResponse, get_readiness
 from app.core.observability.logging import configure_request_context_logging, get_logger, mask_email
 from app.core.observability.metrics import setup_metrics
@@ -40,7 +41,8 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(ServiceException)
     async def service_exception_handler(request: Request, exc: ServiceException):
         http_exc = service_exception_to_http(exc)
-        logger.error(
+        logger.log(
+            exception_log_level(http_exc.status_code, error_code=exc.code.error),
             "Service exception handled globally (method=%s, path=%s, status=%s, code=%s).",
             request.method,
             request.url.path,
@@ -52,7 +54,8 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def default_exception_handler(_request, _exc):
         if isinstance(_exc, HTTPException):
-            logger.error(
+            logger.log(
+                exception_log_level(_exc.status_code),
                 "HTTP exception handled globally (status=%s, detail=%s).",
                 _exc.status_code,
                 _exc.detail,

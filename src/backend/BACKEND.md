@@ -398,7 +398,7 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 
 - Current project logging behavior:
 
-1. The global `ServiceException` handler logs service exceptions with `logger.error(... code=...)`
+1. The global `ServiceException` handler uses `exception_log_level` and `logger.log(... code=...)`
 2. Unexpected errors use `logger.exception(...)` to keep stack traces
 3. Sensitive data (for example email) must use masking helpers
 4. HTTP request correlation uses `X-Request-ID` and `X-Trace-ID`; logs include both values through request context logging
@@ -533,3 +533,22 @@ The log factory and filter share a single context-population helper.
 These task trace IDs correlate logs to the originating request; no OTel parent span
 is attached or created. Instrumented Redis/other spans may have independent trace IDs.
 HTTP log context behavior is unchanged. The enqueue DEBUG log includes envelope IDs.
+
+## Global Exception Log Levels
+
+`app/core/observability/error_logging.py` owns severity for the global exception handlers:
+
+- HTTP 5xx domain failures: ERROR, regardless of domain code.
+- INVALID_CREDENTIALS, INVALID_TOKEN, ACCOUNT_LOCKED, INSUFFICIENT_ROLE,
+  OAUTH_IDENTITY_CONFLICT, API_KEY_INVALID, API_KEY_USER_MISMATCH: WARNING.
+- HTTP 429: WARNING.
+- Other domain 4xx responses: INFO, including duplicate names/emails, missing resources,
+  LOGIN_DISABLED, EMAIL_DISABLED, and EMAIL_NOT_VERIFIED.
+- The existing generic HTTPException fallback uses WARNING for 401/403/429,
+  INFO for other 4xx, and ERROR for 5xx or unexpected status categories.
+- Unexpected non-domain exceptions retain ERROR with a stack trace.
+
+This policy changes only severity. Response status/body, error codes, and handler
+registration are unchanged. Framework validation/HTTP handlers and OAuth redirect
+logs retain their existing behavior. Mail/worker retry logging is outside this policy.
+HTTP INFO/WARNING context visibility still follows the existing formatter policy.
