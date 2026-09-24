@@ -13,7 +13,7 @@ from dotenv.parser import parse_stream
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORIES = ("src/backend", "src/frontend", "docker")
-DOCKER_ONLY_KEYS = {"APP_IMAGE"}
+DOCKER_ONLY_KEYS = {"APP_IMAGE", "GRAFANA_ADMIN_USER", "GRAFANA_ADMIN_PASSWORD"}
 
 
 def value_span(assignment: str) -> tuple[int, int]:
@@ -133,7 +133,7 @@ def main() -> int:
                     print(f"[error] {path}: missing shared keys: {', '.join(sorted(missing))}")
             return 1
         if args.command == "contract-check":
-            print("[ok] backend/docker example keys match (excluding Docker-only APP_IMAGE)")
+            print("[ok] backend/docker example keys match (excluding Docker-only settings)")
             return 0
         actual = {
             directory: read(ROOT / directory / ".env", required=args.command == "check")

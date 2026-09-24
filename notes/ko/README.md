@@ -118,7 +118,8 @@ sync는 예제의 주석·빈 줄·키 순서에 맞춰 파일을 재구성하�
 직접 작성한 주석은 예제 주석으로 교체되며 원본은 백업에서 확인할 수 있습니다.
 예제에 없는 키는 알림 후 파일 끝의 별도 구역에 보존합니다. 누락·중복 키,
 잘못된 문법, 주석·배치 불일치는 검사 실패로 처리합니다. 백엔드와 Docker 예제의
-키는 Docker 전용 `APP_IMAGE`를 제외하고 일치해야 합니다. 환경별 값 차이는
+키는 Docker 전용 `APP_IMAGE`, `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`를
+제외하고 일치해야 합니다. 환경별 값 차이는
 허용하며 값의 내용은 출력하지 않습니다.
 
 공통 백엔드 설정은 `src/backend/.env.example`과 `docker/.env.example` 양쪽에
@@ -142,6 +143,33 @@ sync는 기존 파일을 변경하기 전에 루트 `.env-backups/`에 시각이
 설정은 검사하지 않습니다. 이 검사로 인해 Docker 배포에도 `uv`가 필요합니다.
 
 ## Docker 배포
+
+### DB·관측성 접근 설정
+
+- 로컬 PostgreSQL은 `DB_USER`, `DB_PASSWORD`, `DB_NAME`으로 계정과 DB를
+  초기화하며 앱도 같은 해석된 인증정보를 사용합니다. 기존 PostgreSQL 볼륨의
+  계정은 유지되므로 `.env` 변경만으로 비밀번호가 바뀌지 않습니다. 기존 DB에서
+  계정을 별도로 변경해야 하며, 비밀번호 변경을 위해 볼륨을 삭제하지 마세요.
+- `REDIS_PASSWORD`가 비어 있지 않으면 로컬 Redis 서버·앱·healthcheck에 인증이
+  함께 적용됩니다. 빈 값은 로컬 개발용으로 지원하며 배포 시 강한 비밀번호를
+  설정하세요. PostgreSQL도 개발용 기본 비밀번호가 남아 있으므로 배포 시
+  `DB_PASSWORD`를 설정해야 합니다.
+- 백엔드가 DB 계정·비밀번호와 Redis 비밀번호를 URL 인코딩합니다. `.env`에는
+  인코딩 전 원래 값을 입력합니다. `$`가 포함된 리터럴 값은 작은따옴표로 감싸
+  Compose 변수 치환을 방지하세요.
+- DB·Redis·Grafana·Prometheus·Tempo·OTLP의 호스트 포트는 `127.0.0.1`에만
+  바인딩합니다. 컨테이너끼리는 기존 Compose 서비스 이름으로 통신합니다.
+  외부 PC에서 접근하려면 SSH 터널 또는 별도로 설정한 프록시를 사용합니다.
+  앱의 8000번 포트 공개 방식은 기존과 같습니다.
+- Grafana 익명 접근은 비활성화합니다. `make docker-env-sync` 후 `docker/.env`의
+  `GRAFANA_ADMIN_PASSWORD`를 지정하고 `make docker-observability-up`을 실행하세요.
+  빈 비밀번호, `admin`, `CHANGE_ME*` 값이면 Grafana 시작을 거부합니다.
+  `GRAFANA_ADMIN_USER` 기본값은 `admin`입니다. 계정 환경변수는 새 Grafana 볼륨
+  초기화용이므로 기존 설치는 Grafana UI 또는 관리자 CLI에서 저장된 비밀번호를
+  별도로 변경하고 `.env`도 그 값에 맞춰야 합니다.
+
+설정은 컨테이너 재생성 시 반영됩니다. env sync/check는 키·배치만 검사하며,
+기존 DB나 Grafana 계정 비밀번호를 자동 변경하지 않습니다.
 
 1. 환경 준비:
 

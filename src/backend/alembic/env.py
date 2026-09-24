@@ -25,7 +25,7 @@ database_url = SETTINGS.DATABASE_URL
 if not database_url:
     raise RuntimeError("DATABASE_URL is not configured.")
 
-config.set_main_option("sqlalchemy.url", database_url)
+config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
 
 target_metadata = Base.metadata
 

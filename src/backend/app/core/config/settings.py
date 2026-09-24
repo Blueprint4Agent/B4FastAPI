@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 from dotenv import load_dotenv
 from pydantic import BaseModel
@@ -131,14 +132,15 @@ class Settings(BaseModel):
                 self,
                 "DATABASE_URL",
                 (
-                    f"{self.DB_DRIVER}://{self.DB_USER}:{self.DB_PASSWORD}"
+                    f"{self.DB_DRIVER}://{quote(self.DB_USER, safe='')}"
+                    f":{quote(self.DB_PASSWORD, safe='')}"
                     f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
                 ),
             )
 
         if self.REDIS_PASSWORD:
             redis_url = (
-                f"redis://:{self.REDIS_PASSWORD}"
+                f"redis://:{quote(self.REDIS_PASSWORD, safe='')}"
                 f"@{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
             )
         else:
