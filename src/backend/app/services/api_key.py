@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config.settings import SETTINGS
 from app.core.error import APIKeyErrorCode, APIKeyException
 from app.core.observability.logging import get_logger
+from app.core.observability.service import observe_service
 from app.core.realtime import APIKeyRealtimeEventType
 from app.models.api_key import (
     APIKeyCreateForm,
@@ -28,8 +29,8 @@ class APIKeyService:
     def __init__(self):
         self._realtime = RealtimeService()
 
+    @observe_service("api_key.create")
     async def create_api_key(self, *, user_id: int, form: APIKeyCreateForm) -> APIKeyCreateResponse:
-        logger.info("Creating API key (user_id=%s, name=%s).", user_id, form.name.strip())
         raw_api_key = self._generate_api_key()
         key_hash = self._hash_api_key(raw_api_key)
         key_prefix = raw_api_key[:API_KEY_VISIBLE_PREFIX_LENGTH]
@@ -49,7 +50,6 @@ class APIKeyService:
             logger.debug("API key create failed (user_id=%s).", user_id)
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_CREATE_FAILED) from error
 
-        logger.info("API key created (user_id=%s, api_key_id=%s).", user_id, created.id)
         await self._realtime.publish_user_event(
             user_id=user_id,
             event_type=APIKeyRealtimeEventType.CREATED,
@@ -57,20 +57,19 @@ class APIKeyService:
         )
         return APIKeyCreateResponse(api_key=raw_api_key, key=created)
 
+    @observe_service("api_key.list")
     async def list_api_keys(self, *, user_id: int) -> APIKeysResponse:
         keys = await APIKeys.list_api_keys(user_id=user_id)
-        logger.debug("Listed API keys (user_id=%s, count=%s).", user_id, len(keys))
         return APIKeysResponse(items=keys)
 
+    @observe_service("api_key.delete")
     async def delete_api_key(self, *, user_id: int, api_key_id: int) -> APIKeyResponse:
-        logger.info("Deleting API key (user_id=%s, api_key_id=%s).", user_id, api_key_id)
         deleted = await APIKeys.delete_api_key(user_id=user_id, api_key_id=api_key_id)
         if deleted is None:
             logger.debug(
                 "API key delete failed: not found (user_id=%s, api_key_id=%s).", user_id, api_key_id
             )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
-        logger.info("API key deleted (user_id=%s, api_key_id=%s).", user_id, api_key_id)
         await self._realtime.publish_user_event(
             user_id=user_id,
             event_type=APIKeyRealtimeEventType.DELETED,
@@ -78,6 +77,7 @@ class APIKeyService:
         )
         return deleted
 
+    @observe_service("api_key.update_status")
     async def update_api_key_status(
         self,
         *,
@@ -85,12 +85,6 @@ class APIKeyService:
         api_key_id: int,
         form: APIKeyStatusUpdateForm,
     ) -> APIKeyResponse:
-        logger.info(
-            "Updating API key status (user_id=%s, api_key_id=%s, enabled=%s).",
-            user_id,
-            api_key_id,
-            form.enabled,
-        )
         updated = await APIKeys.set_api_key_enabled(
             user_id=user_id,
             api_key_id=api_key_id,
@@ -103,13 +97,6 @@ class APIKeyService:
                 api_key_id,
             )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
-        is_enabled = updated.revoked_at is None
-        logger.info(
-            "API key status updated (user_id=%s, api_key_id=%s, enabled=%s).",
-            user_id,
-            api_key_id,
-            is_enabled,
-        )
         await self._realtime.publish_user_event(
             user_id=user_id,
             event_type=APIKeyRealtimeEventType.STATUS_UPDATED,
