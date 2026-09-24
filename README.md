@@ -154,6 +154,21 @@ requires `uv` for this check.
 
 ### Database and observability access
 
+`DB_NAME` depends on the driver. Change both fields when switching engines:
+
+| Runtime | DB_DRIVER | DB_NAME | DB_HOST |
+| --- | --- | --- | --- |
+| Local SQLite (development default) | `sqlite+aiosqlite` | `template.db` (file) | Ignored |
+| Host backend with Docker PostgreSQL | `postgresql+asyncpg` | `template` (database) | `localhost` |
+| Docker app with Docker PostgreSQL | `postgresql+asyncpg` | `template` (database) | `postgres` |
+
+For PostgreSQL, use an existing database name and matching credentials; the example
+name `template` is created only on first initialization of the local DB volume.
+`env-sync` preserves existing values, so changing the driver does not automatically
+replace a SQLite file name with a PostgreSQL database name. Env checks do not verify
+that the database exists. A `database "template.db" does not exist` error after
+switching usually means the SQLite name was left in the PostgreSQL configuration.
+
 - Local PostgreSQL initializes its user, password, and database from `DB_USER`,
   `DB_PASSWORD`, and `DB_NAME`. The app uses the same resolved credentials.
   Existing PostgreSQL volumes keep their existing accounts: changing `.env` alone
