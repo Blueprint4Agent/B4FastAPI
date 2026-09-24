@@ -518,5 +518,18 @@ When no valid span exists (including tracing-disabled/excluded requests), retain
 the existing fallback: traceparent trace ID, X-Trace-ID, then a generated ID.
 Fallback IDs are correlation values, not a promise that a trace exists in Tempo.
 `X-Request-ID` behavior is unchanged. Log records also resolve the active span
-when emitted, falling back to the request ContextVar. Queue trace propagation
-is a separate concern and is not implemented by this change.
+when emitted, falling back to the request ContextVar. Queue log correlation is described below; OTel queue span propagation remains separate.
+
+## Worker Log Correlation
+
+`RedisTaskQueueWorker._process_envelope` binds the envelope's task ID and trace ID
+using `task_log_context` around validation, observers, handler execution, retries,
+and DLQ handling. Missing task IDs are generated and kept in the envelope for retries.
+Every log record in this scope has `task_id`; INFO/WARNING/error task output includes
+both task_id and trace_id. A missing trace ID stays empty (`-` in text), never inherited
+from the previous job or the worker caller. HTTP request IDs are not borrowed.
+The context manager restores previous context on return, exception, or cancellation.
+The log factory and filter share a single context-population helper.
+These task trace IDs correlate logs to the originating request; no OTel parent span
+is attached or created. Instrumented Redis/other spans may have independent trace IDs.
+HTTP log context behavior is unchanged. The enqueue DEBUG log includes envelope IDs.
