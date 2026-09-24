@@ -9,6 +9,7 @@ from uuid import uuid4
 
 from app.core.cache.redis import RedisManager
 from app.core.observability.logging import get_logger
+from app.core.observability.task_context import task_log_context
 
 logger = get_logger("app.core.task_queue.worker")
 
@@ -95,7 +96,13 @@ class RedisTaskQueueWorker:
         }
         await redis.lpush(self._config.queue_key, json.dumps(envelope, separators=(",", ":")))
         await self._publish_event("queued", envelope)
-        logger.debug("Task queued (name=%s, type=%s).", self._name, task_type)
+        logger.debug(
+            "Task queued (name=%s, type=%s, task_id=%s, trace_id=%s).",
+            self._name,
+            task_type,
+            envelope["task_id"],
+            envelope["trace_id"] or "-",
+        )
 
     async def _worker_loop(self) -> None:
         redis = await RedisManager.get_client()
@@ -126,13 +133,16 @@ class RedisTaskQueueWorker:
         return parsed
 
     async def _process_envelope(self, envelope: TaskEnvelope) -> None:
-        task_id = str(envelope.get("task_id", ""))
+        task_id = str(envelope.get("task_id") or "").strip() or str(uuid4())
+        envelope["task_id"] = task_id
+        trace_id = str(envelope.get("trace_id") or "").strip()
+        with task_log_context(task_id=task_id, trace_id=trace_id):
+            await self._execute_envelope(envelope)
+
+    async def _execute_envelope(self, envelope: TaskEnvelope) -> None:
         task_type = str(envelope.get("type", ""))
         payload = envelope.get("payload")
         attempt = int(envelope.get("attempt", 0))
-        if not task_id:
-            task_id = str(uuid4())
-            envelope["task_id"] = task_id
 
         if not isinstance(payload, dict):
             logger.warning(

@@ -4,6 +4,7 @@ from uvicorn.logging import DefaultFormatter
 
 from app.core.config.settings import SETTINGS
 from app.core.observability.request_context import get_request_id, get_trace_id
+from app.core.observability.task_context import get_task_context
 
 APP_LOGGER_NAME = "uvicorn.app"
 UVICORN_ERROR_LOGGER_NAME = "uvicorn.error"
@@ -52,33 +53,33 @@ def _resolve_request_context_field(*, levelno: int, request_id: str, trace_id: s
     return _build_request_context_field(request_id, trace_id)
 
 
+def _populate_log_context(record: logging.LogRecord) -> None:
+    task_id, task_trace_id = get_task_context()
+    record.logger_name = _build_logger_name(record.name)
+    # A queued task has its own log context, not the worker caller's HTTP context.
+    record.request_id = "" if task_id else get_request_id()
+    record.trace_id = task_trace_id if task_id else get_trace_id()
+    record.task_id = task_id
+    if task_id:
+        # Include IDs even for INFO/WARNING task logs; a missing ID stays explicit.
+        record.request_context = f" task_id={task_id} trace_id={task_trace_id or '-'}"
+    else:
+        record.request_context = _resolve_request_context_field(
+            levelno=record.levelno,
+            request_id=record.request_id,
+            trace_id=record.trace_id,
+        )
+
+
 def _request_context_log_record_factory(*args, **kwargs) -> logging.LogRecord:
     record = _ORIGINAL_LOG_RECORD_FACTORY(*args, **kwargs)
-    request_id = get_request_id()
-    trace_id = get_trace_id()
-    record.logger_name = _build_logger_name(record.name)
-    record.request_id = request_id
-    record.trace_id = trace_id
-    record.request_context = _resolve_request_context_field(
-        levelno=record.levelno,
-        request_id=request_id,
-        trace_id=trace_id,
-    )
+    _populate_log_context(record)
     return record
 
 
 class RequestContextFilter(logging.Filter):
     def filter(self, record: logging.LogRecord) -> bool:
-        request_id = get_request_id()
-        trace_id = get_trace_id()
-        record.logger_name = _build_logger_name(record.name)
-        record.request_id = request_id
-        record.trace_id = trace_id
-        record.request_context = _resolve_request_context_field(
-            levelno=record.levelno,
-            request_id=request_id,
-            trace_id=trace_id,
-        )
+        _populate_log_context(record)
         return True
 
 

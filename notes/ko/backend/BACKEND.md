@@ -512,4 +512,18 @@ FastAPI 계측이 사용자 미들웨어 바깥을 감싸므로 요청 컨텍스
 활성 span이 없으면(트레이싱 비활성화·제외 경로 등) 기존 순서인 traceparent의 ID,
 X-Trace-ID, 새로 생성한 ID를 사용합니다. 이 대체 ID는 Tempo에 trace가 존재한다는 보장이 아닙니다.
 `X-Request-ID` 동작은 유지합니다. 로그 생성 시에도 활성 span을 먼저 조회하고 없으면
-요청 ContextVar를 사용합니다. 큐의 trace 전파는 별도 작업이며 이번 변경에 포함하지 않습니다.
+요청 ContextVar를 사용합니다. 큐 로그 연결은 아래 규칙을 따르며 OTel span 전파는 별도 작업입니다.
+
+## Worker 로그 연결
+
+`RedisTaskQueueWorker._process_envelope`는 `task_log_context`로 작업 ID와 전달받은
+trace ID를 설정하고 검증·observer·handler·재시도·DLQ 처리까지 유지합니다.
+작업 ID가 없으면 생성하여 envelope에 저장하므로 재시도에도 동일하게 유지됩니다.
+작업 범위의 로그 레코드에는 task_id가 들어가며 INFO·WARNING·오류 출력에도
+두 ID가 표시됩니다. trace ID가 없으면 빈 값(텍스트에서는 `-`)을 사용하고 이전 작업이나
+호출자의 ID를 사용하지 않습니다. HTTP request ID도 가져오지 않습니다.
+정상 반환·예외·취소 시 컨텍스트 매니저가 이전 컨텍스트를 복원합니다.
+로그 factory와 filter는 공통 필드 설정 함수를 사용합니다.
+작업 trace ID는 원래 요청과 로그를 연결하기 위한 값이며 OTel 부모 span을 연결하거나
+새로 생성하지 않습니다. Redis 등 자동 계측 span의 trace ID는 별개일 수 있습니다.
+HTTP 로그 정책은 유지하며 enqueue DEBUG 로그에도 envelope의 ID를 기록합니다.
