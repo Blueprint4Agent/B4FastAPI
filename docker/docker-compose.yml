@@ -90,13 +90,19 @@ services:
   prometheus:
     image: prom/prometheus:v2.55.1
     profiles: ["observability"]
+    environment:
+      PROMETHEUS_BACKEND_TARGET: ${PROMETHEUS_BACKEND_TARGET:-host.docker.internal:8000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["/bin/sh", "/etc/prometheus/start.sh"]
     command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--config.file=/tmp/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
     ports:
       - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/prometheus-start.sh:/etc/prometheus/start.sh:ro
       - prometheus_data:/prometheus
     restart: unless-stopped
 

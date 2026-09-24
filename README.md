@@ -125,7 +125,7 @@ the original file remains in the backup. Additional keys are reported and retain
 in a separate section at the end. Missing keys, duplicate keys, invalid syntax,
 or outdated comments/layout fail the check.
 Backend and Docker example keys must match, except the explicitly listed Docker-only
-image, Compose project, host-port, and Grafana login settings in `scripts/env.py`.
+image, Compose project, host-port, metrics target, and Grafana login settings in `scripts/env.py`.
 Values may differ by environment; their contents are never printed.
 
 Add shared backend settings to both `src/backend/.env.example` and
@@ -182,8 +182,9 @@ With the example above, the host backend uses `DB_PORT=5433` and `REDIS_PORT=638
 in `src/backend/.env`; the Docker app keeps `DB_PORT=5432` and `REDIS_PORT=6379`.
 When running multiple complete stacks, assign distinct values to every published
 port and distinct `APP_IMAGE` tags if they use different builds. Adjust host-facing
-URLs/CORS and local OTLP endpoints when their ports change. Prometheus currently
-scrapes `host.docker.internal:8000`; update that target separately if needed.
+URLs/CORS and local OTLP endpoints when their ports change. Set
+`PROMETHEUS_BACKEND_TARGET` to the actual host backend port for local development;
+the Docker app target remains `app:8000` regardless of `APP_HOST_PORT`.
 
 Run `make docker-env-sync` to add the settings. Changing the project name creates a
 separate stack with separate volumes; it does not rename or migrate existing data.
@@ -192,6 +193,31 @@ host-port changes to existing DB/Redis containers, explicitly recreate the affec
 service as described below (`docker-up` preserves existing infrastructure).
 
 ### Database and observability access
+
+#### Prometheus target and shared network
+
+App, Prometheus, Grafana, and the other Compose services already share the same
+`<COMPOSE_PROJECT_NAME>_default` network. Keep the same project name for app and
+observability commands; no external shared network is required.
+
+Set one target in `docker/.env` after `make docker-env-sync`:
+
+| Backend mode | PROMETHEUS_BACKEND_TARGET |
+| --- | --- |
+| `make backend-dev` on the host (default port) | `host.docker.internal:8000` |
+| Host backend on port 8001 | `host.docker.internal:8001` |
+| `make docker-up` in the same Compose project | `app:8000` |
+
+Then run `make docker-observability-up` to apply the target. Enable
+`METRICS_ENABLED=true` in the backend's active env file and restart/recreate the
+backend if needed. The host backend must listen on an address reachable from Docker
+(the default `make backend-dev` binds to `0.0.0.0`). A host-gateway mapping supports
+host access on Linux too. The target contains only host:port; `/metrics` is configured
+separately. Prometheus renders and validates its config at container startup.
+The existing `b4fastapi-backend-local` job label is retained for dashboard/history
+compatibility in both modes. Check target health at Prometheus's `/targets` page.
+
+#### Database driver
 
 `DB_NAME` depends on the driver. Change both fields when switching engines:
 
