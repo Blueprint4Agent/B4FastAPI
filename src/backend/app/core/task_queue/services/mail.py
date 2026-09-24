@@ -103,11 +103,6 @@ class MailQueueService:
             language=language,
             raise_on_failure=True,
         )
-        logger.info(
-            "Email job delivered (type=%s, to=%s).",
-            "signup_verification",
-            mask_email(to_email),
-        )
 
     async def _handle_password_reset(self, payload: dict[str, object]) -> None:
         to_email = str(payload.get("to_email", ""))
@@ -120,11 +115,6 @@ class MailQueueService:
             link=link,
             language=language,
             raise_on_failure=True,
-        )
-        logger.info(
-            "Email job delivered (type=%s, to=%s).",
-            "password_reset",
-            mask_email(to_email),
         )
 
 

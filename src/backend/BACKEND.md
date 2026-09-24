@@ -552,3 +552,17 @@ This policy changes only severity. Response status/body, error codes, and handle
 registration are unchanged. Framework validation/HTTP handlers and OAuth redirect
 logs retain their existing behavior. Mail/worker retry logging is outside this policy.
 HTTP INFO/WARNING context visibility still follows the existing formatter policy.
+
+## Mail and Worker Log Ownership
+
+MailService logs a delivery attempt at DEBUG and provider send completion at INFO
+with the masked recipient. This records provider completion, not inbox delivery.
+Mail queue handlers do not repeat the success message; the generic worker retains
+its DEBUG task-completed event. Skipped sends retain existing skip logs.
+For `raise_on_failure=True`, MailService propagates the provider exception without
+logging it; the caller owns failure reporting. With `raise_on_failure=False`, it
+retains the ERROR stack trace before swallowing the exception.
+The worker records scheduled retries at WARNING without a stack trace, and final
+DLQ moves at ERROR with the original exception stack. Task/trace IDs remain available
+through the worker context. Retry counts, delays, queue payloads, and delivery behavior
+are unchanged. This policy does not change other observer or startup failure logs.

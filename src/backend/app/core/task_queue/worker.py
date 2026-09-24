@@ -207,7 +207,7 @@ class RedisTaskQueueWorker:
             await asyncio.sleep(retry_delay)
         await redis.lpush(self._config.queue_key, json.dumps(retry_envelope, separators=(",", ":")))
         await self._publish_event("retry_scheduled", retry_envelope)
-        logger.exception(
+        logger.warning(
             "Task retry scheduled (name=%s, type=%s, attempt=%s).",
             self._name,
             task_type,
