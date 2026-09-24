@@ -25,6 +25,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.62b1",
     "opentelemetry-instrumentation-sqlalchemy>=0.62b1",
     "opentelemetry-instrumentation-redis>=0.62b1",
+    "opentelemetry-instrumentation-logging>=0.62b1",
 ]
 
 [dependency-groups]

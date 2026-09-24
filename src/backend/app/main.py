@@ -16,6 +16,7 @@ from app.core.error import AuthException, ServiceException, service_exception_to
 from app.core.mail.service import MAIL_SERVICE
 from app.core.observability.error_logging import exception_log_level
 from app.core.observability.health import HealthCheckResult, ReadinessResponse, get_readiness
+from app.core.observability.log_export import setup_log_export
 from app.core.observability.logging import configure_request_context_logging, get_logger, mask_email
 from app.core.observability.metrics import setup_metrics
 from app.core.observability.request_context import (
@@ -180,6 +181,7 @@ def create_app() -> FastAPI:
     logging.getLogger("uvicorn.access").setLevel(log_level_value)
     logging.getLogger("uvicorn").setLevel(log_level_value)
     configure_request_context_logging()
+    setup_log_export()
 
     app = FastAPI(
         title=SETTINGS.APP_NAME,

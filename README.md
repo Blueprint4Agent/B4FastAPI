@@ -102,7 +102,7 @@ make docker-observability-down
 ```
 
 `make docker-observability-down` stops only Grafana, Prometheus, OpenTelemetry
-Collector, and Tempo. The app, PostgreSQL, and Redis keep running. Stopped
+Collector, Tempo, and Loki. The app, PostgreSQL, and Redis keep running. Stopped
 containers and their data volumes are retained; use `make docker-observability-up`
 to start the observability services again.
 
@@ -193,6 +193,53 @@ host-port changes to existing DB/Redis containers, explicitly recreate the affec
 service as described below (`docker-up` preserves existing infrastructure).
 
 ### Database and observability access
+
+#### Loki application logs
+
+Logs follow `Python logging -> OTLP/gRPC -> Collector batch -> OTLP/HTTP -> Loki`.
+The [native Loki OTLP endpoint](https://grafana.com/docs/loki/latest/send-data/otel/)
+uses the existing Collector; no Docker socket or additional log agent is needed.
+
+1. Run `make env-sync` for development or `make docker-env-sync` for deployment
+   to add the new setting while preserving existing values (with a backup).
+2. Set `LOGS_ENABLED=true` in `src/backend/.env` (host development) or `docker/.env`
+   (Docker app). The default is false. It is independent of `TRACING_ENABLED`.
+3. Use `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317` on the host, or
+   `http://otel-collector:4317` in Docker. Adjust the host port if overridden.
+4. Start the stack with `make docker-observability-up`. On an existing installation,
+   reload the mounted Collector config and Grafana provisioning:
+
+   ```bash
+   docker compose -f docker/docker-compose.yml --env-file docker/.env --profile observability restart otel-collector grafana
+   ```
+
+5. Restart the development backend (`make backend-dev`), or rebuild/recreate the
+   Docker app (`make docker-deploy`) to load the new dependency and settings.
+6. Open Grafana **Explore → Loki**, select a recent time range, and run:
+
+   ```logql
+   {service_name="blueprint4fastapi-backend"}
+   ```
+
+This collects application/worker logs under `uvicorn.app`, Uvicorn server logs,
+and access logs after setup, at the configured `LOG_LEVEL`. Console output remains.
+It does not collect PostgreSQL/Redis/container stdout or arbitrary root loggers.
+Request/task IDs are structured metadata, not index labels; filter with
+`| request_id="..."` or `| task_id="..."`. Active OTel spans supply native trace
+correlation; header/task fallback IDs do not guarantee a stored Tempo trace.
+SDK batches flush on normal process exit; abrupt termination, queue overflow, or
+prolonged collector outages can lose logs. This is not a durable audit log.
+
+Before Loki starts, the one-shot `loki-init` service assigns the volume root to
+UID/GID 10001, the Loki image user. An `Exited (0)` status for `loki-init` is normal.
+This also repairs the root-owned volume created by the initial configuration;
+existing data is preserved. Loki itself runs as its non-root image user.
+
+Loki is a single instance with a `loki_data` volume and seven-day retention
+(compactor deletion is asynchronous). Its unauthenticated API is only on the
+Compose network at `loki:3100`, without a published host port. Grafana queries it
+through the provisioned Loki datasource. This configuration targets a single host;
+shared production deployments need storage/access policies appropriate to that environment.
 
 #### Collector trace batching
 

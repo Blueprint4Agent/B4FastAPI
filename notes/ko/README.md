@@ -97,7 +97,7 @@ make docker-observability-down
 ```
 
 `make docker-observability-down`은 Grafana, Prometheus, OpenTelemetry Collector,
-Tempo만 중지합니다. 앱, PostgreSQL, Redis는 계속 실행됩니다. 중지된 컨테이너와
+Tempo, Loki만 중지합니다. 앱, PostgreSQL, Redis는 계속 실행됩니다. 중지된 컨테이너와
 데이터 볼륨은 유지되며, `make docker-observability-up`으로 관측성 서비스를
 다시 시작할 수 있습니다.
 
@@ -185,6 +185,52 @@ URL·CORS·로컬 OTLP 주소도 맞춰야 합니다. 호스트 개발 시 `PROM
 `docker-up`은 기존 인프라를 유지합니다.
 
 ### DB·관측성 접근 설정
+
+#### Loki 애플리케이션 로그
+
+로그 경로는 `Python logging -> OTLP/gRPC -> Collector batch -> OTLP/HTTP -> Loki`입니다.
+[네이티브 Loki OTLP 엔드포인트](https://grafana.com/docs/loki/latest/send-data/otel/)를
+기존 Collector에 연결하므로 Docker 소켓이나 별도 로그 에이전트가 필요하지 않습니다.
+
+1. 개발은 `make env-sync`, 배포는 `make docker-env-sync`로 새 설정을 추가합니다.
+   기존 값은 유지되며 백업이 생성됩니다.
+2. 호스트 개발은 `src/backend/.env`, Docker 앱은 `docker/.env`에서
+   `LOGS_ENABLED=true`로 설정합니다. 기본값은 false이며 `TRACING_ENABLED`와 독립적입니다.
+3. `OTEL_EXPORTER_OTLP_ENDPOINT`는 호스트에서 `http://localhost:4317`,
+   Docker에서 `http://otel-collector:4317`입니다. 호스트 포트를 바꿨다면 함께 맞춥니다.
+4. `make docker-observability-up`으로 실행합니다. 기존 설치에서는 마운트된
+   Collector 설정과 Grafana 데이터소스를 다시 읽도록 재시작합니다.
+
+   ```bash
+   docker compose -f docker/docker-compose.yml --env-file docker/.env --profile observability restart otel-collector grafana
+   ```
+
+5. 개발 백엔드를 재시작(`make backend-dev`)하거나 Docker 앱을 다시 빌드·생성
+   (`make docker-deploy`)하여 새 의존성과 설정을 적용합니다.
+6. Grafana **Explore → Loki**에서 최근 시간 범위를 선택하고 조회합니다.
+
+   ```logql
+   {service_name="blueprint4fastapi-backend"}
+   ```
+
+설정 이후 `uvicorn.app` 하위 애플리케이션·워커 로그, Uvicorn 서버 및 접근 로그를
+`LOG_LEVEL`에 맞춰 수집합니다. 콘솔 출력도 유지합니다.
+PostgreSQL·Redis·컨테이너 stdout이나 임의의 루트 로거는 수집하지 않습니다.
+요청·작업 ID는 인덱스 라벨이 아닌 구조화 메타데이터이며
+`| request_id="..."`, `| task_id="..."`로 필터링합니다. 활성 OTel 스팬은 네이티브
+트레이스 연결을 제공하지만 헤더·작업의 대체 ID가 Tempo 저장을 보장하지는 않습니다.
+SDK 배치는 정상 프로세스 종료 시 전송됩니다. 강제 종료, 큐 초과, Collector 장기
+장애 시 로그가 유실될 수 있으므로 영속적인 감사 로그 용도는 아닙니다.
+
+Loki 시작 전 일회성 `loki-init` 서비스가 볼륨 최상위 디렉터리의 소유권을
+Loki 이미지 사용자 UID/GID 10001로 맞춥니다. `loki-init`의 `Exited (0)`는 정상입니다.
+초기 구성에서 root 소유로 생성된 볼륨도 기존 데이터를 유지하며 보정합니다.
+Loki 본체는 이미지의 일반 사용자로 실행합니다.
+
+Loki는 단일 인스턴스이며 `loki_data` 볼륨에 저장하고 7일 보존합니다
+(Compactor 삭제는 비동기). 인증 없는 API는 호스트 포트를 공개하지 않고
+Compose 네트워크의 `loki:3100`에서만 사용하며 Grafana 데이터소스를 통해 조회합니다.
+이 구성은 단일 호스트용이며 공용 운영 환경에서는 해당 환경에 맞는 저장소·접근 정책이 필요합니다.
 
 #### Collector 트레이스 배치
 
