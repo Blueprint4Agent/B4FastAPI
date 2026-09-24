@@ -546,3 +546,15 @@ HTTP 로그 정책은 유지하며 enqueue DEBUG 로그에도 envelope의 ID를 
 프레임워크의 검증·HTTP 핸들러와 OAuth 리다이렉트 로그는 기존 동작을 유지합니다.
 메일·Worker 재시도 로그는 이번 정책 범위에 포함하지 않습니다.
 HTTP INFO·WARNING의 컨텍스트 표시는 기존 formatter 정책을 따릅니다.
+
+## 메일·Worker 로그 책임
+
+MailService는 발송 시도를 DEBUG, provider 전송 완료를 수신자 마스킹과 함께 INFO로 기록합니다.
+이는 provider 호출 완료이며 실제 수신함 도착을 보장하는 로그는 아닙니다.
+메일 큐 handler의 중복 성공 로그는 제거하고 공통 Worker의 작업 완료 DEBUG는 유지합니다.
+발송을 건너뛰는 경우에는 기존 skip 로그를 유지합니다.
+`raise_on_failure=True`이면 MailService는 예외를 기록하지 않고 호출자에게 전달합니다.
+`raise_on_failure=False`이면 ERROR와 스택을 기록한 뒤 예외를 삼키는 기존 동작을 유지합니다.
+Worker는 재시도 예약을 스택 없는 WARNING, 최종 DLQ 이동을 원래 예외 스택이 있는 ERROR로 기록합니다.
+작업 컨텍스트의 task_id·trace_id는 유지합니다. 재시도 횟수·지연·큐 payload·메일 전송 동작은
+변경하지 않습니다. observer·시작 과정의 다른 오류 로그는 이번 정책에 포함하지 않습니다.

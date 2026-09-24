@@ -148,16 +148,16 @@ class MailService:
             text_body=content.text,
             html_body=content.html,
         )
-        logger.info("Attempting signup verification email delivery to %s.", mask_email(to_email))
+        logger.debug("Attempting signup verification email delivery to %s.", mask_email(to_email))
         try:
             await self._provider.send(message)
             logger.info("Signup verification email delivered to %s.", mask_email(to_email))
         except Exception:
+            if raise_on_failure:
+                raise
             logger.exception(
                 "Failed to send signup verification email to %s.", mask_email(to_email)
             )
-            if raise_on_failure:
-                raise
 
     async def send_password_reset_email(
         self,
@@ -187,14 +187,14 @@ class MailService:
             text_body=content.text,
             html_body=content.html,
         )
-        logger.info("Attempting password reset email delivery to %s.", mask_email(to_email))
+        logger.debug("Attempting password reset email delivery to %s.", mask_email(to_email))
         try:
             await self._provider.send(message)
             logger.info("Password reset email delivered to %s.", mask_email(to_email))
         except Exception:
-            logger.exception("Failed to send password reset email to %s.", mask_email(to_email))
             if raise_on_failure:
                 raise
+            logger.exception("Failed to send password reset email to %s.", mask_email(to_email))
 
     def _resolve_link(self, *, path: str, link: str) -> str:
         explicit_link = link.strip()
