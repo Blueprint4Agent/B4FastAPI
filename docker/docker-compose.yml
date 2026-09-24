@@ -4,7 +4,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: b4fastapi-app
     env_file:
       - ./.env
     environment:
@@ -13,7 +12,7 @@ services:
       DB_NAME: ${DB_NAME:-template}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "8000:8000"
+      - "${APP_HOST_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--max-time", "4", "http://127.0.0.1:8000/health/ready"]
       interval: 5s
@@ -24,13 +23,12 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: b4fastapi-postgres
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD-postgres}
       POSTGRES_DB: ${DB_NAME:-template}
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -42,11 +40,10 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: b4fastapi-redis
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     command:
@@ -68,11 +65,10 @@ services:
 
   tempo:
     image: grafana/tempo:2.6.1
-    container_name: b4fastapi-tempo
     profiles: ["observability"]
     command: ["-config.file=/etc/tempo/tempo.yml"]
     ports:
-      - "127.0.0.1:3200:3200"
+      - "127.0.0.1:${TEMPO_HOST_PORT:-3200}:3200"
     volumes:
       - ./observability/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/var/tempo
@@ -80,12 +76,11 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.114.0
-    container_name: b4fastapi-otel-collector
     profiles: ["observability"]
     command: ["--config=/etc/otel-collector.yml"]
     ports:
-      - "127.0.0.1:4317:4317"
-      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:${OTEL_GRPC_HOST_PORT:-4317}:4317"
+      - "127.0.0.1:${OTEL_HTTP_HOST_PORT:-4318}:4318"
     volumes:
       - ./observability/otel-collector.yml:/etc/otel-collector.yml:ro
     depends_on:
@@ -94,13 +89,12 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.55.1
-    container_name: b4fastapi-prometheus
     profiles: ["observability"]
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
     ports:
-      - "127.0.0.1:9090:9090"
+      - "127.0.0.1:${PROMETHEUS_HOST_PORT:-9090}:9090"
     volumes:
       - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -108,7 +102,6 @@ services:
 
   grafana:
     image: grafana/grafana:11.3.1
-    container_name: b4fastapi-grafana
     profiles: ["observability"]
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -125,7 +118,7 @@ services:
         esac
         exec /run.sh
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${GRAFANA_HOST_PORT:-3000}:3000"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro

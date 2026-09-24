@@ -13,7 +13,20 @@ from dotenv.parser import parse_stream
 
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORIES = ("src/backend", "src/frontend", "docker")
-DOCKER_ONLY_KEYS = {"APP_IMAGE", "GRAFANA_ADMIN_USER", "GRAFANA_ADMIN_PASSWORD"}
+DOCKER_ONLY_KEYS = {
+    "APP_IMAGE",
+    "COMPOSE_PROJECT_NAME",
+    "APP_HOST_PORT",
+    "POSTGRES_HOST_PORT",
+    "REDIS_HOST_PORT",
+    "GRAFANA_HOST_PORT",
+    "PROMETHEUS_HOST_PORT",
+    "TEMPO_HOST_PORT",
+    "OTEL_GRPC_HOST_PORT",
+    "OTEL_HTTP_HOST_PORT",
+    "GRAFANA_ADMIN_USER",
+    "GRAFANA_ADMIN_PASSWORD",
+}
 
 
 def value_span(assignment: str) -> tuple[int, int]:
