@@ -96,6 +96,11 @@ make docker-observability-up
 make docker-observability-down
 ```
 
+`make docker-observability-down`은 Grafana, Prometheus, OpenTelemetry Collector,
+Tempo만 중지합니다. 앱, PostgreSQL, Redis는 계속 실행됩니다. 중지된 컨테이너와
+데이터 볼륨은 유지되며, `make docker-observability-up`으로 관측성 서비스를
+다시 시작할 수 있습니다.
+
 ## Docker 배포 (Bash 전용)
 
 1. 환경 준비:
