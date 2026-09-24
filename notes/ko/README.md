@@ -146,6 +146,21 @@ sync는 기존 파일을 변경하기 전에 루트 `.env-backups/`에 시각이
 
 ### DB·관측성 접근 설정
 
+`DB_NAME`의 의미는 드라이버에 따라 다릅니다. DB 전환 시 두 값을 함께 변경합니다.
+
+| 실행 환경 | DB_DRIVER | DB_NAME | DB_HOST |
+| --- | --- | --- | --- |
+| 로컬 SQLite (개발 기본값) | `sqlite+aiosqlite` | `template.db` (파일명) | 사용 안 함 |
+| 호스트 백엔드 + Docker PostgreSQL | `postgresql+asyncpg` | `template` (DB 이름) | `localhost` |
+| Docker 앱 + Docker PostgreSQL | `postgresql+asyncpg` | `template` (DB 이름) | `postgres` |
+
+PostgreSQL에는 실제 존재하는 DB 이름과 일치하는 인증정보를 지정합니다. 예제의
+`template` DB는 로컬 DB 볼륨을 처음 초기화할 때 생성됩니다. `env-sync`는 기존
+값을 보존하므로 드라이버를 바꿔도 SQLite 파일명을 PostgreSQL DB 이름으로 자동
+변경하지 않습니다. env 검사는 DB 존재 여부를 확인하지 않습니다. 전환 후
+`database "template.db" does not exist` 오류가 나면 SQLite용 이름이 남았는지
+확인하세요.
+
 - 로컬 PostgreSQL은 `DB_USER`, `DB_PASSWORD`, `DB_NAME`으로 계정과 DB를
   초기화하며 앱도 같은 해석된 인증정보를 사용합니다. 기존 PostgreSQL 볼륨의
   계정은 유지되므로 `.env` 변경만으로 비밀번호가 바뀌지 않습니다. 기존 DB에서
