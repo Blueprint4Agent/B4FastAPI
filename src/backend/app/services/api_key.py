@@ -50,7 +50,7 @@ class APIKeyService:
             logger.debug("API key create failed (user_id=%s).", user_id)
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_CREATE_FAILED) from error
 
-        await self._realtime.publish_user_event(
+        await self._realtime.publish_user_notification(
             user_id=user_id,
             event_type=APIKeyRealtimeEventType.CREATED,
             payload={"api_key": created.model_dump(mode="json")},
@@ -70,7 +70,7 @@ class APIKeyService:
                 "API key delete failed: not found (user_id=%s, api_key_id=%s).", user_id, api_key_id
             )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
-        await self._realtime.publish_user_event(
+        await self._realtime.publish_user_notification(
             user_id=user_id,
             event_type=APIKeyRealtimeEventType.DELETED,
             payload={"api_key": deleted.model_dump(mode="json")},
@@ -97,7 +97,7 @@ class APIKeyService:
                 api_key_id,
             )
             raise APIKeyException(code=APIKeyErrorCode.API_KEY_NOT_FOUND)
-        await self._realtime.publish_user_event(
+        await self._realtime.publish_user_notification(
             user_id=user_id,
             event_type=APIKeyRealtimeEventType.STATUS_UPDATED,
             payload={"api_key": updated.model_dump(mode="json")},
