@@ -1,0 +1,20 @@
+name: Git governance
+on:
+    pull_request:
+        branches: [main]
+        types: [opened, synchronize, reopened, edited, ready_for_review]
+permissions:
+    contents: read
+jobs:
+    governance:
+        name: Git governance
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  ref: ${{ github.event.pull_request.head.sha }}
+                  fetch-depth: 0
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+            - run: make git-governance-pr-check

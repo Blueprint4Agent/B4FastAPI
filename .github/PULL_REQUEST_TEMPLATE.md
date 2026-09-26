@@ -44,3 +44,9 @@ Describe behavior changes, migration needs, compatibility concerns, or rollout n
 ## Related Issues
 
 Closes #
+
+## Workflow evidence
+
+- Worklog path(s):
+- Design and affected loops (or reason not applicable):
+- Checks run and task-specific skips:
