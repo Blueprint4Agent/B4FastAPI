@@ -151,3 +151,44 @@ changes belong in a named B4React branch and PR; merge there before updating the
 parent gitlink. Parent commits own packaging, integration, and contract validation.
 Do not run `git submodule update --remote` in CI or automatically regenerate child
 contracts from parent files.
+
+## Task Start and Completion Order
+
+1. Read the applicable guides and inspect working tree/submodule status; preserve unrelated edits.
+2. Create a named task branch from the current target branch before implementation.
+3. Copy `.github/WORKLOG_TEMPLATE.md` to the next `worklog/NNNN-description.md`.
+   Fill in the intended commit title, reason, scope, design, verification plan and loop impact
+   before editing implementation. Record actual outcomes in Verification before committing.
+4. Implement and synchronize related documentation. Update the plan if scope changes.
+5. Run the applicable root Make checks. Record skipped checks and reasons for this task;
+   an earlier test-skip request must not silently become a permanent exemption.
+6. Stage the intended files including the completed worklog, then run
+   `COMMIT_TITLE='type(scope): summary' COMMIT_BODY_FILE=/tmp/commit.txt make git-governance-check`.
+   Planned validation reads the Git index, not untracked or unstaged content. Run it again after staging changes.
+7. Commit, push and create a ready PR. Validate PR_TITLE and PR_BODY_FILE together.
+8. Wait for required Git governance and code checks before merge; verify MERGE auto-merge registration.
+
+The worklog template requires Design, Verification Plan, Loop Alignment and Verification
+in addition to the existing four sections. Each authored commit must add/modify a worklog
+whose Commit Title exactly matches that commit. Merge commits used to integrate branch
+history are excluded from per-commit checks; changes must be authored in ordinary commits.
+Start-time planning is a human/agent obligation: Git cannot prove when a plan was written.
+CI enforces committed evidence, nonempty sections and metadata, not design correctness.
+
+## PR Governance Enforcement
+
+`make git-governance-pr-check` reads the GitHub PR event via GITHUB_EVENT_PATH, checks
+branch/title/body, and validates every non-merge commit in base SHA..head SHA using
+its committed files. The dedicated Git governance workflow fetches full history and
+runs again on PR metadata edits. A local check without COMMIT_TITLE checks HEAD.
+The validator uses Python 3 (standard library only); the shell entry point is retained.
+
+Main policy: PR required, Git governance plus repository code checks required, deletion
+and force-push blocked. Approval count is zero to support solo maintenance; CI passing
+does not imply human review. Merge commit is the default, and alternate methods still
+require the user's explicit instruction. Required status contexts must match actual job names.
+
+The desired ruleset is versioned in `.github/main-ruleset.json`. Apply it through
+GitHub Rulesets after the named CI jobs exist, preserving existing required checks.
+PR conversations must be resolved before merging. Ruleset changes require repository
+administration permission; do not bypass checks when that permission is unavailable.

@@ -439,3 +439,20 @@ Frontend changes are reviewed and merged in B4React first. Update this repositor
 submodule commit in a PR afterwards; do not track a moving branch in builds.
 See [frontend integration](notes/frontend-submodule.md). Korean frontend source docs
 are owned by B4React at `src/frontend/notes/ko/`; the old paths are entry links.
+
+## Task workflow and PR checks
+
+Read guides/status → create task branch → draft the [worklog](.github/WORKLOG_TEMPLATE.md)
+→ implement → run Make checks → record results and stage files → validate governance
+→ commit and open a PR. Record design, verification plan, loop alignment and actual outcomes.
+
+With COMMIT_TITLE, `make git-governance-check` validates the staged snapshot and
+COMMIT_BODY_FILE; without it, the command checks HEAD. Supply PR_TITLE and
+PR_BODY_FILE together for planned PR validation. Untracked worklogs do not count.
+PR CI checks each authored commit and its matching worklog in the actual PR range,
+and reruns on title/body edits. History-integration merge commits are excluded.
+Python 3 standard library is required. See AGENTS.md for the complete workflow.
+
+Main requires a PR, Git governance and repository code checks. Required approval
+count is zero for solo maintenance; successful CI does not imply human design review.
+Writing the plan at task start is procedural; CI verifies committed evidence.

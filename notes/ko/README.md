@@ -426,3 +426,20 @@ make frontend-desktop-dev
 프론트 변경은 B4React PR에서 먼저 머지하고 부모 PR에서 커밋 포인터를 갱신합니다.
 [서브모듈 통합 가이드](frontend-submodule.md)를 참고하세요. 한국어 프론트 문서는
 `src/frontend/notes/ko/`에서 관리하며 기존 경로는 진입 링크입니다.
+
+## 작업 절차와 PR 검사
+
+가이드와 작업 상태 확인 → 작업 브랜치 생성 → [워크로그 초안](../../.github/WORKLOG_TEMPLATE.md)
+작성 → 구현 → Make 검사 → 결과 기록·스테이징 → Git 규칙 검사 → 커밋·PR 순으로 진행합니다.
+워크로그에는 설계, 검증 계획, 관련 루프와 실제 검증 결과를 기록합니다.
+
+`make git-governance-check`는 COMMIT_TITLE을 전달하면 스테이징된 파일과
+COMMIT_BODY_FILE을 검사하고, 전달하지 않으면 HEAD 커밋을 검사합니다.
+PR_TITLE과 PR_BODY_FILE은 함께 전달합니다. 미추적 워크로그는 인정하지 않습니다.
+PR CI는 실제 커밋 범위의 각 일반 커밋과 워크로그 제목·필수 내용을 검사하며,
+PR 제목·본문을 수정해도 다시 실행됩니다. 브랜치 통합용 merge commit은 제외합니다.
+Python 3 표준 라이브러리만 사용합니다. 구체적인 절차는 [AGENTS.md](../../AGENTS.md)를 참고하세요.
+
+main은 PR과 Git governance 및 저장소별 코드 검사를 요구합니다. 1인 작업을 지원해
+필수 승인 수는 0이며, 자동 검사는 사람의 설계 리뷰를 의미하지 않습니다.
+워크로그를 작업 시작 시 작성하는지는 절차로 관리하고, CI는 커밋된 기록을 검증합니다.
