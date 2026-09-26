@@ -174,7 +174,6 @@ REDIS_HOST_PORT=6380
 | `REDIS_HOST_PORT` | 6379 | 6379 |
 | `GRAFANA_HOST_PORT` | 3000 | 3000 |
 | `PROMETHEUS_HOST_PORT` | 9090 | 9090 |
-| `TEMPO_HOST_PORT` | 3200 | 3200 |
 | `OTEL_GRPC_HOST_PORT` | 4317 | 4317 |
 | `OTEL_HTTP_HOST_PORT` | 4318 | 4318 |
 
@@ -307,10 +306,14 @@ switching usually means the SQLite name was left in the PostgreSQL configuration
 - Database usernames/passwords and Redis passwords are URL-encoded by the backend.
   Enter the original password in `.env`, not a pre-encoded URL component. Quote
   literal values containing `$` with single quotes to prevent Compose interpolation.
-- DB, Redis, Grafana, Prometheus, Tempo, and OTLP host ports bind to `127.0.0.1`.
+- DB, Redis, Grafana, Prometheus, and OTLP host ports bind to `127.0.0.1`.
   Container-to-container traffic still uses Compose service names. Access from a
   remote workstation requires an SSH tunnel or a separately configured proxy.
   The app remains published on all host interfaces, using `APP_HOST_PORT` (default 8000).
+- Tempo and Loki have no published host ports. Grafana queries `tempo:3200` and
+  `loki:3100` on the Compose network. The Collector sends traces to `tempo:4317`
+  and logs to `loki:3100/otlp`. The former `TEMPO_HOST_PORT` setting is unused
+  and can be removed from existing `docker/.env` files.
 - Grafana anonymous access is disabled. Run `make docker-env-sync`, then set
   `GRAFANA_ADMIN_PASSWORD` in `docker/.env` before `make docker-observability-up`.
   Grafana refuses to start with an empty password, `admin`, or `CHANGE_ME*`.
