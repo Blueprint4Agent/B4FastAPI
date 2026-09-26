@@ -602,3 +602,14 @@ Re-exported/aliased schema definitions and custom schema mixins are not inferred
 prefer explicit schema imports or extend the checker with a documented rule.
 Dependencies hidden behind wrappers/reflection still require review. Existing DI
 through app.deps and DTO/Enum imports remain valid. No business logic is moved.
+
+## API Key Notification Failure Policy
+
+After a successful repository commit, API Key create/delete/status operations use
+RealtimeService.publish_user_notification. Redis/OS/timeout delivery failures are
+logged once at WARNING with user/event/error type only and do not change the
+successful HTTP result. Publication is bounded to two seconds. Cancellation and
+programming/serialization errors still propagate. Raw keys and payloads are not
+logged. The strict publish_user_event path remains available for callers requiring
+failure propagation. UI notifications are best-effort and have no replay/outbox
+or durable delivery guarantee; clients must refetch on connection recovery.

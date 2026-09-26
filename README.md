@@ -466,3 +466,17 @@ a narrower scope. Backend routers delegate DB work to services; lower layers can
 import routers/app.main. Frontend UI consumes page-owned hooks instead of runtime API
 imports. Schema/Enum and explicit type-only imports are allowed. See the domain guides
 for the precise static scope and limitations.
+
+## API Key consistency
+
+API Key UI notifications are best-effort. After a committed create/delete/status
+change, Redis/OS/timeout delivery failures are logged without changing the success
+response. Publication waits at most two seconds; cancellation and programming
+errors still propagate. No durable event outbox/replay is provided.
+
+The frontend useApiKeys hook owns list/mutation state. HTTP and SSE use the same
+ID-based updates; server refetches reconcile events and mutation completion.
+Connection/reconnection, developer-tab activation and desktop recovery reload the
+list. Stale list/account responses are ignored. Modal/input/one-time key state stays
+in SettingsPage; tab changes preserve a pending creation result. Background reloads
+do not blank an already loaded list. Schema contracts remain unchanged.
