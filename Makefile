@@ -50,7 +50,7 @@ install: backend-install frontend-install ## Install backend and frontend depend
 build: backend-build frontend-package ## Build backend environment and frontend static artifacts
 
 .PHONY: check
-check: env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
+check: architecture-check env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
 
 .PHONY: git-governance-check
 git-governance-check: ## Validate git governance; optionally pass commit, PR, and merge metadata
@@ -190,3 +190,10 @@ export COMMIT_TITLE COMMIT_BODY_FILE PR_TITLE PR_BODY_FILE MERGE_METHOD ALLOW_NO
 .PHONY: git-governance-pr-check
 git-governance-pr-check: ## Validate actual PR metadata and every authored commit
 	bash ./scripts/validate-git-governance.sh --event-file "$(GITHUB_EVENT_PATH)"
+
+.PHONY: architecture-check backend-architecture-check frontend-architecture-check
+architecture-check: backend-architecture-check frontend-architecture-check ## Check backend/frontend dependency boundaries
+backend-architecture-check: ## Check router/DB and lower-layer import boundaries
+	$(UV) run --project $(BACKEND_DIR) python scripts/check_backend_architecture.py
+frontend-architecture-check: ## Check pinned frontend dependency boundaries
+	$(MAKE) -C $(FRONTEND_DIR) architecture-check
