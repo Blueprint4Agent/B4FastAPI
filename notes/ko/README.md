@@ -166,7 +166,6 @@ REDIS_HOST_PORT=6380
 | `REDIS_HOST_PORT` | 6379 | 6379 |
 | `GRAFANA_HOST_PORT` | 3000 | 3000 |
 | `PROMETHEUS_HOST_PORT` | 9090 | 9090 |
-| `TEMPO_HOST_PORT` | 3200 | 3200 |
 | `OTEL_GRPC_HOST_PORT` | 4317 | 4317 |
 | `OTEL_HTTP_HOST_PORT` | 4318 | 4318 |
 
@@ -297,10 +296,14 @@ PostgreSQL에는 실제 존재하는 DB 이름과 일치하는 인증정보를 �
 - 백엔드가 DB 계정·비밀번호와 Redis 비밀번호를 URL 인코딩합니다. `.env`에는
   인코딩 전 원래 값을 입력합니다. `$`가 포함된 리터럴 값은 작은따옴표로 감싸
   Compose 변수 치환을 방지하세요.
-- DB·Redis·Grafana·Prometheus·Tempo·OTLP의 호스트 포트는 `127.0.0.1`에만
+- DB·Redis·Grafana·Prometheus·OTLP의 호스트 포트는 `127.0.0.1`에만
   바인딩합니다. 컨테이너끼리는 기존 Compose 서비스 이름으로 통신합니다.
   외부 PC에서 접근하려면 SSH 터널 또는 별도로 설정한 프록시를 사용합니다.
   앱은 기존처럼 모든 호스트 인터페이스에 공개하며 `APP_HOST_PORT`(기본 8000)를 사용합니다.
+- Tempo와 Loki는 호스트 포트를 공개하지 않습니다. Grafana는 Compose 네트워크의
+  `tempo:3200`, `loki:3100`으로 조회하고, Collector는 `tempo:4317`로 트레이스,
+  `loki:3100/otlp`로 로그를 전달합니다. 기존 `docker/.env`의 `TEMPO_HOST_PORT`는
+  더 이상 사용하지 않으므로 삭제할 수 있습니다.
 - Grafana 익명 접근은 비활성화합니다. `make docker-env-sync` 후 `docker/.env`의
   `GRAFANA_ADMIN_PASSWORD`를 지정하고 `make docker-observability-up`을 실행하세요.
   빈 비밀번호, `admin`, `CHANGE_ME*` 값이면 Grafana 시작을 거부합니다.

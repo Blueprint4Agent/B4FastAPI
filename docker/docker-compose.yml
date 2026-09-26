@@ -67,8 +67,6 @@ services:
     image: grafana/tempo:2.6.1
     profiles: ["observability"]
     command: ["-config.file=/etc/tempo/tempo.yml"]
-    ports:
-      - "127.0.0.1:${TEMPO_HOST_PORT:-3200}:3200"
     volumes:
       - ./observability/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/var/tempo
