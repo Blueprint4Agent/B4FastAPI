@@ -134,6 +134,9 @@ jobs:
               working-directory: src/backend
               run: uv sync --frozen
 
+            - name: Check backend architecture
+              run: make backend-architecture-check
+
             - name: Check development and deployment env contract
               run: make env-contract-check
 
@@ -175,6 +178,9 @@ jobs:
             - name: Install frontend dependencies
               working-directory: src/frontend
               run: npm ci
+
+            - name: Check frontend architecture
+              run: make frontend-architecture-check
 
             - name: Prettier check
               working-directory: src/frontend

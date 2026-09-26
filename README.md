@@ -456,3 +456,13 @@ Python 3 standard library is required. See AGENTS.md for the complete workflow.
 Main requires a PR, Git governance and repository code checks. Required approval
 count is zero for solo maintenance; successful CI does not imply human design review.
 Writing the plan at task start is procedural; CI verifies committed evidence.
+
+## Architecture checks
+
+Run `make architecture-check` to validate the documented static layer boundaries.
+It also runs in `make check` and required PR CI. Errors include file/line locations.
+Use `make backend-architecture-check` or `make frontend-architecture-check` for
+a narrower scope. Backend routers delegate DB work to services; lower layers cannot
+import routers/app.main. Frontend UI consumes page-owned hooks instead of runtime API
+imports. Schema/Enum and explicit type-only imports are allowed. See the domain guides
+for the precise static scope and limitations.

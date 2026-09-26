@@ -582,3 +582,23 @@ The provider registers its normal process-exit shutdown/flush hook; setup is
 idempotent across repeated app creation. Batch queues are in memory and are not
 a durable audit log. This does not collect other containers or arbitrary root
 loggers. Existing error ownership, masking and LOG_LEVEL policies still apply.
+
+## Automated Layer Boundaries
+
+`make backend-architecture-check` parses application Python imports without loading
+runtime settings or connecting to services. It runs in root `make check` and the
+required Backend checks CI job.
+
+- Routers cannot import app.core.db, SQLAlchemy, SQLite/PostgreSQL drivers or databases.
+- From app.models, routers may import only statically identified Pydantic schemas
+  and Enum classes (including subclasses). ORM entities/repositories and model
+  module/star imports are rejected; import a schema from its defining module.
+- core/models/services/utils cannot import app.routers or app.main.
+- Absolute and relative imports, aliases and nested imports are inspected.
+  __import__/importlib.import_module calls are rejected in these layers.
+
+This enforces explicit import boundaries, not arbitrary call-graph correctness.
+Re-exported/aliased schema definitions and custom schema mixins are not inferred;
+prefer explicit schema imports or extend the checker with a documented rule.
+Dependencies hidden behind wrappers/reflection still require review. Existing DI
+through app.deps and DTO/Enum imports remain valid. No business logic is moved.
