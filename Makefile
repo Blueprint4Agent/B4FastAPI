@@ -202,3 +202,9 @@ export EMAIL ROLE
 .PHONY: user-role
 user-role: ## Set an existing account role: EMAIL=address ROLE=admin|user
 	cd $(BACKEND_DIR) && $(UV) run python -m app.manage_user_role
+
+.PHONY: frontend-react-performance-check frontend-test-routes
+frontend-react-performance-check: ## Validate frontend state and memo optimization safeguards
+	$(MAKE) -C $(FRONTEND_DIR) react-performance-check
+frontend-test-routes: ## Build and verify production frontend lazy routes in Chromium
+	$(MAKE) -C $(FRONTEND_DIR) test-routes

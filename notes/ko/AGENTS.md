@@ -137,3 +137,9 @@ PR 설명에는 다음 섹션이 필요합니다.
 `git submodule update --init --recursive`로 초기화합니다. 프론트 소스는 B4React의
 이름 있는 브랜치와 PR에서 먼저 머지하고 부모의 gitlink를 갱신합니다. 부모는 패키징·통합·계약 검사를 담당합니다.
 CI에서 `--remote`를 사용하거나 부모 파일로 자식 계약을 자동 덮어쓰지 않습니다.
+
+## 프런트엔드 상태·React 성능 기본 절차
+
+프런트엔드 런타임 작업은 고정된 B4React의 [상태·성능 정책](../../src/frontend/notes/ko/react-performance.md)을 따릅니다. 상태 소유권 검토, 동일 props로 반복되는 비용 있는 자식의 React.memo 적용 또는 미적용 이유, 실제 검증 근거를 기본으로 기록합니다. 구체적 필요 없이 Zustand/Redux를 추가하거나 모든 컴포넌트를 memo로 감싸지 않습니다. 독립적인 최적화는 별도 브랜치·작업 기록·PR로 진행합니다. 프런트엔드 작업 기록과 강제 규칙은 B4React가 소유하며 부모 기록은 통합 검사와 루프 영향을 담습니다.
+
+`make frontend-react-performance-check`는 자식 정적·정책 검사를 호출하며 `make check`에도 간접 포함됩니다. `make frontend-test`는 렌더링·설정 회귀를, `make frontend-test-routes`는 실제 프로덕션 청크 로딩·복구를 검증합니다. 레이아웃 변경 시 브라우저 UI 검사도 실행합니다. 부모의 필수 Frontend checks CI에서도 프로덕션 라우트 검사를 실행해 gitlink 통합 시 자식 규칙을 유지합니다.

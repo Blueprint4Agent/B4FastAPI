@@ -192,3 +192,9 @@ The desired ruleset is versioned in `.github/main-ruleset.json`. Apply it throug
 GitHub Rulesets after the named CI jobs exist, preserving existing required checks.
 PR conversations must be resolved before merging. Ruleset changes require repository
 administration permission; do not bypass checks when that permission is unavailable.
+
+## Frontend state and React performance
+
+Follow the pinned frontend [state/performance policy](src/frontend/notes/react-performance.md) for all frontend runtime work. State ownership review, React.memo at expensive stable-prop boundaries (or an explicit reason not to apply it), and observed evidence are the default workflow. Do not add Zustand/Redux or blanket memo wrappers without a concrete need. Keep independent optimizations in separate branches/worklogs/PRs. Frontend worklogs and enforcement belong in B4React; parent worklogs record integration checks and loop impact.
+
+`make frontend-react-performance-check` delegates static/policy fixtures to the pinned child; it is also included transitively in `make check`. `make frontend-test` covers render/config regressions; `make frontend-test-routes` builds and checks production chunk loading/recovery. Run browser UI checks for layout changes. The required parent Frontend checks CI also runs production route tests, preserving the child harness when integrating a new gitlink.
