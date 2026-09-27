@@ -509,3 +509,17 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 ## 새 프로젝트 설정
 
 [프로젝트 초기화 가이드](PROJECT_SETUP.md)에 따라 `project.json` 하나로 서비스명, 브랜드, 데스크톱 앱 식별자와 로그인/이메일/OAuth 기능을 설정합니다. `make project-plan`으로 미리 보고, `make project-init`으로 적용한 뒤 `make project-check`로 확인합니다.
+
+## 로컬 쇼케이스 스타일 편집
+
+`make backend-dev`로 백엔드를 실행하고 다른 터미널에서 `make frontend-style-studio`를 실행합니다.
+`http://127.0.0.1:5173/show-case` 우측 고정 패널에서 라이트/다크 공통 색상·radius·폰트·여백을
+미리 보고 명시적으로 적용합니다. 테마 모드는 전역 앱 설정에 적용·저장됩니다. 색상 드롭다운과 증감 버튼은 공통 스타일을 사용하고 상단 다시 읽기 아이콘으로 파일을 불러옵니다. 기본 연결 파일은 `src/frontend/src/styles/app.css`입니다.
+다른 호환 B4React 체크아웃은 `make frontend-style-studio FRONTEND_DIR=/절대/경로/B4React`로
+선택하며 의존성과 편집용 Make 타깃이 필요합니다. 선택한 폴더에서 Vite를 실행하는 방식이며
+원격 서버가 브라우저 사용자의 파일 시스템에 접속하는 기능은 아닙니다.
+
+일반 `make frontend-dev`와 프로덕션에서는 편집 기능을 제공하지 않습니다.
+저장 전 미리보기는 쇼케이스에만 적용합니다. 적용하면 해당 프론트엔드의
+`.style-studio-backups/`에 백업하고 외부 수정 여부를 확인한 뒤 HMR로 반영합니다.
+서브모듈 내부 변경은 B4React의 브랜치/PR로 검토·커밋하고 이후 부모 핀을 갱신합니다.

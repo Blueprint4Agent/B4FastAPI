@@ -26,3 +26,5 @@ src/frontend/src-tauri/target
 src/frontend/src-tauri/gen
 
 .project-backups/
+
+src/frontend/.style-studio-backups/
