@@ -358,3 +358,7 @@ Review gate before merging new domain tests:
 responses, readiness 503, SSE/redirect transport declarations, both 500 envelopes,
 and event data models. It runs under `api_test` without external services.
 `make contract-check` separately checks freshness of the committed JSON baseline.
+
+Mail template unit tests parse both EN/KO verification and reset HTML to verify
+CTA/fallback URLs, plaintext preservation, locale and escaping of dynamic content.
+They do not send mail or require a provider.

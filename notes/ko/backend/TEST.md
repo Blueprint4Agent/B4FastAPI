@@ -358,3 +358,7 @@ def test_me_requires_authentication(sample_user):
 readiness 503, SSE/리다이렉트 미디어 형식, 도메인·예상하지 못한 500 응답,
 이벤트 data 모델을 검사합니다. 외부 서비스 없이 `api_test`로 실행됩니다.
 `make contract-check`는 커밋된 JSON 기준 파일의 최신 여부를 별도로 검사합니다.
+
+메일 템플릿 단위 테스트는 한국어·영어 인증/재설정 HTML을 파싱해 CTA·대체 URL,
+일반 텍스트 유지, 로케일과 동적 콘텐츠 이스케이프를 확인합니다. 실제 메일 발송이나
+외부 제공자가 필요하지 않습니다.
