@@ -206,6 +206,9 @@ jobs:
             - name: Verify production route loading and recovery
               run: make frontend-test-routes
 
+            - name: Verify local style editor
+              run: make -C src/frontend style-studio-check test-style-studio
+
             - name: Verify configured project branding
               run: make project-build-test
 

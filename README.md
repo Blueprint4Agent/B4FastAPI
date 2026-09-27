@@ -522,3 +522,17 @@ Frontend state management and React optimization policy: [English](src/frontend/
 ## New project identity
 
 Use [project initialization](PROJECT_SETUP.md) to configure a copied blueprint from `project.json`: service name, brand, desktop identifier and login/email/OAuth switches. Preview with `make project-plan`, apply with `make project-init`, and verify with `make project-check`. Korean guide: [새 프로젝트 초기화](notes/ko/PROJECT_SETUP.md).
+
+## Local showcase style editing
+
+Run `make backend-dev`, then `make frontend-style-studio` in another terminal.
+Open `http://127.0.0.1:5173/show-case`. The compact right-hand panel previews common colors, radius, fonts and spacing in the existing showcase before applying them to local `src/frontend/src/styles/app.css`. Theme mode updates the global app preference. Color dropdowns and numeric controls follow the shared style; the header reload icon rereads the file. Set `FRONTEND_DIR=/absolute/path/to/B4React`
+to run a compatible local frontend checkout instead. It must contain this editor's
+Make target and installed dependencies. The target starts the selected checkout's
+Vite server; it is not a remote server connection to a browser user's filesystem.
+
+Normal `make frontend-dev` and production builds do not expose editing. Unsaved
+preview is scoped to the showcase; apply creates a CSS backup in that frontend's
+`.style-studio-backups/`, checks for external changes and triggers HMR. Changes
+inside the pinned frontend are child-repository changes: review/commit through
+B4React's own branch/PR workflow before updating the parent pin.

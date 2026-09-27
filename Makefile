@@ -236,3 +236,7 @@ project-init-format: ## Format project initializer tooling
 .PHONY: project-build-test
 project-build-test: ## Verify custom branding in an isolated production frontend build
 	python3 scripts/test_project_build.py
+
+.PHONY: frontend-style-studio
+frontend-style-studio: ## Run local style editor for FRONTEND_DIR (default src/frontend)
+	$(MAKE) -C "$(FRONTEND_DIR)" style-studio
