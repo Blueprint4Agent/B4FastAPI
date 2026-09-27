@@ -649,3 +649,15 @@ Authorization uses the new DB role on subsequent requests; reload account data f
 `LOGIN_ENABLED=false` rejects this command because startup provisions a bootstrap admin.
 Profile account switching/add-account actions are hidden when login is disabled or unknown.
 Same-email Google/GitHub/email recent accounts display once using the latest login method; existing local duplicates normalize on read.
+
+## Admin user directory
+
+`GET /api/v1/auth/admin/users` requires the current database role `admin`, including
+for bootstrap identities. Supports `page` (1+), `page_size` (1–100, default 20),
+`search` (literal name/email substring, max 200), `role` and `is_active` filters.
+Returns newest user IDs first with filtered total and global account counts.
+Each user has identity, role, active/verified flags, signup time, login providers
+and the latest successful login across linked identities (nullable if never recorded).
+Active means account enabled, not currently online. IPs, user agents, passwords,
+tokens and provider identifiers are excluded. This read-only snapshot is not a full
+login audit/history or live-presence feed. No role changes are exposed through this API.

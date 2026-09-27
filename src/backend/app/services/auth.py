@@ -7,12 +7,13 @@ from urllib.parse import urlencode, urljoin
 from urllib.request import Request as URLRequest, urlopen
 
 from fastapi import Request
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.cache.redis import RedisManager
 from app.core.config.settings import SETTINGS
 from app.core.error import AuthErrorCode, AuthException
 from app.core.observability.logging import get_logger, mask_email
+from app.core.observability.service import observe_service
 from app.core.task_queue.services.mail import MAIL_QUEUE_SERVICE
 from app.models.oauth import (
     OAuthIdentityProfile,
@@ -21,12 +22,14 @@ from app.models.oauth import (
     OAuthProviderPublicConfig,
 )
 from app.models.user import (
+    AdminUserListResponse,
     LoginForm,
     LoginResponse,
     RefreshResponse,
     SignupForm,
     UpdateProfileForm,
     UserResponse,
+    UserRole,
     UserRoleStatsResponse,
     Users,
 )
@@ -97,6 +100,27 @@ class AuthService:
     async def get_admin_user_role_stats(self) -> UserRoleStatsResponse:
         stats = await Users.get_user_role_stats()
         return UserRoleStatsResponse(**stats)
+
+    @observe_service("auth.admin_users")
+    async def list_admin_users(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str,
+        role: UserRole | None,
+        is_active: bool | None,
+    ) -> AdminUserListResponse:
+        try:
+            return await Users.list_admin_users(
+                page=page,
+                page_size=page_size,
+                search=search.strip(),
+                role=role,
+                is_active=is_active,
+            )
+        except SQLAlchemyError as error:
+            raise AuthException(code=AuthErrorCode.ADMIN_USERS_FAILED) from error
 
     async def create_oauth_state(self, provider: OAuthProvider) -> str:
         state = create_refresh_token()

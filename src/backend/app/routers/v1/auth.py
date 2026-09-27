@@ -11,6 +11,7 @@ from app.core.observability.logging import get_logger
 from app.deps import get_current_admin_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
+    AdminUserListResponse,
     ForgotPasswordForm,
     ForgotPasswordResponse,
     LoginForm,
@@ -23,6 +24,7 @@ from app.models.user import (
     SignupForm,
     UpdateProfileForm,
     UserResponse,
+    UserRole,
     UserRoleStatsResponse,
     VerifyEmailForm,
     VerifyEmailResponse,
@@ -289,6 +291,34 @@ async def admin_user_role_stats(
     service: AuthService = Depends(AuthService),
 ) -> UserRoleStatsResponse:
     return await service.get_admin_user_role_stats()
+
+
+@router.get(
+    "/admin/users",
+    response_model=AdminUserListResponse,
+    responses=current_user_error_responses(
+        auth_error_responses(
+            AuthErrorCode.INSUFFICIENT_ROLE,
+            AuthErrorCode.ADMIN_USERS_FAILED,
+        )
+    ),
+)
+async def admin_users(
+    _current_admin_user: UserResponse = Depends(get_current_admin_user),
+    service: AuthService = Depends(AuthService),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    search: str = Query(default="", max_length=200),
+    role: UserRole | None = Query(default=None),
+    is_active: bool | None = Query(default=None),
+) -> AdminUserListResponse:
+    return await service.list_admin_users(
+        page=page,
+        page_size=page_size,
+        search=search,
+        role=role,
+        is_active=is_active,
+    )
 
 
 @router.patch(

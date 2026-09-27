@@ -506,3 +506,13 @@ Authorization uses the new DB role on subsequent requests; reload account data f
 `LOGIN_ENABLED=false` rejects this command because startup provisions a bootstrap admin.
 Profile account switching/add-account actions are hidden when login is disabled or unknown.
 Same-email Google/GitHub/email recent accounts display once using the latest login method; existing local duplicates normalize on read.
+
+## Administrator panel
+
+Administrators can open **Admin panel** from the profile menu (`/admin`). It uses
+the settings-style sidebar and lists user identities, roles, account/verification
+status, login methods, signup dates and latest successful login times. Search by
+name/email, filter by role/status, page results or refresh manually. Bootstrap admins
+can use it with login disabled; ordinary users cannot access its API or route.
+Roles remain managed with `make user-role`. Active means enabled, not online.
+No recorded login is shown explicitly; displayed times use the device time zone.
