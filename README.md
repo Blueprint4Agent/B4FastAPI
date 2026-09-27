@@ -480,3 +480,29 @@ Connection/reconnection, developer-tab activation and desktop recovery reload th
 list. Stale list/account responses are ignored. Modal/input/one-time key state stays
 in SettingsPage; tab changes preserve a pending creation result. Background reloads
 do not blank an already loaded list. Schema contracts remain unchanged.
+
+## Operator role management
+
+Assign roles to existing active accounts without adding a settings UI:
+
+```sh
+make user-role EMAIL=person@example.com ROLE=admin
+make user-role EMAIL=person@example.com ROLE=user
+```
+
+This uses the backend environment (`src/backend/.env` and exported variables), not
+`docker/.env`. For deployment, run inside the app container built with this command:
+
+```sh
+cd docker
+docker compose exec app .venv/bin/python -m app.manage_user_role --email person@example.com --role admin
+```
+
+Run only against the intended database after migrations. The command creates no accounts
+or tables, accepts `user`/`admin`, prints user ID and old/new roles, and rejects missing
+or inactive users and demotion of the last active admin. Changes are serialized in
+SQLite/PostgreSQL transactions. Output is an operator receipt, not a durable audit store.
+Authorization uses the new DB role on subsequent requests; reload account data for UI badges.
+`LOGIN_ENABLED=false` rejects this command because startup provisions a bootstrap admin.
+Profile account switching/add-account actions are hidden when login is disabled or unknown.
+Same-email Google/GitHub/email recent accounts display once using the latest login method; existing local duplicates normalize on read.
