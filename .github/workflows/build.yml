@@ -134,6 +134,9 @@ jobs:
               working-directory: src/backend
               run: uv sync --frozen
 
+            - name: Check project initialization
+              run: make project-init-check project-init-test
+
             - name: Check backend architecture
               run: make backend-architecture-check
 
@@ -179,6 +182,9 @@ jobs:
               working-directory: src/frontend
               run: npm ci
 
+            - name: Validate public project branding
+              run: make -C src/frontend project-config-check
+
             - name: Check frontend architecture
               run: make frontend-architecture-check
 
@@ -199,6 +205,9 @@ jobs:
 
             - name: Verify production route loading and recovery
               run: make frontend-test-routes
+
+            - name: Verify configured project branding
+              run: make project-build-test
 
             - name: Build and package frontend
               run: make frontend-package

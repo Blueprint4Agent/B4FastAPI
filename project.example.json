@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "slug": "my-service",
+    "name": "My Service",
+    "short_name": "MyApp",
+    "identifier": "com.example.myapp",
+    "features": {
+        "login": true,
+        "email": false,
+        "oauth": false
+    }
+}

@@ -1,3 +1,10 @@
+FROM python:3.12-slim AS project_branding
+WORKDIR /workspace
+COPY project*.json ./
+COPY branding/ ./branding/
+COPY scripts/project_identity.py ./scripts/project_identity.py
+RUN python scripts/project_identity.py --output /out
+
 FROM node:24-alpine AS frontend_builder
 
 WORKDIR /workspace/src/frontend
@@ -6,6 +13,7 @@ COPY src/frontend/package.json src/frontend/package-lock.json ./
 RUN npm ci
 
 COPY src/frontend/ ./
+COPY --from=project_branding /out/ ./
 RUN npm run build
 
 
