@@ -193,6 +193,13 @@ jobs:
               working-directory: src/frontend
               run: npm run test
 
+            - name: Install production route test browser
+              working-directory: src/frontend
+              run: npx playwright install --with-deps chromium
+
+            - name: Verify production route loading and recovery
+              run: make frontend-test-routes
+
             - name: Build and package frontend
               run: make frontend-package
 

@@ -503,3 +503,5 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 사용자는 화면과 API에 접근할 수 없습니다. 역할 변경은 `make user-role`로 유지합니다.
 활성은 계정 사용 가능 상태이며 현재 접속 여부가 아닙니다. 로그인 기록이 없으면
 별도로 표시하고 시간은 기기 시간대를 사용합니다.
+
+프런트엔드 상태 관리·React 최적화 정책: [English](../../src/frontend/notes/react-performance.md) · [한국어](../../src/frontend/notes/ko/react-performance.md). `make frontend-react-performance-check`로 규칙을, `make frontend-test-routes`로 프로덕션 라우트 복구를 검증하며 프런트엔드 CI에도 적용됩니다.

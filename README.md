@@ -516,3 +516,5 @@ name/email, filter by role/status, page results or refresh manually. Bootstrap a
 can use it with login disabled; ordinary users cannot access its API or route.
 Roles remain managed with `make user-role`. Active means enabled, not online.
 No recorded login is shown explicitly; displayed times use the device time zone.
+
+Frontend state management and React optimization policy: [English](src/frontend/notes/react-performance.md) · [한국어](src/frontend/notes/ko/react-performance.md). Use `make frontend-react-performance-check` for safeguards and `make frontend-test-routes` for production route recovery; both are enforced by the frontend CI workflow.
