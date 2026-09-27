@@ -50,6 +50,7 @@ def test_openapi_references_resolve_and_generation_is_cached(contract_app):
         ("PATCH", "/api/v1/auth/me", {"name": "Tester"}),
         ("POST", "/api/v1/auth/logout", None),
         ("GET", "/api/v1/auth/admin/user-role-stats", None),
+        ("GET", "/api/v1/auth/admin/users", None),
         ("GET", "/api/v1/api-keys", None),
         ("POST", "/api/v1/api-keys", {"name": "test"}),
         ("DELETE", "/api/v1/api-keys/1", None),

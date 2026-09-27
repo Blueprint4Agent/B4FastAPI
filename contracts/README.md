@@ -122,3 +122,15 @@ pass the same behavioral scenarios; publishing this file alone is insufficient.
 - Generated TypeScript is not runtime payload validation. The existing API-key
   event consumer only partially checks incoming records.
 - Spring Boot provider tests, database migration portability, and live stack switching are later work.
+
+## Admin user directory
+
+`GET /api/v1/auth/admin/users` requires the current database role `admin`, including
+for bootstrap identities. Supports `page` (1+), `page_size` (1–100, default 20),
+`search` (literal name/email substring, max 200), `role` and `is_active` filters.
+Returns newest user IDs first with filtered total and global account counts.
+Each user has identity, role, active/verified flags, signup time, login providers
+and the latest successful login across linked identities (nullable if never recorded).
+Active means account enabled, not currently online. IPs, user agents, passwords,
+tokens and provider identifiers are excluded. This read-only snapshot is not a full
+login audit/history or live-presence feed. No role changes are exposed through this API.

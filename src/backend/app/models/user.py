@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    or_,
     select,
     text,
 )
@@ -189,6 +190,26 @@ class UserRoleStatsResponse(BaseModel):
     total_users: int
     active_users: int
     admin_users: int
+
+
+class AdminUserResponse(BaseModel):
+    id: int
+    email: str
+    name: str
+    role: UserRole
+    is_active: bool
+    is_verified: bool
+    created_at: datetime
+    last_login_at: datetime | None
+    login_providers: list[str]
+
+
+class AdminUserListResponse(BaseModel):
+    items: list[AdminUserResponse]
+    total: int
+    page: int
+    page_size: int
+    summary: UserRoleStatsResponse
 
 
 class VerifyEmailForm(BaseModel):
@@ -551,6 +572,73 @@ class UserRepository:
             user.updated_at = datetime.now(UTC)
             await db.commit()
             return user.id, previous, role.value
+
+    async def list_admin_users(
+        self,
+        *,
+        page: int,
+        page_size: int,
+        search: str,
+        role: UserRole | None,
+        is_active: bool | None,
+    ) -> AdminUserListResponse:
+        filters = []
+        if search:
+            filters.append(
+                or_(
+                    User.email.icontains(search, autoescape=True),
+                    User.name.icontains(search, autoescape=True),
+                )
+            )
+        if role is not None:
+            filters.append(User.role == role.value)
+        if is_active is not None:
+            filters.append(User.is_active.is_(is_active))
+        last_login = (
+            select(
+                AuthIdentity.user_id, func.max(AuthIdentity.last_login_at).label("last_login_at")
+            )
+            .group_by(AuthIdentity.user_id)
+            .subquery()
+        )
+        async with get_db() as db:
+            total = await db.scalar(select(func.count(User.id)).where(*filters))
+            result = await db.execute(
+                select(User, last_login.c.last_login_at)
+                .outerjoin(last_login, User.id == last_login.c.user_id)
+                .options(selectinload(User.auth_identities))
+                .where(*filters)
+                .order_by(User.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
+            items = [
+                AdminUserResponse(
+                    id=user.id,
+                    email=user.email,
+                    name=user.name,
+                    role=UserRole(user.role),
+                    is_active=user.is_active,
+                    is_verified=user.is_verified,
+                    created_at=user.created_at.replace(tzinfo=UTC)
+                    if user.created_at.tzinfo is None
+                    else user.created_at,
+                    last_login_at=(
+                        last_login_at.replace(tzinfo=UTC)
+                        if last_login_at is not None and last_login_at.tzinfo is None
+                        else last_login_at
+                    ),
+                    login_providers=sorted(identity.provider for identity in user.auth_identities),
+                )
+                for user, last_login_at in result.all()
+            ]
+        return AdminUserListResponse(
+            items=items,
+            total=total or 0,
+            page=page,
+            page_size=page_size,
+            summary=UserRoleStatsResponse(**await self.get_user_role_stats()),
+        )
 
     async def get_user_role_stats(self) -> dict[str, int]:
         async with get_db() as db:

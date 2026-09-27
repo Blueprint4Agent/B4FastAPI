@@ -11,6 +11,11 @@ from .error import (
 
 
 class AuthErrorCode(Enum):
+    ADMIN_USERS_FAILED = ServiceErrorCode(
+        "ADMIN_USERS_FAILED",
+        "Failed to load the user directory.",
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
     SIGNUP_FAILED = ServiceErrorCode(
         "SIGNUP_FAILED",
         "Failed to create the user account.",
