@@ -568,3 +568,29 @@ URL은 HTML에서 이스케이프하고 일반 텍스트 URL은 원문을 유지
 로케일을 따릅니다. 웹 폰트·스크립트·원격 이미지가 필요하지 않으며 SMTP·큐 전달과
 토큰 의미는 변경하지 않습니다. 이메일 클라이언트는 색상·모서리를 다르게 표시할 수
 있으나 링크 기능은 유지됩니다.
+
+## 운영자 역할 관리
+
+역할 설정 UI 없이 기존 활성 계정의 권한을 변경합니다.
+
+```sh
+make user-role EMAIL=person@example.com ROLE=admin
+make user-role EMAIL=person@example.com ROLE=user
+```
+
+위 명령은 `src/backend/.env`와 프로세스 환경변수를 사용하며 `docker/.env`를
+사용하지 않습니다. 배포 환경에서는 이 명령이 포함된 이미지의 앱 컨테이너에서 실행하세요.
+
+```sh
+cd docker
+docker compose exec app .venv/bin/python -m app.manage_user_role --email person@example.com --role admin
+```
+
+마이그레이션이 적용된 대상 DB를 확인한 뒤 실행합니다. 계정이나 테이블을 생성하지
+않으며 `user`/`admin`만 허용합니다. 사용자 ID와 변경 전후 역할을 출력합니다.
+없는 계정·비활성 계정과 마지막 활성 관리자의 강등을 거부하고 SQLite/PostgreSQL
+트랜잭션으로 동시 변경을 직렬화합니다. 출력은 실행 결과이며 영구 감사 저장소는 아닙니다.
+다음 요청부터 서버 권한 검사에 반영되고 배지는 사용자 정보 재조회 시 갱신됩니다.
+`LOGIN_ENABLED=false`는 시작 시 bootstrap 관리자를 구성하므로 명령 실행을 거부합니다.
+로그인 비활성화 또는 설정 미확인 시 프로필의 계정 전환·추가 메뉴는 숨깁니다.
+같은 이메일의 Google/GitHub/이메일 최근 계정은 마지막 로그인 방식 하나로 표시하며, 기존 로컬 중복 기록도 조회 시 정리합니다.

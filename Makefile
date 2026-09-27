@@ -197,3 +197,8 @@ backend-architecture-check: ## Check router/DB and lower-layer import boundaries
 	$(UV) run --project $(BACKEND_DIR) python scripts/check_backend_architecture.py
 frontend-architecture-check: ## Check pinned frontend dependency boundaries
 	$(MAKE) -C $(FRONTEND_DIR) architecture-check
+
+export EMAIL ROLE
+.PHONY: user-role
+user-role: ## Set an existing account role: EMAIL=address ROLE=admin|user
+	cd $(BACKEND_DIR) && $(UV) run python -m app.manage_user_role

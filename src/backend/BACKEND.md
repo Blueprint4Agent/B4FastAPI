@@ -623,3 +623,29 @@ fallback link. Escape dynamic text/URLs in HTML attributes and content; preserve
 raw URLs in plaintext. Locale sets the HTML language. No web fonts, scripts or
 remote assets are required. SMTP/queued delivery and token semantics are unchanged.
 Email clients may override colors or ignore rounded corners; the link remains usable.
+
+## Operator role management
+
+Assign roles to existing active accounts without adding a settings UI:
+
+```sh
+make user-role EMAIL=person@example.com ROLE=admin
+make user-role EMAIL=person@example.com ROLE=user
+```
+
+This uses the backend environment (`src/backend/.env` and exported variables), not
+`docker/.env`. For deployment, run inside the app container built with this command:
+
+```sh
+cd docker
+docker compose exec app .venv/bin/python -m app.manage_user_role --email person@example.com --role admin
+```
+
+Run only against the intended database after migrations. The command creates no accounts
+or tables, accepts `user`/`admin`, prints user ID and old/new roles, and rejects missing
+or inactive users and demotion of the last active admin. Changes are serialized in
+SQLite/PostgreSQL transactions. Output is an operator receipt, not a durable audit store.
+Authorization uses the new DB role on subsequent requests; reload account data for UI badges.
+`LOGIN_ENABLED=false` rejects this command because startup provisions a bootstrap admin.
+Profile account switching/add-account actions are hidden when login is disabled or unknown.
+Same-email Google/GitHub/email recent accounts display once using the latest login method; existing local duplicates normalize on read.

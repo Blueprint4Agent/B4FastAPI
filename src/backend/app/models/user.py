@@ -12,6 +12,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
     select,
+    text,
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
@@ -519,6 +520,37 @@ class UserRepository:
             await db.commit()
 
         return await self.get_user_response_by_id(user_id)
+
+    async def set_operator_role(self, email: str, role: UserRole) -> tuple[int, str, str]:
+        """Serialize operator changes and preserve at least one existing active admin."""
+        async with get_db() as db:
+            dialect = db.bind.dialect.name
+            if dialect == "sqlite":
+                await db.execute(text("BEGIN IMMEDIATE"))
+            elif dialect == "postgresql":
+                await db.execute(text("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"))
+            else:
+                raise ValueError("Role management supports SQLite and PostgreSQL only.")
+            user = await db.scalar(select(User).where(User.email == email))
+            if user is None or not user.is_active:
+                raise ValueError(
+                    "Active user not found; create the account before assigning a role."
+                )
+            previous = user.role
+            if previous == UserRole.ADMIN.value and role == UserRole.USER:
+                admins = await db.scalar(
+                    select(func.count(User.id)).where(
+                        User.role == UserRole.ADMIN.value, User.is_active.is_(True)
+                    )
+                )
+                if admins <= 1:
+                    raise ValueError(
+                        "Cannot demote the last active admin; promote another user first."
+                    )
+            user.role = role.value
+            user.updated_at = datetime.now(UTC)
+            await db.commit()
+            return user.id, previous, role.value
 
     async def get_user_role_stats(self) -> dict[str, int]:
         async with get_db() as db:
