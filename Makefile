@@ -50,17 +50,17 @@ install: backend-install frontend-install ## Install backend and frontend depend
 build: backend-build frontend-package ## Build backend environment and frontend static artifacts
 
 .PHONY: check
-check: architecture-check env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
+check: project-init-check architecture-check env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
 
 .PHONY: git-governance-check
 git-governance-check: ## Validate git governance; optionally pass commit, PR, and merge metadata
 	bash ./scripts/validate-git-governance.sh
 
 .PHONY: format
-format: backend-format frontend-format ## Format backend and frontend code
+format: project-init-format backend-format frontend-format ## Format backend and frontend code
 
 .PHONY: test
-test: backend-test frontend-test ## Run backend and frontend tests
+test: project-init-test backend-test frontend-test ## Run backend and frontend tests
 
 .PHONY: ci
 ci: check test build ## Run local CI checks
@@ -102,7 +102,7 @@ frontend-desktop-dev: ## Run the frontend in the Tauri desktop shell
 	cd $(FRONTEND_DIR) && $(NPM) run tauri:dev
 
 .PHONY: frontend-build
-frontend-build: ## Build only B4React dist artifacts
+frontend-build: project-brand ## Build only B4React dist artifacts
 	cd $(FRONTEND_DIR) && $(NPM) run build
 
 .PHONY: frontend-desktop-build
@@ -206,5 +206,33 @@ user-role: ## Set an existing account role: EMAIL=address ROLE=admin|user
 .PHONY: frontend-react-performance-check frontend-test-routes
 frontend-react-performance-check: ## Validate frontend state and memo optimization safeguards
 	$(MAKE) -C $(FRONTEND_DIR) react-performance-check
-frontend-test-routes: ## Build and verify production frontend lazy routes in Chromium
+frontend-test-routes: project-brand ## Build and verify production frontend lazy routes in Chromium
 	$(MAKE) -C $(FRONTEND_DIR) test-routes
+
+PROJECT_CONFIG ?= project.json
+export PROJECT_CONFIG
+.PHONY: project-plan project-init project-check project-init-check project-init-test
+project-plan: ## Preview project initialization from PROJECT_CONFIG without writing files
+	$(UV) run --project $(BACKEND_DIR) python scripts/project_init.py plan
+project-init: ## Apply identity/features from PROJECT_CONFIG, preserving unrelated env values
+	$(UV) run --project $(BACKEND_DIR) python scripts/project_init.py apply
+project-check: ## Check generated identity/features against PROJECT_CONFIG
+	$(UV) run --project $(BACKEND_DIR) python scripts/project_init.py check
+project-init-check: ## Check project initializer code and public manifest example
+	$(UV) run --project $(BACKEND_DIR) ruff check scripts/project_init.py scripts/project_identity.py scripts/test_project_init.py scripts/test_project_build.py
+	$(UV) run --project $(BACKEND_DIR) ruff format --check scripts/project_init.py scripts/project_identity.py scripts/test_project_init.py scripts/test_project_build.py
+project-init-test: ## Verify isolated project initialization scenarios
+	$(UV) run --project $(BACKEND_DIR) python -m unittest discover -s scripts -p 'test_project_init.py'
+
+.PHONY: project-brand
+project-brand: ## Generate public frontend identity from optional root project.json
+	python3 scripts/project_identity.py
+
+.PHONY: project-init-format
+project-init-format: ## Format project initializer tooling
+	$(UV) run --project $(BACKEND_DIR) ruff check --fix scripts/project_init.py scripts/project_identity.py scripts/test_project_init.py scripts/test_project_build.py
+	$(UV) run --project $(BACKEND_DIR) ruff format scripts/project_init.py scripts/project_identity.py scripts/test_project_init.py scripts/test_project_build.py
+
+.PHONY: project-build-test
+project-build-test: ## Verify custom branding in an isolated production frontend build
+	python3 scripts/test_project_build.py

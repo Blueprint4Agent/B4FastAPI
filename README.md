@@ -518,3 +518,7 @@ Roles remain managed with `make user-role`. Active means enabled, not online.
 No recorded login is shown explicitly; displayed times use the device time zone.
 
 Frontend state management and React optimization policy: [English](src/frontend/notes/react-performance.md) · [한국어](src/frontend/notes/ko/react-performance.md). Use `make frontend-react-performance-check` for safeguards and `make frontend-test-routes` for production route recovery; both are enforced by the frontend CI workflow.
+
+## New project identity
+
+Use [project initialization](PROJECT_SETUP.md) to configure a copied blueprint from `project.json`: service name, brand, desktop identifier and login/email/OAuth switches. Preview with `make project-plan`, apply with `make project-init`, and verify with `make project-check`. Korean guide: [새 프로젝트 초기화](notes/ko/PROJECT_SETUP.md).

@@ -24,3 +24,5 @@ docker/artifacts/
 .DS_Store
 Thumbs.db
 .vscode/
+
+.project-backups/

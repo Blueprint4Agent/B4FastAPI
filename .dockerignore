@@ -24,3 +24,5 @@ src/backend/template.db
 !**/.env.example
 src/frontend/src-tauri/target
 src/frontend/src-tauri/gen
+
+.project-backups/

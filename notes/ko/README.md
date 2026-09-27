@@ -505,3 +505,7 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 별도로 표시하고 시간은 기기 시간대를 사용합니다.
 
 프런트엔드 상태 관리·React 최적화 정책: [English](../../src/frontend/notes/react-performance.md) · [한국어](../../src/frontend/notes/ko/react-performance.md). `make frontend-react-performance-check`로 규칙을, `make frontend-test-routes`로 프로덕션 라우트 복구를 검증하며 프런트엔드 CI에도 적용됩니다.
+
+## 새 프로젝트 설정
+
+[프로젝트 초기화 가이드](PROJECT_SETUP.md)에 따라 `project.json` 하나로 서비스명, 브랜드, 데스크톱 앱 식별자와 로그인/이메일/OAuth 기능을 설정합니다. `make project-plan`으로 미리 보고, `make project-init`으로 적용한 뒤 `make project-check`로 확인합니다.
