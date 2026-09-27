@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from html import escape
 
 
 @dataclass(frozen=True)
@@ -29,12 +30,9 @@ class TemplateTheme:
     page_bg: str
     panel_bg: str
     panel_border: str
-    heading_bg_start: str
-    heading_bg_end: str
     text_primary: str
     text_secondary: str
     cta_bg: str
-    cta_bg_hover: str
     cta_fg: str
     muted_bg: str
     muted_fg: str
@@ -49,17 +47,14 @@ DEFAULT_LOCALE = EmailLocale.EN.value
 SUPPORTED_LOCALES = {locale.value for locale in EmailLocale}
 
 FRONTEND_LIGHT_THEME = TemplateTheme(
-    page_bg="#f7f4ea",
+    page_bg="#f5f7fb",
     panel_bg="#ffffff",
-    panel_border="rgba(19, 32, 51, 0.12)",
-    heading_bg_start="#101010",
-    heading_bg_end="#2a2a2a",
+    panel_border="#e4e7ec",
     text_primary="#132033",
     text_secondary="#4a5a6b",
     cta_bg="#101010",
-    cta_bg_hover="#2a2a2a",
     cta_fg="#f7f7f7",
-    muted_bg="#f2eee3",
+    muted_bg="#f5f5f6",
     muted_fg="#4a5a6b",
 )
 
@@ -200,99 +195,60 @@ def _build_email_html(
     footer: str,
     manual_link_label: str,
     theme: TemplateTheme,
+    locale: str,
 ) -> str:
-    footer_html = ""
-    if footer.strip():
-        footer_html = f"""
-            <tr>
-              <td
-                style="padding:16px 28px;background:{theme.muted_bg};font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:{theme.muted_fg};"
-              >
-                {footer}
-              </td>
-            </tr>
-"""
-
+    # Mail is self-contained: inline styles, system fonts and presentation tables.
+    app_name, preheader, heading, intro, cta_label, link, outro, footer, manual_link_label = (
+        escape(value, quote=True)
+        for value in (
+            app_name,
+            preheader,
+            heading,
+            intro,
+            cta_label,
+            link,
+            outro,
+            footer,
+            manual_link_label,
+        )
+    )
+    footer_html = (
+        f'<p style="margin:12px 0 0;font-size:12px;line-height:1.6;color:{theme.text_secondary};">{footer}</p>'
+        if footer.strip()
+        else ""
+    )
     return f"""<!doctype html>
-<html>
+<html lang="{locale}">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{heading}</title>
   </head>
-  <body style="margin:0;padding:0;background-color:{theme.page_bg};color:{theme.text_primary};">
-    <span style="display:none;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;">
-      {preheader}
-    </span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:{theme.page_bg};">
-      <tr>
-        <td align="center" style="padding:32px 16px;">
-          <table
-            role="presentation"
-            width="100%"
-            cellpadding="0"
-            cellspacing="0"
-            style="max-width:560px;background:{theme.panel_bg};border-radius:20px;overflow:hidden;border:1px solid {theme.panel_border};box-shadow:0 20px 45px rgba(22,33,48,0.14);"
-          >
-            <tr>
-              <td style="padding:24px 28px;background:linear-gradient(135deg,{theme.heading_bg_start} 0%,{theme.heading_bg_end} 100%);">
-                <div
-                  style="font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:22px;font-weight:700;color:{theme.cta_fg};"
-                >
-                  {app_name}
-                </div>
-                <div
-                  style="margin-top:6px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;letter-spacing:0.04em;color:rgba(247,247,247,0.86);"
-                >
-                  Account & Security
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:30px 28px;">
-                <h1
-                  style="margin:0 0 12px;font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:24px;line-height:1.2;color:{theme.text_primary};"
-                >
-                  {heading}
-                </h1>
-                <p
-                  style="margin:0 0 20px;font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:{theme.text_secondary};"
-                >
-                  {intro}
-                </p>
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 22px;">
-                  <tr>
-                    <td align="left">
-                      <a
-                        href="{link}"
-                        style="display:inline-block;padding:12px 22px;border-radius:999px;background:{theme.cta_bg};color:{theme.cta_fg};font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:14px;font-weight:600;text-decoration:none;border:1px solid {theme.cta_bg_hover};"
-                      >
-                        {cta_label}
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-                <p
-                  style="margin:0 0 14px;font-family:'Space Grotesk','Segoe UI',sans-serif;font-size:14px;line-height:1.6;color:{theme.text_secondary};"
-                >
-                  {outro}
-                </p>
-                <p
-                  style="margin:0 0 8px;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;color:{theme.text_secondary};"
-                >
-                  {manual_link_label}
-                </p>
-                <p
-                  style="margin:0;font-family:'IBM Plex Mono','Courier New',monospace;font-size:12px;line-height:1.6;"
-                >
-                  <a href="{link}" style="color:{theme.text_primary};text-decoration:none;word-break:break-all;">{link}</a>
-                </p>
-              </td>
-            </tr>
-{footer_html}
-          </table>
-        </td>
-      </tr>
+  <body style="margin:0;padding:0;background-color:{theme.page_bg};color:{theme.text_primary};font-family:Arial,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;">
+    <div style="display:none;visibility:hidden;opacity:0;max-height:0;overflow:hidden;mso-hide:all;">{preheader}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{theme.page_bg};">
+      <tr><td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;table-layout:fixed;background-color:{theme.panel_bg};border:1px solid {theme.panel_border};border-radius:16px;">
+          <tr><td style="padding:24px 24px 0;font-size:13px;font-weight:600;line-height:1.5;color:{theme.text_primary};overflow-wrap:anywhere;">{app_name}</td></tr>
+          <tr><td style="padding:24px;">
+            <h1 style="margin:0 0 12px;font-size:22px;font-weight:500;line-height:1.35;color:{theme.text_primary};">{heading}</h1>
+            <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:{theme.text_secondary};">{intro}</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+              <tr><td align="center" bgcolor="{theme.cta_bg}" style="border-radius:999px;background-color:{theme.cta_bg};mso-padding-alt:12px 24px;">
+                <a href="{link}" style="display:inline-block;padding:12px 24px;border:1px solid {theme.cta_bg};border-radius:999px;background-color:{theme.cta_bg};color:{theme.cta_fg};font-size:14px;font-weight:500;line-height:20px;text-decoration:none;text-align:center;">{cta_label}</a>
+              </td></tr>
+            </table>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="padding:12px 14px;border-radius:8px;background-color:{theme.muted_bg};font-size:12px;line-height:1.6;color:{theme.muted_fg};">{outro}</td></tr>
+            </table>
+            {footer_html}
+            <div style="margin-top:24px;padding-top:16px;border-top:1px solid {theme.panel_border};">
+              <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:{theme.text_secondary};">{manual_link_label}</p>
+              <a href="{link}" style="font-size:12px;line-height:1.6;color:{theme.text_secondary};text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;">{link}</a>
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
     </table>
   </body>
 </html>
@@ -321,6 +277,7 @@ def build_verification_email(
         footer=copy.footer,
         manual_link_label=manual_link_label,
         theme=FRONTEND_LIGHT_THEME,
+        locale=locale,
     )
     return EmailContent(subject=copy.subject, text=text, html=html)
 
@@ -347,5 +304,6 @@ def build_password_reset_email(
         footer=copy.footer,
         manual_link_label=manual_link_label,
         theme=FRONTEND_LIGHT_THEME,
+        locale=locale,
     )
     return EmailContent(subject=copy.subject, text=text, html=html)

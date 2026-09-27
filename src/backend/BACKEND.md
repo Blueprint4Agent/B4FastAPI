@@ -613,3 +613,13 @@ programming/serialization errors still propagate. Raw keys and payloads are not
 logged. The strict publish_user_event path remains available for callers requiring
 failure propagation. UI notifications are best-effort and have no replay/outbox
 or durable delivery guarantee; clients must refetch on connection recovery.
+
+## Authentication Email Presentation
+
+Verification and password-reset mail share one inline, table-based 480px layout
+with the frontend light palette, system fonts, compact headings, a rounded CTA and
+neutral notice panel. Both languages retain plaintext alternatives and a visible
+fallback link. Escape dynamic text/URLs in HTML attributes and content; preserve
+raw URLs in plaintext. Locale sets the HTML language. No web fonts, scripts or
+remote assets are required. SMTP/queued delivery and token semantics are unchanged.
+Email clients may override colors or ignore rounded corners; the link remains usable.
