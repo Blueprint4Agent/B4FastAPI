@@ -536,3 +536,5 @@ preview is scoped to the showcase; apply creates a CSS backup in that frontend's
 `.style-studio-backups/`, checks for external changes and triggers HMR. Changes
 inside the pinned frontend are child-repository changes: review/commit through
 B4React's own branch/PR workflow before updating the parent pin.
+
+Search and pagination rules and usage: [English](notes/collections.md) · [한국어](notes/ko/collections.md).

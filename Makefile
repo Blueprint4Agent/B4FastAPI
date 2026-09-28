@@ -195,6 +195,7 @@ git-governance-pr-check: ## Validate actual PR metadata and every authored commi
 architecture-check: backend-architecture-check frontend-architecture-check ## Check backend/frontend dependency boundaries
 backend-architecture-check: ## Check router/DB and lower-layer import boundaries
 	$(UV) run --project $(BACKEND_DIR) python scripts/check_backend_architecture.py
+	$(UV) run --project $(BACKEND_DIR) python -m unittest discover -s scripts -p test_backend_architecture.py
 frontend-architecture-check: ## Check pinned frontend dependency boundaries
 	$(MAKE) -C $(FRONTEND_DIR) architecture-check
 

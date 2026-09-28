@@ -41,6 +41,8 @@ def imports(tree: ast.AST, module: str, package: bool):
 
 
 def qualified(node: ast.expr, bindings: dict[str, str]) -> str:
+    if isinstance(node, ast.Subscript):
+        return qualified(node.value, bindings)
     if isinstance(node, ast.Name):
         return bindings.get(node.id, node.id)
     if isinstance(node, ast.Attribute):
@@ -82,7 +84,8 @@ def main() -> int:
         discovered = {
             name
             for name, bases in classes.items()
-            if bases and all(base in schemas for base in bases)
+            if any(base in schemas for base in bases)
+            and all(base in schemas or base == "typing.Generic" for base in bases)
         }
         if discovered <= schemas:
             break

@@ -85,6 +85,24 @@ def test_admin_directory_access_filters_and_login_metadata(integration_client):
         client.get(endpoint, headers=headers, params={"page": 3, "page_size": 1}).json()["items"]
         == []
     )
+    # Then: shared query aliases preserve defaults, normalization and literal matching.
+    default_page = client.get(endpoint, headers=headers).json()
+    assert default_page["page"] == 1
+    assert default_page["page_size"] == 20
+    assert (
+        client.get(endpoint, headers=headers, params={"search": "  MEMBER  "}).json()["total"] == 1
+    )
+    assert client.get(endpoint, headers=headers, params={"search": "   "}).json()["total"] == 2
+    assert client.get(endpoint, headers=headers, params={"search": "_"}).json()["total"] == 0
+    assert client.get(endpoint, headers=headers, params={"page_size": 100}).status_code == 200
+    assert client.get(endpoint, headers=headers, params={"search": "x" * 200}).status_code == 200
     # Then: bounded pagination/filter validation rejects malformed queries.
-    for params in ({"page": 0}, {"page_size": 101}, {"role": "owner"}, {"search": "x" * 201}):
+    for params in (
+        {"page": 0},
+        {"page": "abc"},
+        {"page_size": 0},
+        {"page_size": 101},
+        {"role": "owner"},
+        {"search": "x" * 201},
+    ):
         assert client.get(endpoint, headers=headers, params=params).status_code == 422

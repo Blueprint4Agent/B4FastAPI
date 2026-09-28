@@ -661,3 +661,7 @@ and the latest successful login across linked identities (nullable if never reco
 Active means account enabled, not currently online. IPs, user agents, passwords,
 tokens and provider identifiers are excluded. This read-only snapshot is not a full
 login audit/history or live-presence feed. No role changes are exposed through this API.
+
+## Shared list rules
+
+Use the shared query annotations and `PageResponse` for new offset list endpoints. Follow [search and pagination](../../notes/collections.md) for validation, literal search, ordering, totals and frontend usage. Existing API-key full-list pagination remains an explicit compatibility exception pending a separate contract migration.

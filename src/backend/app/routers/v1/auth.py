@@ -29,6 +29,7 @@ from app.models.user import (
     VerifyEmailForm,
     VerifyEmailResponse,
 )
+from app.routers.list_query import DEFAULT_PAGE_SIZE, PageQuery, PageSizeQuery, SearchQuery
 from app.services.auth import AuthService
 from app.utils.cookies import clear_refresh_cookies, set_refresh_cookies
 from app.utils.token import create_refresh_session_id
@@ -306,9 +307,9 @@ async def admin_user_role_stats(
 async def admin_users(
     _current_admin_user: UserResponse = Depends(get_current_admin_user),
     service: AuthService = Depends(AuthService),
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
-    search: str = Query(default="", max_length=200),
+    page: PageQuery = 1,
+    page_size: PageSizeQuery = DEFAULT_PAGE_SIZE,
+    search: SearchQuery = "",
     role: UserRole | None = Query(default=None),
     is_active: bool | None = Query(default=None),
 ) -> AdminUserListResponse:

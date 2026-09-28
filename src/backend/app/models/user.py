@@ -20,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 
 from app.core.db.session import Base, get_db
 from app.core.error import AuthErrorCode, AuthException
+from app.models.pagination import PageResponse
 
 EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 
@@ -204,11 +205,7 @@ class AdminUserResponse(BaseModel):
     login_providers: list[str]
 
 
-class AdminUserListResponse(BaseModel):
-    items: list[AdminUserResponse]
-    total: int
-    page: int
-    page_size: int
+class AdminUserListResponse(PageResponse[AdminUserResponse]):
     summary: UserRoleStatsResponse
 
 
