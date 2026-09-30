@@ -29,13 +29,11 @@ Before committing, treat loop alignment as a default verification step:
 
 Before finalizing a commit, run validation through the root `Makefile` hooks.
 
-1. Use `make help` to confirm available workflow targets when needed.
-2. Run the narrowest relevant Make target for the changed scope:
-   - Backend-only: `make backend-check` and `make backend-test`
-   - Frontend-only: `make frontend-format-check` and `make frontend-test`
-   - Cross-stack or shared workflow changes: `make check` and `make test`
-3. If a required Make target cannot run in the local environment, record the reason in the final response and worklog.
-4. Do not replace Make targets with ad-hoc commands unless the Make target itself is broken or missing.
+1. Run `make verify-plan`, then `make verify`. The shared classifier selects the minimum safe checks from actual changes. Set `VERIFY_BASE=<base-sha>` for all branch changes; the default HEAD includes staged, unstaged and untracked files.
+2. Docs and structurally unchanged locale copy use dependency-free text/JSON checks. Runtime, UI, protected/unknown files select progressively broader checks. Use `VERIFY_FULL=1 make verify` to escalate; never manually downgrade an uncertain change.
+3. Do not repeat checks already passed for the same relevant content in the child or through a delegated Make target. Re-run when subsequent changes invalidate that evidence. Parent CI still validates integration independently.
+4. Record the selected scope and omitted checks/reason in the worklog and a short final summary. Required Git governance, ready PRs and merge protection remain mandatory.
+5. Follow [change-scoped verification](notes/verification.md). Keep related follow-up edits in one task PR until implementation is settled; update the parent gitlink once the child is merged. Read log summaries first, investigate failures selectively, and use a single CI watcher instead of repeated status probes.
 
 ## Worklog Policy (Required)
 

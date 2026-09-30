@@ -241,3 +241,18 @@ project-build-test: ## Verify custom branding in an isolated production frontend
 .PHONY: frontend-style-studio
 frontend-style-studio: ## Run local style editor for FRONTEND_DIR (default src/frontend)
 	$(MAKE) -C "$(FRONTEND_DIR)" style-studio
+
+export VERIFY_BASE VERIFY_HEAD VERIFY_FULL
+.PHONY: verify-plan verify verify-light verification-test
+verify-plan: ## Show change-scoped checks (VERIFY_BASE defaults to HEAD)
+	python3 scripts/verification.py plan
+verify: ## Run checks selected by change scope; VERIFY_FULL=1 forces full checks
+	python3 scripts/verification.py run
+verify-light: ## Validate changed text and JSON without installing dependencies
+	python3 scripts/verification.py light
+verification-test: ## Test change classification and verification selection
+	python3 -m unittest discover -s scripts -p 'test_verification.py'
+
+.PHONY: frontend-package-verified
+frontend-package-verified: ## Package dist already built and verified by frontend-test-routes
+	node scripts/package-frontend.mjs "$(FRONTEND_DIR)/dist" "$(BACKEND_DIR)/app/static/dist"

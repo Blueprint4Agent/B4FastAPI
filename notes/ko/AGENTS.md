@@ -143,3 +143,7 @@ CI에서 `--remote`를 사용하거나 부모 파일로 자식 계약을 자동 
 프런트엔드 런타임 작업은 고정된 B4React의 [상태·성능 정책](../../src/frontend/notes/ko/react-performance.md)을 따릅니다. 상태 소유권 검토, 동일 props로 반복되는 비용 있는 자식의 React.memo 적용 또는 미적용 이유, 실제 검증 근거를 기본으로 기록합니다. 구체적 필요 없이 Zustand/Redux를 추가하거나 모든 컴포넌트를 memo로 감싸지 않습니다. 독립적인 최적화는 별도 브랜치·작업 기록·PR로 진행합니다. 프런트엔드 작업 기록과 강제 규칙은 B4React가 소유하며 부모 기록은 통합 검사와 루프 영향을 담습니다.
 
 `make frontend-react-performance-check`는 자식 정적·정책 검사를 호출하며 `make check`에도 간접 포함됩니다. `make frontend-test`는 렌더링·설정 회귀를, `make frontend-test-routes`는 실제 프로덕션 청크 로딩·복구를 검증합니다. 레이아웃 변경 시 브라우저 UI 검사도 실행합니다. 부모의 필수 Frontend checks CI에서도 프로덕션 라우트 검사를 실행해 gitlink 통합 시 자식 규칙을 유지합니다.
+
+## 변경 범위별 검증
+
+[검증 하네스](verification.md)가 작은 변경의 일괄 검사 규칙보다 우선합니다. `make verify-plan` / `make verify`로 범위를 선택하고 문서·문구에는 경량 검사만 실행합니다. 동작·UI·보호 경로는 계획에 따른 검사를 유지하며 동일 내용에 통과한 위임 검사는 반복하지 않습니다. Git 규칙·PR·필수 상태·병합 보호는 유지합니다.
