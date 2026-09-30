@@ -48,6 +48,14 @@ async def get_current_token_user(
     return token_user
 
 
+async def get_current_session_user(
+    user: Annotated[UserResponse | None, Depends(get_current_token_user)],
+) -> UserResponse:
+    if user is None:
+        raise AuthException(code=AuthErrorCode.INVALID_TOKEN)
+    return user
+
+
 async def get_current_api_key(
     api_key: Annotated[str | None, Depends(api_key_security)],
 ) -> APIKey | None:

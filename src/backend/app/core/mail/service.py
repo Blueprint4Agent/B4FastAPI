@@ -5,7 +5,12 @@ from email.message import EmailMessage
 from urllib.parse import urljoin
 
 from app.core.config.settings import SETTINGS, Settings
-from app.core.mail.templates import build_password_reset_email, build_verification_email
+from app.core.mail.templates import (
+    build_account_deletion_email,
+    build_password_reset_email,
+    build_verification_email,
+    build_welcome_email,
+)
 from app.core.observability.logging import get_logger, mask_email
 
 logger = get_logger("app.mail")
@@ -195,6 +200,70 @@ class MailService:
             if raise_on_failure:
                 raise
             logger.exception("Failed to send password reset email to %s.", mask_email(to_email))
+
+    async def send_welcome_email(
+        self,
+        *,
+        to_email: str,
+        user_name: str,
+        link: str = "",
+        language: str | None = None,
+        raise_on_failure: bool = False,
+    ) -> None:
+        if not self._settings.EMAIL_ENABLED:
+            return
+        content = build_welcome_email(
+            name=user_name,
+            link=self._resolve_link(path="/", link=link),
+            app_name=self._settings.EMAIL_BRAND_NAME,
+            language=language,
+        )
+        try:
+            await self._provider.send(
+                MailMessage(
+                    to_email=to_email,
+                    subject=content.subject,
+                    text_body=content.text,
+                    html_body=content.html,
+                )
+            )
+            logger.info("Welcome email delivered to %s.", mask_email(to_email))
+        except Exception:
+            if raise_on_failure:
+                raise
+            logger.exception("Failed to send welcome email to %s.", mask_email(to_email))
+
+    async def send_account_deletion_email(
+        self,
+        *,
+        to_email: str,
+        user_name: str,
+        code: str,
+        language: str | None = None,
+        raise_on_failure: bool = False,
+    ) -> None:
+        if not self._settings.EMAIL_ENABLED:
+            return
+        content = build_account_deletion_email(
+            name=user_name,
+            code=code,
+            app_name=self._settings.EMAIL_BRAND_NAME,
+            language=language,
+        )
+        try:
+            await self._provider.send(
+                MailMessage(
+                    to_email=to_email,
+                    subject=content.subject,
+                    text_body=content.text,
+                    html_body=content.html,
+                )
+            )
+            logger.info("Account deletion code delivered to %s.", mask_email(to_email))
+        except Exception:
+            if raise_on_failure:
+                raise
+            logger.exception("Failed to deliver account deletion code to %s.", mask_email(to_email))
 
     def _resolve_link(self, *, path: str, link: str) -> str:
         explicit_link = link.strip()

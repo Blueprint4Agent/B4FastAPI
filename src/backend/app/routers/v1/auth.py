@@ -8,10 +8,12 @@ from app.core.config.settings import SETTINGS
 from app.core.error import AuthErrorCode, AuthException, auth_error_responses
 from app.core.error.response_contracts import current_user_error_responses
 from app.core.observability.logging import get_logger
-from app.deps import get_current_admin_user, get_current_user
+from app.deps import get_current_admin_user, get_current_session_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
     AdminUserListResponse,
+    DeleteAccountCodeResponse,
+    DeleteAccountForm,
     ForgotPasswordForm,
     ForgotPasswordResponse,
     LoginForm,
@@ -338,6 +340,54 @@ async def update_me(
 
 
 @router.post(
+    "/me/deletion-code",
+    response_model=DeleteAccountCodeResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.USER_NOT_FOUND,
+        AuthErrorCode.LOGIN_DISABLED,
+        AuthErrorCode.EMAIL_DISABLED,
+        AuthErrorCode.ACCOUNT_DELETE_CODE_THROTTLED,
+        AuthErrorCode.ACCOUNT_DELETE_CODE_SEND_FAILED,
+    ),
+)
+async def request_deletion_code(
+    request: Request,
+    current_user: UserResponse = Depends(get_current_session_user),
+    service: AuthService = Depends(AuthService),
+) -> DeleteAccountCodeResponse:
+    await service.request_account_deletion_code(
+        current_user.id, _resolve_preferred_language(request)
+    )
+    return DeleteAccountCodeResponse(expires_in=600, retry_after=60)
+
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=auth_error_responses(
+        AuthErrorCode.INVALID_TOKEN,
+        AuthErrorCode.USER_NOT_FOUND,
+        AuthErrorCode.LOGIN_DISABLED,
+        AuthErrorCode.ACCOUNT_DELETE_FAILED,
+        AuthErrorCode.EMAIL_DISABLED,
+        AuthErrorCode.ACCOUNT_DELETE_CODE_INVALID,
+        AuthErrorCode.ACCOUNT_DELETE_CONFIRMATION_REQUIRED,
+        AuthErrorCode.LAST_ADMIN_REQUIRED,
+    ),
+    description="Permanently deletes the current account, credentials, OAuth identities and API keys. Requires bearer authentication, matching email confirmation and a single-use emailed code. Clears refresh cookies; all sessions stop authenticating.",
+)
+async def delete_me(
+    form: DeleteAccountForm,
+    response: Response,
+    current_user: UserResponse = Depends(get_current_session_user),
+    service: AuthService = Depends(AuthService),
+) -> None:
+    await service.delete_account(current_user.id, form.email, form.code)
+    clear_refresh_cookies(response)
+
+
+@router.post(
     "/logout",
     description="Invalidates all refresh sessions for the authenticated user and expires both "
     "refresh cookies. Already-issued access tokens remain valid until their expiry.",
@@ -432,10 +482,13 @@ async def refresh_token(
     ),
 )
 async def verify_email(
+    request: Request,
     form: VerifyEmailForm,
     service: AuthService = Depends(AuthService),
 ) -> VerifyEmailResponse:
-    user = await service.verify_email(form.token)
+    user = await service.verify_email(
+        form.token, preferred_language=_resolve_preferred_language(request)
+    )
     return VerifyEmailResponse(message="Email verified successfully.", user=user)
 
 

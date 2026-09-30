@@ -307,3 +307,62 @@ def build_password_reset_email(
         locale=locale,
     )
     return EmailContent(subject=copy.subject, text=text, html=html)
+
+
+def build_welcome_email(
+    *,
+    name: str | None,
+    link: str,
+    app_name: str = "Blueprint4FastAPI",
+    language: str | None = None,
+) -> EmailContent:
+    locale = resolve_locale(language)
+    display_name = _display_name(name)
+    if locale == "ko":
+        heading = "환영합니다!"
+        intro = f"{display_name}님, {app_name}에 오신 것을 환영합니다. 계정 생성이 완료되었습니다."
+        cta = "시작하기"
+        outro = "계정 설정에서 이름과 프로필 사진을 변경할 수 있습니다."
+        manual = "아래 링크로도 시작할 수 있습니다."
+    else:
+        heading = "Welcome!"
+        intro = f"Hi {display_name}, welcome to {app_name}. Your account is ready."
+        cta = "Get started"
+        outro = "You can update your name and profile photo in account settings."
+        manual = "You can also get started using this link."
+    html = _build_email_html(
+        app_name=app_name,
+        preheader=intro,
+        heading=heading,
+        intro=intro,
+        cta_label=cta,
+        link=link,
+        outro=outro,
+        footer="",
+        manual_link_label=manual,
+        theme=FRONTEND_LIGHT_THEME,
+        locale=locale,
+    )
+    return EmailContent(subject=heading, text=f"{intro}\n\n{outro}\n\n{cta}: {link}", html=html)
+
+
+def build_account_deletion_email(
+    *,
+    name: str | None,
+    code: str,
+    app_name: str = "Blueprint4FastAPI",
+    language: str | None = None,
+) -> EmailContent:
+    locale = resolve_locale(language)
+    display_name = _display_name(name)
+    if locale == "ko":
+        subject = "계정 삭제 인증 코드"
+        intro = f"{display_name}님, {app_name} 계정 삭제를 요청하셨습니다. 아래 코드는 10분 동안 유효합니다."
+        warning = "이 코드를 입력하고 삭제를 확정하면 계정과 연결된 데이터가 영구적으로 삭제됩니다. 요청하지 않았다면 코드를 공유하거나 입력하지 마세요."
+    else:
+        subject = "Confirm account deletion"
+        intro = f"Hi {display_name}, you requested deletion of your {app_name} account. This code expires in 10 minutes."
+        warning = "Entering this code and confirming deletion permanently removes your account and associated data. If you did not request this, do not share or enter this code."
+    # A code-only email has no action URL, so opening a mail client cannot delete an account.
+    html = f"<html lang='{locale}'><body><h1>{escape(subject)}</h1><p>{escape(intro)}</p><p style='font-size:32px;letter-spacing:6px;font-weight:600'>{escape(code)}</p><p>{escape(warning)}</p></body></html>"
+    return EmailContent(subject=subject, text=f"{intro}\n\n{code}\n\n{warning}", html=html)

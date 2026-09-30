@@ -82,11 +82,12 @@ def delivery(monkeypatch):
     archive = Mock()
     monkeypatch.setattr(mail.MAIL_SERVICE, "send_signup_verification_email", sender)
     monkeypatch.setattr(mail.MAIL_SERVICE, "send_password_reset_email", sender)
+    monkeypatch.setattr(mail.MAIL_SERVICE, "send_welcome_email", sender)
     monkeypatch.setattr(mail, "archive_failure", archive)
     return sender, archive
 
 
-@pytest.mark.parametrize("kind", ["signup_verification", "password_reset"])
+@pytest.mark.parametrize("kind", ["signup_verification", "password_reset", "welcome"])
 def test_worker_sends_localized_mail(delivery, kind):
     """Scenario: the task invokes SMTP service with propagated failure handling."""
     # Given: a valid queued message.
@@ -211,3 +212,22 @@ def test_worker_initialization_fails_closed(monkeypatch):
     # Then: startup exits instead of accepting tasks with invalid mail configuration.
     with pytest.raises(SystemExit, match="SMTP initialization failed"):
         mail.initialize_mail_worker()
+
+
+def test_worker_delivers_deletion_code_without_turning_it_into_a_link(delivery, monkeypatch):
+    """Scenario: deletion codes use the shared retry pipeline and a code-only SMTP method."""
+    # Given: a valid user-requested code message.
+    sender, archive = delivery
+    monkeypatch.setattr(mail.MAIL_SERVICE, "send_account_deletion_email", sender)
+    payload = {**message("account_deletion"), "link": "", "code": "123456"}
+    # When: the worker handles the message.
+    mail.send_mail.apply(kwargs={"message": payload}, throw=True)
+    # Then: the secret is delivered only as the code parameter, not a URL.
+    sender.assert_awaited_once_with(
+        to_email="person@example.com",
+        user_name="User",
+        code="123456",
+        language="ko",
+        raise_on_failure=True,
+    )
+    archive.assert_not_called()

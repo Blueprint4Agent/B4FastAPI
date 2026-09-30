@@ -658,3 +658,31 @@ Use the shared query annotations and `PageResponse` for new offset list endpoint
 Follow [Celery setup and mail queue migration](CELERY.md). Mail execution now runs
 outside the API and a worker is required when email is enabled. Beat remains
 optional with no business schedules. SQL schema and billing behavior are unchanged.
+
+## Account activation and deletion
+
+Verified email activation and first OAuth account creation publish a localized welcome
+message through the existing Celery mail task (24-hour delivery lifetime). Repeat login,
+OAuth linking and verification-token replay do not enqueue greetings. Email-disabled
+instances send no mail. A greeting publication failure is logged without undoing account
+activation; there is no transactional outbox/automatic publication recovery. SMTP retry
+and ambiguous-delivery duplicate limitations remain those documented in CELERY.md.
+
+`DELETE /auth/me` requires a bearer session and matching email confirmation, then deletes
+the user, credentials, OAuth identities and API keys in one DB transaction. It serializes
+with operator role changes and refuses deletion of the last active administrator. Refresh
+and one-time token indexes are removed and cookies cleared; a Redis cleanup failure is
+logged, while the missing DB principal still rejects all authentication and token use.
+Migration 0007 enables SQLite AUTOINCREMENT to prevent deleted JWT subjects being reused;
+PostgreSQL already uses a sequence. Apply migrations before serving account deletion.
+No schema downgrade is needed for normal rollback; old app versions tolerate this option.
+
+Deletion proof: `POST /auth/me/deletion-code` queues a six-digit code only to the current
+account's registered address through the existing Celery mail task. `DELETE /auth/me`
+requires `{email, code}`. A code is user-bound, stored as an HMAC, valid for ten minutes
+and consumed once using Redis WATCH/MULTI. Resending replaces the previous code; requests
+are limited to one per minute and five per hour. Five incorrect attempts block proof
+and issuance for the remainder of the ten-minute attempt window; resending does not
+reset that budget. Redis/mail outages fail closed. EMAIL_ENABLED=false offers no bypass.
+The confirmation is a deletion-specific proof, separate from signup/reset tokens;
+receiving/opening the email itself cannot delete the account.
