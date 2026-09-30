@@ -39,7 +39,7 @@ permissions:
 
 concurrency:
     group: build-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ inputs.ref || '' }}
-    cancel-in-progress: false
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
     resolve-ref:
@@ -110,110 +110,93 @@ jobs:
     backend:
         name: Backend checks
         runs-on: ubuntu-latest
-        needs:
-            - resolve-ref
+        needs: [resolve-ref]
+        env:
+            VERIFY_BASE: ${{ github.event.pull_request.base.sha || 'HEAD' }}
+            VERIFY_HEAD: HEAD
+            VERIFY_FULL: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v7
               with:
                   ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
+                  fetch-depth: 0
                   submodules: recursive
-
+            - name: Fetch previous frontend pin for classification
+              if: github.event_name == 'pull_request'
+              shell: bash
+              run: |
+                  old_pin=$(git rev-parse "$VERIFY_BASE:src/frontend")
+                  if ! git -C src/frontend cat-file -e "$old_pin^{commit}"; then
+                    git -C src/frontend fetch origin "$old_pin" || echo "Previous pin unavailable; planner will require full frontend checks."
+                  fi
+            - name: Plan verification
+              id: scope
+              run: python3 scripts/verification.py plan --github-output "$GITHUB_OUTPUT"
+            - name: Verify scope harness
+              run: make verification-test
             - name: Install uv
+              if: steps.scope.outputs.backend == 'true'
               uses: astral-sh/setup-uv@v5
               with:
                   enable-cache: true
                   cache-dependency-glob: src/backend/uv.lock
-
             - name: Set up Python
+              if: steps.scope.outputs.backend == 'true'
               uses: actions/setup-python@v5
               with:
                   python-version: "3.12"
-
             - name: Install backend dependencies
+              if: steps.scope.outputs.backend == 'true'
               working-directory: src/backend
               run: uv sync --frozen
-
-            - name: Check project initialization
-              run: make project-init-check project-init-test
-
-            - name: Check backend architecture
-              run: make backend-architecture-check
-
-            - name: Check development and deployment env contract
-              run: make env-contract-check
-
-            - name: Ruff check
-              working-directory: src/backend
-              run: uv run ruff check .
-
-            - name: Ruff format check
-              working-directory: src/backend
-              run: uv run ruff format . --check
-
-            - name: Check backend OpenAPI baseline
-              working-directory: src/backend
-              run: uv run python -m app.export_openapi ../../contracts/openapi.json --check
-
-            - name: Pytest
-              working-directory: src/backend
-              run: uv run pytest
+            - name: Run selected verification
+              run: python3 scripts/verification.py run --domain backend
 
     frontend:
         name: Frontend checks
         runs-on: ubuntu-latest
-        needs:
-            - resolve-ref
+        needs: [resolve-ref]
+        env:
+            VERIFY_BASE: ${{ github.event.pull_request.base.sha || 'HEAD' }}
+            VERIFY_HEAD: HEAD
+            VERIFY_FULL: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v7
               with:
                   ref: ${{ needs.resolve-ref.outputs.checkout-ref }}
+                  fetch-depth: 0
                   submodules: recursive
-
+            - name: Fetch previous frontend pin for classification
+              if: github.event_name == 'pull_request'
+              shell: bash
+              run: |
+                  old_pin=$(git rev-parse "$VERIFY_BASE:src/frontend")
+                  if ! git -C src/frontend cat-file -e "$old_pin^{commit}"; then
+                    git -C src/frontend fetch origin "$old_pin" || echo "Previous pin unavailable; planner will require full frontend checks."
+                  fi
+            - name: Plan verification
+              id: scope
+              run: python3 scripts/verification.py plan --github-output "$GITHUB_OUTPUT"
+            - name: Verify scope harness
+              run: make verification-test
             - name: Set up Node.js
+              if: steps.scope.outputs.node == 'true'
               uses: actions/setup-node@v6
               with:
                   node-version: "24"
                   cache: npm
                   cache-dependency-path: src/frontend/package-lock.json
-
             - name: Install frontend dependencies
-              working-directory: src/frontend
-              run: npm ci
-
-            - name: Validate public project branding
-              run: make -C src/frontend project-config-check
-
-            - name: Check frontend architecture
-              run: make frontend-architecture-check
-
-            - name: Prettier check
-              working-directory: src/frontend
-              run: npm run format:check
-
-            - name: Check pinned contract and generated types
-              run: make frontend-contract-check frontend-api-check frontend-typecheck
-
-            - name: Vitest
-              working-directory: src/frontend
-              run: npm run test
-
-            - name: Install production route test browser
+              if: steps.scope.outputs.node == 'true'
+              run: make frontend-install
+            - name: Install browser
+              if: steps.scope.outputs.browser == 'true'
               working-directory: src/frontend
               run: npx playwright install --with-deps chromium
-
-            - name: Verify production route loading and recovery
-              run: make frontend-test-routes
-
-            - name: Verify local style editor
-              run: make -C src/frontend style-studio-check test-style-studio
-
-            - name: Verify configured project branding
-              run: make project-build-test
-
-            - name: Build and package frontend
-              run: make frontend-package
+            - name: Run selected verification
+              run: python3 scripts/verification.py run --domain frontend
 
     docker-image:
         name: Docker image
