@@ -12,9 +12,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.core.cache.redis import RedisManager
 from app.core.config.settings import SETTINGS
 from app.core.error import AuthErrorCode, AuthException
+from app.core.mail.queue import MAIL_QUEUE_SERVICE
 from app.core.observability.logging import get_logger, mask_email
 from app.core.observability.service import observe_service
-from app.core.task_queue.services.mail import MAIL_QUEUE_SERVICE
 from app.models.oauth import (
     OAuthIdentityProfile,
     OAuthProvider,

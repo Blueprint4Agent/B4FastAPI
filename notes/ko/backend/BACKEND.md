@@ -45,13 +45,12 @@ src/backend/
       mail/
         service.py
         templates.py
-      task_queue/
-        __init__.py
-        bootstrap.py
-        worker.py
-        services/
-          mail.py
-          __init__.py
+        queue.py
+      celery/
+        app.py
+        publisher.py
+        tasks.py
+        mail.py
       realtime/
         events.py
         broker.py
@@ -97,7 +96,7 @@ src/backend/
 7. `app/core/mail/`은 mail provider/service와 email template을 담당
 8. `app/core/error/`는 공통 도메인 에러 기반과 에러 응답 빌더를 담당
 9. `app/core/realtime/`은 SSE 전송 프리미티브, broker fan-out, realtime event schema를 담당
-10. `app/core/task_queue/`는 공용 비동기 큐 워커와 등록된 도메인 큐 서비스를 담당
+10. `app/core/celery/`는 별도 worker 실행, `app/core/mail/queue.py`는 메일 발행을 담당
 11. router/service/utils 전역에 `os.getenv(...)` 직접 사용 분산 금지
 
 - `app/models/`
@@ -516,17 +515,11 @@ X-Trace-ID, 새로 생성한 ID를 사용합니다. 이 대체 ID는 Tempo에 tr
 
 ## Worker 로그 연결
 
-`RedisTaskQueueWorker._process_envelope`는 `task_log_context`로 작업 ID와 전달받은
-trace ID를 설정하고 검증·observer·handler·재시도·DLQ 처리까지 유지합니다.
-작업 ID가 없으면 생성하여 envelope에 저장하므로 재시도에도 동일하게 유지됩니다.
-작업 범위의 로그 레코드에는 task_id가 들어가며 INFO·WARNING·오류 출력에도
-두 ID가 표시됩니다. trace ID가 없으면 빈 값(텍스트에서는 `-`)을 사용하고 이전 작업이나
-호출자의 ID를 사용하지 않습니다. HTTP request ID도 가져오지 않습니다.
-정상 반환·예외·취소 시 컨텍스트 매니저가 이전 컨텍스트를 복원합니다.
-로그 factory와 filter는 공통 필드 설정 함수를 사용합니다.
-작업 trace ID는 원래 요청과 로그를 연결하기 위한 값이며 OTel 부모 span을 연결하거나
-새로 생성하지 않습니다. Redis 등 자동 계측 span의 trace ID는 별개일 수 있습니다.
-HTTP 로그 정책은 유지하며 enqueue DEBUG 로그에도 envelope의 ID를 기록합니다.
+Celery ContextTask는 task_log_context로 task ID와 trace ID를 설정하고 작업 종료 시
+복원합니다. 이전 작업의 컨텍스트나 HTTP request ID를 가져오지 않습니다.
+메일 재시도에도 동일한 Celery ID와 전달된 trace header가 유지됩니다. 이는 로그
+상관관계이며 OTel span 전파는 아닙니다. 자세한 실행·실패 정책은 [Celery](CELERY.md)를
+따릅니다. 기존 RedisTaskQueueWorker는 제거했습니다.
 
 ## 전역 예외 로그 레벨
 
@@ -549,15 +542,10 @@ HTTP INFO·WARNING의 컨텍스트 표시는 기존 formatter 정책을 따릅�
 
 ## 메일·Worker 로그 책임
 
-MailService는 발송 시도를 DEBUG, provider 전송 완료를 수신자 마스킹과 함께 INFO로 기록합니다.
-이는 provider 호출 완료이며 실제 수신함 도착을 보장하는 로그는 아닙니다.
-메일 큐 handler의 중복 성공 로그는 제거하고 공통 Worker의 작업 완료 DEBUG는 유지합니다.
-발송을 건너뛰는 경우에는 기존 skip 로그를 유지합니다.
-`raise_on_failure=True`이면 MailService는 예외를 기록하지 않고 호출자에게 전달합니다.
-`raise_on_failure=False`이면 ERROR와 스택을 기록한 뒤 예외를 삼키는 기존 동작을 유지합니다.
-Worker는 재시도 예약을 스택 없는 WARNING, 최종 DLQ 이동을 원래 예외 스택이 있는 ERROR로 기록합니다.
-작업 컨텍스트의 task_id·trace_id는 유지합니다. 재시도 횟수·지연·큐 payload·메일 전송 동작은
-변경하지 않습니다. observer·시작 과정의 다른 오류 로그는 이번 정책에 포함하지 않습니다.
+MailService는 마스킹된 수신자로 발송 시도 DEBUG와 SMTP 완료 INFO를 기록합니다.
+raise_on_failure=True이면 worker가 실패 처리를 담당합니다. Celery 메일 task는
+재시도를 WARNING, 실패 보관을 ERROR로 기록하며 예외 원문·payload를 출력하지
+않습니다. task/trace ID를 유지하고 task 완료와 SMTP 성공은 구분합니다.
 
 ## 인증 이메일 표시
 
@@ -610,3 +598,9 @@ bootstrap 관리자도 같은 권한 검사를 적용합니다. `page`(1 이상)
 ## 공용 목록 규칙
 
 새 offset 목록 API는 공용 쿼리 타입과 `PageResponse`를 사용합니다. 검증·문자 검색·정렬·건수·프론트엔드 연결은 [검색과 페이지네이션](../collections.md)을 따릅니다. 기존 API 키 전체 목록은 별도 계약 전환 전까지 명시적인 호환성 예외입니다.
+
+## 별도 프로세스 Celery
+
+[Celery 구성과 메일 큐 전환](CELERY.md)을 따릅니다. 메일 worker는 API 밖에서
+실행하며 메일 사용 배포에 필수입니다. Beat는 선택 사항이고 업무 일정은 비어
+있습니다. SQL 스키마나 결제 동작은 변경하지 않습니다.

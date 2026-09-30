@@ -79,9 +79,11 @@ class Settings(BaseModel):
     SMTP_TIMEOUT_SECONDS: int = int(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
     SMTP_VALIDATE_ON_STARTUP: bool = os.getenv("SMTP_VALIDATE_ON_STARTUP", "true").lower() == "true"
     EMAIL_BRAND_NAME: str = os.getenv("EMAIL_BRAND_NAME", "Blueprint4FastAPI")
-    EMAIL_QUEUE_BLOCK_TIMEOUT_SECONDS: int = int(
-        os.getenv("EMAIL_QUEUE_BLOCK_TIMEOUT_SECONDS", "2")
-    )
+    # Celery always uses a real broker, independently of REDIS_IN_MEMORY.
+    CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "")
+    CELERY_QUEUE: str = os.getenv("CELERY_QUEUE", "b4fastapi.default")
+    CELERY_KEY_PREFIX: str = os.getenv("CELERY_KEY_PREFIX", "b4fastapi:celery:")
+
     EMAIL_QUEUE_MAX_RETRIES: int = int(os.getenv("EMAIL_QUEUE_MAX_RETRIES", "3"))
     EMAIL_QUEUE_RETRY_DELAY_SECONDS: int = int(os.getenv("EMAIL_QUEUE_RETRY_DELAY_SECONDS", "2"))
 
@@ -147,6 +149,10 @@ class Settings(BaseModel):
         else:
             redis_url = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         object.__setattr__(self, "REDIS_URL", redis_url)
+
+    @property
+    def celery_broker_url(self) -> str:
+        return self.CELERY_BROKER_URL.strip() or self.REDIS_URL
 
     @property
     def cors_origin_list(self) -> list[str]:

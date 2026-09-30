@@ -525,3 +525,7 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 서브모듈 내부 변경은 B4React의 브랜치/PR로 검토·커밋하고 이후 부모 핀을 갱신합니다.
 
 검색·페이지네이션 공통 규칙과 사용법: [한국어](collections.md) · [English](../collections.md).
+
+## Celery
+
+[worker·Beat 실행 및 기존 작업 이전 조사](backend/CELERY.md)를 참고하세요.

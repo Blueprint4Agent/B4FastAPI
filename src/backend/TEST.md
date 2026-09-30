@@ -362,3 +362,13 @@ and event data models. It runs under `api_test` without external services.
 Mail template unit tests parse both EN/KO verification and reset HTML to verify
 CTA/fallback URLs, plaintext preservation, locale and escaping of dynamic content.
 They do not send mail or require a provider.
+
+## Celery mail verification
+
+Auth email integration tests capture Celery publication and assert the kind,
+locale and issued token link without an external broker. Mail task tests cover
+bounded retries, recovery, expiry, disabled mail and failure archive recovery.
+Celery worker tests use an isolated memory transport; deployment fixtures execute
+the real startup script with fake Docker commands to verify worker-before-API
+ordering and fail-closed rollout. For release smoke, use isolated real Redis and a
+local SMTP capture server, never customer email addresses or the production broker.
