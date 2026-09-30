@@ -1,9 +1,10 @@
 # Celery background execution
 
 Celery 5.6 uses real Redis, independent of the API's `REDIS_IN_MEMORY` option.
-This foundation does not migrate email, create billing tables, or charge customers.
-The API continues running without a Celery worker; its readiness does not imply
-Celery readiness. No result backend or periodic business tasks are enabled.
+Signup verification and password-reset emails now execute in Celery.
+Email-enabled installations require a standalone worker; the API readiness endpoint
+does not imply Celery readiness. No billing tables or payment execution are added.
+No result backend or periodic business tasks are enabled.
 
 ## Run locally
 
@@ -45,9 +46,13 @@ make docker-celery-down
 
 The optional `celery` profile uses the same backend image with separate commands.
 Worker uses prefork with two processes; Beat persists its schedule in a volume.
-These targets do not implicitly start/replace databases or brokers. Existing
-`docker-up`/`docker-deploy` only update the API: after rebuilding/deploying an image,
-run `make docker-celery-up` to update these services as well. Keep API/worker images
+These explicit targets do not implicitly start/replace databases or brokers.
+`docker-up`/`docker-deploy` now start/update and health-check the worker before the
+API when both LOGIN_ENABLED and EMAIL_ENABLED are true. They also start the bundled
+Redis if it is the mail broker, even when the API uses fakeredis. A worker health
+failure stops the API rollout. Worker startup validates SMTP configuration and,
+when SMTP_VALIDATE_ON_STARTUP=true, its connection. Beat remains opt-in: update it
+with `make docker-celery-up` when changing schedules. Keep API/worker images
 compatible while rolling out tasks. Do not scale Beat. In containers, do not use
 localhost for another container's Redis. Worker/Beat retries broker startup;
 Compose's detached start alone is not a worker readiness check. Use inspect ping
@@ -65,8 +70,8 @@ app.core.celery.app:celery_app ...` (replace `...` with `inspect ping` or
   A repeatedly crashing task can be redelivered indefinitely: monitor and quarantine
   domain failures before adding production business tasks.
 - Ordinary exceptions are not automatically retried. Define bounded retries for
-  known transient domain failures. Celery has no equivalent of the existing mail
-  DLQ in this foundation; add durable failure handling when migrating a domain.
+  known transient domain failures. Mail implements bounded delivery retries and
+  a Redis failure archive as described below.
 - `await publish_task(name, payload=...)` runs synchronous broker publication in a
   thread, attaches task/trace IDs and redacts argument displays. Publication errors
   propagate for service-layer normalization. A timeout can be ambiguous; a task ID
@@ -79,19 +84,72 @@ app.core.celery.app:celery_app ...` (replace `...` with `inspect ping` or
   is unacceptable. Redis AOF/backup/eviction policies also affect durability.
 - Never use Celery acknowledgment as proof of exactly-once payment or SMTP delivery.
 
-## Existing background work audit
+## Authentication mail
 
-| Current location | Decision | Migration requirements |
+AuthService calls `core/mail/queue.py` asynchronously. `b4fastapi.mail.send` runs
+`MailService` in a standalone worker; the API no longer starts a BRPOP consumer.
+EMAIL_ENABLED=false skips both publication and consumption. Existing
+EMAIL_QUEUE_MAX_RETRIES (default 3) and EMAIL_QUEUE_RETRY_DELAY_SECONDS (default 2)
+mean one initial SMTP attempt plus up to three delayed retries. Delays release the
+worker instead of sleeping inside its processing loop. EMAIL_QUEUE_BLOCK_TIMEOUT_SECONDS
+was removed; old local values can be removed during env synchronization.
+
+Every job carries creation/expiry timestamps based on the corresponding token TTL.
+Expired or malformed messages are archived without SMTP delivery. Tokens remain
+validated by the API; this expiry check is an additional stale-mail guard. Reissuing
+or consuming a token may invalidate a queued link earlier than its TTL.
+
+Terminal failures go to the Redis hash `<CELERY_KEY_PREFIX>mail:failures` in the
+Celery broker, keyed by task ID. Records include original message, trace ID, reason,
+attempt and failure time. Repeated writes overwrite the same entry. No raw SMTP
+error text or token link is logged. The task completes after archiving, so Celery
+SUCCESS means processing finished, not necessarily that SMTP delivery succeeded.
+
+If archival fails, a 60-second retry carries failure_reason and only retries
+archival, without another SMTP attempt. These storage retries are unbounded until
+Redis recovers. If the replacement message itself cannot be published, or a worker
+is killed before acknowledgment, the original delivery can be redelivered and may
+repeat SMTP. SMTP does not provide exactly-once delivery. Monitor retry logs,
+worker availability and failure archive growth; persistent process crashes also
+need operator intervention.
+
+The failure archive contains recipient data and secret links: restrict Redis
+access and define operational retention/cleanup. It has no automatic expiry or
+public API. Inspect its count using HLEN and retrieve individual records only in a
+secure operator session. Do not blindly replay archived authentication messages;
+request a fresh verification/reset link instead. Redis persistence, backups and
+no-eviction policy determine archive durability. No SQL migration is required.
+
+## Upgrade from the legacy mail queue
+
+1. Pause new signup/resend/reset requests or put the service in maintenance mode.
+2. Keep the old API/worker running until `queue:mail:jobs` is empty and in-flight
+   sends/retries have completed; queue length alone is not proof of completion.
+3. Securely inspect/back up `queue:mail:dlq`; it is left untouched by this release.
+   Resolve failures by requesting fresh links after rollout, not by copying these
+   envelopes into the Celery queue. Do not flush shared Redis.
+4. Deploy the new image/config and standalone worker, then the API. Docker startup
+   now waits for the worker when mail is enabled. For manual deployment use inspect
+   ping and a test mailbox before reopening requests.
+5. Monitor delivery and the new failure archive. If rolling back, stop new
+   publications and drain Celery first; old APIs cannot consume Celery messages.
+
+No automatic legacy import is performed. For users who have not enabled email or
+have no pending messages, there is no backlog to migrate. Never run old producers
+while assuming the new worker will consume their list envelopes.
+
+## Background work audit after migration
+
+| Work | Owner | Decision |
 | --- | --- | --- |
-| `core/task_queue/services/mail.py`: signup verification and password reset | First Celery migration candidates; unchanged in this commit | Keep async producer interface and EMAIL_ENABLED behavior; move consumer out of API lifecycle; preserve SMTP validation, locale, correlation, bounded retry and durable failure handling. |
-| `core/task_queue/worker.py`: BRPOP, retry sleep, DLQ | Replace with Celery execution when mail migrates | Drain old `queue:mail:jobs` and inspect `queue:mail:dlq` before cutover; old envelopes are not Celery messages. Handle duplicate SMTP sends and expired token links. |
-| `core/task_queue/bootstrap.py`, `main.py`: start/stop mail worker | Remove mail registration during migration | Roll out worker before switching producers; do not leave both competing implementations active. |
-| `core/mail/service.py`: SMTP `asyncio.to_thread` | Execution helper, not scheduler | Can run inside a Celery task; keep async API until domain migration is implemented. |
-| `core/realtime/sse.py`: stream heartbeat and Redis subscription | Keep in FastAPI | Connection-bound streaming/cancellation must remain with the HTTP request. |
-| Startup DB migration, SMTP validation and readiness checks | Keep lifecycle responsibilities | Deployment readiness depends on their completion; not fire-and-forget jobs. |
+| Signup verification / password reset | Celery -> MailService | Migrated; async producer API preserved. |
+| Retry / terminal failure handling | Celery countdown / Redis failure hash | Replaces BRPOP, blocking retry sleep and old list DLQ. |
+| Worker start / stop | Process manager or Docker | Removed legacy task_queue worker/bootstrap from API lifespan. |
+| SMTP `asyncio.to_thread` | Existing MailService inside Celery task | Retained as an execution helper. |
+| SSE heartbeat / Redis subscriptions | FastAPI request lifecycle | Retained; connection-bound streaming and cancellation are not queue tasks. |
+| DB migrations, API SMTP validation, readiness | API startup / deployment | Retained; service readiness depends on completion. |
 
-No other application `create_task` or FastAPI `BackgroundTasks` jobs were found.
-No current recurring billing/cleanup scheduler exists to migrate.
+There is no existing billing/cleanup schedule to migrate. Beat remains empty.
 
 References: [Celery Redis delivery caveats](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html),
 [periodic tasks](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html).

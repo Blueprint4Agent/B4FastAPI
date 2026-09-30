@@ -28,7 +28,6 @@ from app.core.observability.request_context import (
 )
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
-from app.core.task_queue.services import TASK_QUEUE_BOOTSTRAP
 from app.models.user import UserResponse, UserRole, Users
 from app.routers.v1 import api_key, auth, events
 from app.utils.token import create_access_token
@@ -98,7 +97,6 @@ async def lifespan(_app: FastAPI):
         logger.info("OAuth configuration validation succeeded.")
 
     await MAIL_SERVICE.initialize()
-    await TASK_QUEUE_BOOTSTRAP.start_all()
     await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
     logger.info("Database schema migration check complete (target=head).")
     await init_db()
@@ -164,7 +162,6 @@ async def lifespan(_app: FastAPI):
     try:
         yield
     finally:
-        await TASK_QUEUE_BOOTSTRAP.stop_all()
         await dispose_db()
         await RedisManager.close()
 

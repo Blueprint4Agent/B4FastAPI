@@ -344,6 +344,11 @@ def test_email_enabled_signup_requires_verification_before_login(
         headers={"X-App-Language": "ko"},
     )
     assert signup_response.status_code == 200
+    name, payload = email_enabled_integration_client.published_mail[-1]
+    assert name == "b4fastapi.mail.send"
+    assert payload["message"]["kind"] == "signup_verification"
+    assert payload["message"]["language"] == "ko"
+    assert fixed_verification_token in payload["message"]["link"]
 
     # When: user attempts login before verification.
     blocked_login_response = email_enabled_integration_client.post(
@@ -413,6 +418,11 @@ def test_email_enabled_forgot_password_issues_reset_token(
 
     # Then: endpoint returns accepted contract and issued token can be consumed.
     assert forgot_password_response.status_code == 200
+    name, payload = email_enabled_integration_client.published_mail[-1]
+    assert name == "b4fastapi.mail.send"
+    assert payload["message"]["kind"] == "password_reset"
+    assert payload["message"]["language"] == "ko"
+    assert fixed_password_reset_token in payload["message"]["link"]
     reset_password_response = email_enabled_integration_client.post(
         "/api/v1/auth/reset-password",
         json={"token": fixed_password_reset_token, "password": "NewValidPass1!"},

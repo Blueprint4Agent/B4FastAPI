@@ -14,7 +14,7 @@
 - 시작 시 백엔드는 현재 `DATABASE_URL`에 대해 Alembic `upgrade head`만 수행(다운그레이드 경로 없음)
 - API 키는 누적 사용량(`request_count`)과 선택적 만료(`expires_at`)를 추적
 - 실시간 SSE 스트림은 `/api/v1/events/stream`에서 제공되며 heartbeat 및 Redis Pub/Sub fan-out을 사용
-- 비동기 백그라운드 작업은 공용 Redis 큐 워커 코어(`app/core/task_queue/worker.py`)와 도메인/서비스 어댑터(예: `app/core/task_queue/services/mail.py`)로 처리
+- 인증·비밀번호 재설정 메일은 별도 Celery worker가 처리합니다. [실행·이전 가이드](CELERY.md)를 참고하세요.
 - 인증 메일 템플릿은 요청 `Accept-Language`(`en`/`ko`)를 기준으로 로컬라이즈되며 메일 큐 payload까지 전달됨
 - 인증 메일 언어 결정 시 `X-App-Language` 헤더를 `Accept-Language`보다 우선 적용
 - 모든 HTTP 응답은 요청 상관관계 헤더(`X-Request-ID`, `X-Trace-ID`)를 포함하고 백엔드 로그도 같은 컨텍스트 값을 포함

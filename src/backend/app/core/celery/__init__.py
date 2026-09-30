@@ -1,1 +1,1 @@
-"""Standalone background execution; independent from the legacy mail queue."""
+"""Standalone Celery execution for background domain work."""

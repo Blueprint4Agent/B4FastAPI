@@ -84,9 +84,6 @@ class Settings(BaseModel):
     CELERY_QUEUE: str = os.getenv("CELERY_QUEUE", "b4fastapi.default")
     CELERY_KEY_PREFIX: str = os.getenv("CELERY_KEY_PREFIX", "b4fastapi:celery:")
 
-    EMAIL_QUEUE_BLOCK_TIMEOUT_SECONDS: int = int(
-        os.getenv("EMAIL_QUEUE_BLOCK_TIMEOUT_SECONDS", "2")
-    )
     EMAIL_QUEUE_MAX_RETRIES: int = int(os.getenv("EMAIL_QUEUE_MAX_RETRIES", "3"))
     EMAIL_QUEUE_RETRY_DELAY_SECONDS: int = int(os.getenv("EMAIL_QUEUE_RETRY_DELAY_SECONDS", "2"))
 

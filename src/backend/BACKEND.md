@@ -45,13 +45,12 @@ src/backend/
       mail/
         service.py
         templates.py
-      task_queue/
-        __init__.py
-        bootstrap.py
-        worker.py
-        services/
-          mail.py
-          __init__.py
+        queue.py
+      celery/
+        app.py
+        publisher.py
+        tasks.py
+        mail.py
       realtime/
         events.py
         broker.py
@@ -97,7 +96,7 @@ src/backend/
 7. `app/core/mail/` owns mail provider/service and email templates
 8. `app/core/error/` owns the shared domain error foundation and error response builders
 9. `app/core/realtime/` owns SSE transport primitives, broker fan-out, and realtime event schemas
-10. `app/core/task_queue/` owns generic async queue workers plus registered domain queue services
+10. `app/core/celery/` owns standalone task execution; `app/core/mail/queue.py` owns mail publication
 11. Do not scatter direct `os.getenv(...)` usage across routers/services/utils
 
 - `app/models/`
@@ -522,17 +521,11 @@ when emitted, falling back to the request ContextVar. Queue log correlation is d
 
 ## Worker Log Correlation
 
-`RedisTaskQueueWorker._process_envelope` binds the envelope's task ID and trace ID
-using `task_log_context` around validation, observers, handler execution, retries,
-and DLQ handling. Missing task IDs are generated and kept in the envelope for retries.
-Every log record in this scope has `task_id`; INFO/WARNING/error task output includes
-both task_id and trace_id. A missing trace ID stays empty (`-` in text), never inherited
-from the previous job or the worker caller. HTTP request IDs are not borrowed.
-The context manager restores previous context on return, exception, or cancellation.
-The log factory and filter share a single context-population helper.
-These task trace IDs correlate logs to the originating request; no OTel parent span
-is attached or created. Instrumented Redis/other spans may have independent trace IDs.
-HTTP log context behavior is unchanged. The enqueue DEBUG log includes envelope IDs.
+Celery ContextTask binds task ID and trace ID through task_log_context and restores
+context after execution. Tasks never borrow HTTP request IDs or a preceding task's
+context. Mail retries retain the Celery task ID and propagated trace header. This
+is log correlation, not OTel span propagation. See [Celery](CELERY.md) for execution
+and failure semantics. The legacy RedisTaskQueueWorker has been removed.
 
 ## Global Exception Log Levels
 
@@ -555,17 +548,11 @@ HTTP INFO/WARNING context visibility still follows the existing formatter policy
 
 ## Mail and Worker Log Ownership
 
-MailService logs a delivery attempt at DEBUG and provider send completion at INFO
-with the masked recipient. This records provider completion, not inbox delivery.
-Mail queue handlers do not repeat the success message; the generic worker retains
-its DEBUG task-completed event. Skipped sends retain existing skip logs.
-For `raise_on_failure=True`, MailService propagates the provider exception without
-logging it; the caller owns failure reporting. With `raise_on_failure=False`, it
-retains the ERROR stack trace before swallowing the exception.
-The worker records scheduled retries at WARNING without a stack trace, and final
-DLQ moves at ERROR with the original exception stack. Task/trace IDs remain available
-through the worker context. Retry counts, delays, queue payloads, and delivery behavior
-are unchanged. This policy does not change other observer or startup failure logs.
+MailService records delivery attempts at DEBUG and SMTP completion at INFO with a
+masked recipient. With raise_on_failure=True the worker owns failure handling.
+Celery mail tasks log retry scheduling at WARNING and archival at ERROR, without
+raw exception text or payloads. Task/trace IDs remain available. Task completion
+must be distinguished from SMTP delivery success.
 
 ## OTLP Log Export
 
@@ -666,9 +653,8 @@ login audit/history or live-presence feed. No role changes are exposed through t
 
 Use the shared query annotations and `PageResponse` for new offset list endpoints. Follow [search and pagination](../../notes/collections.md) for validation, literal search, ordering, totals and frontend usage. Existing API-key full-list pagination remains an explicit compatibility exception pending a separate contract migration.
 
-## Standalone Celery foundation
+## Standalone Celery
 
-See [Celery setup and background-work audit](CELERY.md). Celery workers and singleton
-Beat run outside the API. The existing mail worker remains unchanged until its
-producer, retry/DLQ and deployment cutover are migrated together. No DB migration
-or billing schedule is introduced by the foundation.
+Follow [Celery setup and mail queue migration](CELERY.md). Mail execution now runs
+outside the API and a worker is required when email is enabled. Beat remains
+optional with no business schedules. SQL schema and billing behavior are unchanged.

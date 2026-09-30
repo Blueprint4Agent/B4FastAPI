@@ -28,7 +28,7 @@ def create_celery_app(settings: Settings) -> Celery:
         "b4fastapi",
         broker=settings.celery_broker_url,
         task_cls=ContextTask,
-        include=["app.core.celery.tasks"],
+        include=["app.core.celery.tasks", "app.core.celery.mail"],
     )
     app.conf.update(
         accept_content=["json"],

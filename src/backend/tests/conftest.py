@@ -80,8 +80,16 @@ def integration_client(tmp_path: Path):
 
 
 @pytest.fixture
-def email_enabled_integration_client(tmp_path: Path):
+def email_enabled_integration_client(tmp_path: Path, monkeypatch):
     """Integration harness for EMAIL_ENABLED=true flow (provider mocked to null sender)."""
+    # Real broker/SMTP coverage lives in the worker tests; API flows record publication.
+    published_mail = []
+
+    async def capture_publish(name, *, payload):
+        published_mail.append((name, payload))
+        return "test-mail-task"
+
+    monkeypatch.setattr("app.core.mail.queue.publish_task", capture_publish)
     original_database_url = SETTINGS.DATABASE_URL
     original_email_enabled = SETTINGS.EMAIL_ENABLED
     original_login_enabled = SETTINGS.LOGIN_ENABLED
@@ -102,6 +110,7 @@ def email_enabled_integration_client(tmp_path: Path):
     app = create_app()
     try:
         with TestClient(app) as client:
+            client.published_mail = published_mail
             yield client
     finally:
         asyncio.run(RedisManager.close())

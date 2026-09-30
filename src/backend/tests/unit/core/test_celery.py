@@ -1,6 +1,6 @@
 import asyncio
 import threading
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from celery.contrib.testing.worker import start_worker
@@ -77,9 +77,10 @@ def test_publish_failure_is_not_reported_as_success(monkeypatch) -> None:
         asyncio.run(publish_task("b4fastapi.probe", payload={}))
 
 
-def test_worker_consumes_messages_and_clears_context() -> None:
+def test_worker_consumes_messages_and_clears_context(monkeypatch) -> None:
     """Scenario: a real worker consumes serialized messages and isolates task context."""
-    # Given: isolated test transports (production result storage remains disabled).
+    # Given: isolated transports and SMTP startup (never use developer credentials).
+    monkeypatch.setattr("app.core.celery.mail.MAIL_SERVICE.initialize", AsyncMock())
     app = create_celery_app(Settings(CELERY_BROKER_URL="memory://", CELERY_QUEUE="test.celery"))
     app.conf.update(result_backend="cache+memory://", task_ignore_result=False)
 
