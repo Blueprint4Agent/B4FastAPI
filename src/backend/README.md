@@ -181,3 +181,5 @@ Run tests:
 cd src/backend
 uv run pytest
 ```
+
+Stripe-hosted card and Link registration: [setup guide](../../notes/billing.md).

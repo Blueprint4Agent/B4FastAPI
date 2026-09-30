@@ -544,3 +544,5 @@ Change-scoped verification: [English](notes/verification.md) · [한국어](note
 
 Standalone worker/Beat setup and migration audit: [English](src/backend/CELERY.md).
 Korean guide: [한국어](notes/ko/backend/CELERY.md).
+
+Stripe / Link registration foundation: [English](notes/billing.md) · [한국어](notes/ko/billing.md).

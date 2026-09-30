@@ -692,3 +692,9 @@ Deletion code emails reuse the shared branded HTML shell and warning panel. The 
 Email brand defaults to B4A; EMAIL_BRAND_NAME overrides it for generated services. Recreate workers after changing mail branding or templates.
 
 Signup verification token lookup and deletion are one Redis WATCH/MULTI transaction, so concurrent consumers cannot both activate the account. Resend still invalidates older tokens; Celery only delivers messages and does not verify tokens.
+
+## Billing foundation
+
+Bearer-only Stripe-hosted card/Link setup follows the router/service/repository loop.
+Stripe owns registration state; no webhook projection or billing worker exists yet.
+See [configuration, ownership, retries and limitations](../../notes/billing.md).
