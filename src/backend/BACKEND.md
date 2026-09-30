@@ -695,7 +695,7 @@ Signup verification token lookup and deletion are one Redis WATCH/MULTI transact
 
 ## Billing foundation
 
-Bearer-only Stripe-hosted card/Link setup follows the router/service/repository loop.
+Bearer or application API-key authenticated Stripe-hosted card/Link setup follows the router/service/repository loop.
 Stripe owns registration state; no webhook projection or billing worker exists yet.
 See [configuration, ownership, retries and limitations](../../notes/billing.md).
 

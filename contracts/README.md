@@ -145,6 +145,6 @@ Verification accepts the existing language headers for the queued welcome messag
 
 ## Billing setup
 
-`/api/v1/billing` provides bearer-only config, setup-session creation/status and
+`/api/v1/billing` provides bearer-or-application-API-key config, setup-session creation/status and
 customer-scoped card/Link cursor lists. No charges or local payment status are created.
 See [billing setup](../notes/billing.md) for exact retry and ownership semantics.

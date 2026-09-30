@@ -39,11 +39,17 @@ def login(client, email="billing@example.com"):
     return {"Authorization": f"Bearer {response.json()['access_token']}"}
 
 
-def test_card_setup_from_empty_state_reuses_customer(integration_client, provider):
+@pytest.mark.parametrize("auth_mode", ["bearer", "api_key"])
+def test_card_setup_from_empty_state_reuses_customer(integration_client, provider, auth_mode):
     """Scenario: migrated empty DB stores one customer and reads confirmed Stripe state."""
     # Given: a new user with no billing profile.
     client = integration_client
     headers = login(client)
+    if auth_mode == "api_key":
+        issued = client.post("/api/v1/api-keys", headers=headers, json={"name": "billing"})
+        assert issued.status_code == 200
+        headers = {"X-API-Key": issued.json()["api_key"]}
+    assert client.get("/api/v1/billing/config", headers=headers).json()["enabled"] is True
     user_id = client.get("/api/v1/auth/me", headers=headers).json()["id"]
     provider.v1.checkout.sessions.retrieve_async.return_value.client_reference_id = str(user_id)
     assert client.get("/api/v1/billing/payment-methods", headers=headers).json()["items"] == []
@@ -59,8 +65,14 @@ def test_card_setup_from_empty_state_reuses_customer(integration_client, provide
     result = client.get("/api/v1/billing/setup-sessions/cs_test_fixture", headers=headers)
     assert result.status_code == 200
     assert result.json()["registered"] is True
+    assert client.get("/api/v1/billing/payment-methods", headers=headers).status_code == 200
+    provider.v1.customers.payment_methods.list_async.assert_awaited_once()
+    assert provider.v1.customers.payment_methods.list_async.call_args.args[0] == "cus_fixture"
     # When/Then: another user cannot read the session and GET creates no customer.
     other = login(client, "other-billing@example.com")
+    if auth_mode == "api_key":
+        issued = client.post("/api/v1/api-keys", headers=other, json={"name": "other-billing"})
+        other = {"X-API-Key": issued.json()["api_key"]}
     result = client.get("/api/v1/billing/setup-sessions/cs_test_fixture", headers=other)
     assert result.status_code == 404
     provider.v1.customers.create_async.assert_awaited_once()

@@ -25,8 +25,8 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    mapping table only; it cannot undo remote Stripe objects. The app still boots with billing disabled.
 5. In Swagger `/docs`, open Authorize and use OAuth2PasswordBearer with your app
    email as username and your app password. This obtains a bearer token through
-   `/api/v1/auth/token`. Neither X-API-Key nor the Stripe secret key authenticates
-   billing routes. Read billing config,
+   `/api/v1/auth/token`. Alternatively, enter your application API key in APIKeyHeader (X-API-Key).
+   The Stripe secret key is server-only and does not authenticate these routes. Read billing config,
    then `POST /api/v1/billing/setup-sessions` with a UUID body:
 
    ```json
@@ -50,7 +50,10 @@ needs no frontend publishable key or Stripe.js dependency.
 
 ## Contract and failure behavior
 
-All four operations require a bearer session; API-key-only requests are rejected.
+All four operations accept a bearer session or an application API key (`X-API-Key`).
+Keys act as their owner; existing keys gain billing access without reissuance.
+When both credentials are sent, both must be valid and identify the same user.
+In Swagger, clear expired OAuth2 authorization before testing only an API key.
 `GET /config` under `/api/v1/billing` exposes only `enabled` and `livemode`.
 Disabled configuration gives `BILLING_DISABLED` (503) on provider operations;
 enabled but incomplete configuration now aborts startup before serving requests;
@@ -110,3 +113,67 @@ The probe verifies authentication/connectivity and Checkout **read** permission 
 It does not prove write permissions, Link eligibility/enabling, live account activation,
 return URL reachability or successful card registration; complete the sandbox flow too.
 Read API reference: [List Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/list).
+
+## Request and response examples
+
+Illustrative schema-correct payloads; IDs and URLs are not usable provider objects. All four calls can use this header.
+
+```http
+X-API-Key: <APPLICATION_API_KEY>
+```
+
+1. `GET /api/v1/billing/config` → **200**
+
+```json
+{"enabled": true, "livemode": false}
+```
+
+2. `POST /api/v1/billing/setup-sessions` → **201**
+
+Request:
+```json
+{"request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29"}
+```
+
+Response:
+```json
+{"id": "cs_test_example", "url": "https://checkout.stripe.com/c/pay/example"}
+```
+
+3. `GET /api/v1/billing/setup-sessions/cs_test_example` → **200**
+
+```json
+{"id": "cs_test_example", "status": "complete", "registered": true}
+```
+
+4. `GET /api/v1/billing/payment-methods?method_type=card&limit=20` → **200**
+
+```json
+{
+  "items": [{"id": "pm_example", "type": "card", "brand": "visa", "last4": "4242", "exp_month": 12, "exp_year": 2030}],
+  "has_more": false,
+  "next_cursor": null
+}
+```
+
+`GET /api/v1/billing/payment-methods?method_type=link` → **200**
+
+```json
+{
+  "items": [{"id": "pm_linkexample", "type": "link", "brand": null, "last4": null, "exp_month": null, "exp_year": null}],
+  "has_more": false,
+  "next_cursor": null
+}
+```
+
+Empty:
+```json
+{"items": [], "has_more": false, "next_cursor": null}
+```
+
+Invalid API key → **401**:
+```json
+{"detail": {"error": "API_KEY_INVALID", "message": "Invalid API key."}}
+```
+
+Open the returned URL to finish hosted registration. Reuse request_id only for retries of the same action. Status may also be open or expired, with registered=false; trust registered, not status alone. With has_more=true, pass next_cursor as starting_after. Disabled billing returns config enabled=false, while provider calls return 503 BILLING_DISABLED. Other failures: 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 validation, 502 BILLING_UNAVAILABLE.

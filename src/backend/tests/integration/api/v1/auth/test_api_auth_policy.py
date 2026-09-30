@@ -6,7 +6,6 @@ import pytest
 
 from app.models.user import UserRole, Users
 from app.services.realtime import RealtimeService
-from tests.fixtures.billing_data import SETUP_REQUEST
 from tests.fixtures.payload_data import build_login_payload, build_signup_payload
 
 pytestmark = pytest.mark.primary_data
@@ -14,10 +13,6 @@ pytestmark = pytest.mark.primary_data
 SESSION_ONLY = [
     ("POST", "/api/v1/auth/me/deletion-code", None),
     ("DELETE", "/api/v1/auth/me", {"email": "tester@example.com", "code": "123456"}),
-    ("GET", "/api/v1/billing/config", None),
-    ("POST", "/api/v1/billing/setup-sessions", SETUP_REQUEST),
-    ("GET", "/api/v1/billing/setup-sessions/cs_test_fixture", None),
-    ("GET", "/api/v1/billing/payment-methods", None),
 ]
 ADMIN_PATHS = ["/api/v1/auth/admin/users", "/api/v1/auth/admin/user-role-stats"]
 
@@ -38,7 +33,7 @@ def credentials(integration_client):
 def test_issued_api_key_cannot_substitute_for_session(
     integration_client, credentials, method, path, body
 ):
-    """Scenario: all six session-only operations reject a real otherwise-valid API key."""
+    """Scenario: both session-only operations reject a real otherwise-valid API key."""
     # Given: a genuine key that authenticates the general user endpoint.
     bearer, key, _ = credentials
     assert integration_client.get("/api/v1/auth/me", headers=key).status_code == 200
@@ -124,9 +119,64 @@ def test_openapi_session_only_inventory_is_explicit(integration_client):
         if isinstance(operation, dict)
         and operation.get("security") == [{"OAuth2PasswordBearer": []}]
     }
-    # Then: it exactly matches the six known policy exceptions.
+    # Then: it exactly matches the two known policy exceptions.
     expected = {
         (method, path.replace("cs_test_fixture", "{session_id}"))
         for method, path, _ in SESSION_ONLY
     }
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "method,path,body",
+    [
+        ("GET", "/api/v1/billing/config", None),
+        (
+            "POST",
+            "/api/v1/billing/setup-sessions",
+            {"request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29"},
+        ),
+        ("GET", "/api/v1/billing/setup-sessions/cs_test_fixture", None),
+        ("GET", "/api/v1/billing/payment-methods", None),
+    ],
+)
+def test_billing_api_key_guards(integration_client, credentials, method, path, body):
+    """Scenario: billing accepts owner keys and rejects invalid, disabled and mixed credentials."""
+    # Given: an issued owner key and a second authenticated user.
+    client = integration_client
+    bearer, key, _ = credentials
+    assert (
+        client.post(
+            "/api/v1/auth/signup", json=build_signup_payload(email="other@example.com")
+        ).status_code
+        == 200
+    )
+    other = client.post("/api/v1/auth/login", json=build_login_payload(email="other@example.com"))
+    other_bearer = {"Authorization": f"Bearer {other.json()['access_token']}"}
+    # When/Then: invalid and conflicting credentials fail before Stripe I/O.
+    for headers, status_code, error in [
+        ({"X-API-Key": "invalid"}, 401, "API_KEY_INVALID"),
+        ({**key, "Authorization": "Bearer invalid"}, 401, "INVALID_TOKEN"),
+        ({**key, **other_bearer}, 403, "API_KEY_USER_MISMATCH"),
+    ]:
+        response = client.request(method, path, headers=headers, json=body)
+        assert response.status_code == status_code
+        assert response.json()["detail"]["error"] == error
+    for headers in [key, {**key, **bearer}]:
+        accepted = client.request(method, path, headers=headers, json=body)
+        assert accepted.status_code in {200, 503}
+    keys = client.get("/api/v1/api-keys", headers=bearer).json()
+    key_id = keys["items"][0]["id"]
+    assert (
+        client.patch(
+            f"/api/v1/api-keys/{key_id}/status", headers=bearer, json={"enabled": False}
+        ).status_code
+        == 200
+    )
+    rejected = client.request(method, path, headers=key, json=body)
+    assert rejected.status_code == 401
+    assert rejected.json()["detail"]["error"] == "API_KEY_INVALID"
+    template = path.replace("cs_test_fixture", "{session_id}")
+    operation = client.app.openapi()["paths"][template][method.lower()]
+    assert operation["security"] == [{"OAuth2PasswordBearer": []}, {"APIKeyHeader": []}]
+    assert "403" in operation["responses"]
