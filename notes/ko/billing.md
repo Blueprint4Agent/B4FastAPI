@@ -21,7 +21,10 @@
 4. 서버 시작 시 Alembic이 0007 다음 `0008_billing_customers`를 적용합니다.
    운영 DB는 정상 배포 절차에 따라 백업합니다. 롤백은 로컬 매핑만 삭제하며 Stripe
    객체는 그대로입니다. 결제 기능이 꺼져 있어도 앱은 시작됩니다.
-5. 로그인 후 `/docs`에서 bearer 토큰으로 인증하고 결제 설정을 조회합니다.
+5. `/docs`의 Authorize에서 OAuth2PasswordBearer를 선택하고 앱 이메일을 username,
+   앱 비밀번호를 password로 입력합니다. `/api/v1/auth/token`으로 bearer 토큰을
+   발급받습니다. X-API-Key나 Stripe 비밀 키로는 결제 API 인증이 되지 않습니다.
+   이후 결제 설정을 조회합니다.
    `POST /api/v1/billing/setup-sessions`에 다음과 같이 UUID를 전달합니다.
 
    ```json
@@ -48,7 +51,8 @@ Stripe 제공 화면을 사용하므로 프론트엔드 공개 키나 Stripe.js�
 
 모든 API는 bearer 세션이 필요하며 API 키만으로 접근할 수 없습니다.
 `GET /api/v1/billing/config`는 `enabled`, `livemode`만 공개합니다.
-비활성/설정 미완료는 `BILLING_DISABLED`(503), Stripe 장애/시간 초과는
+비활성은 `BILLING_DISABLED`(503)이며, 활성화된 설정이 미완료면 이제 서버 시작을
+중단합니다. 실행 중 Stripe 장애/시간 초과는
 `BILLING_UNAVAILABLE`(502), 본인 소유가 아닌 세션이나 없는 세션은
 `BILLING_NOT_FOUND`(404)입니다. 성공 응답은 `no-store`이며 추가 입력 필드를 거부합니다.
 
@@ -77,3 +81,27 @@ Stripe가 등록 상태의 원본이며 조회는 고객을 생성하지 않습�
 - [Checkout의 Link 설정](https://docs.stripe.com/payments/link/checkout-link)
 - [Stripe Python SDK](https://github.com/stripe/stripe-python)
 - [Stripe 테스트 카드](https://docs.stripe.com/testing)
+
+## 서버 시작 시 Stripe 검증
+
+SMTP 초기화처럼 DB 마이그레이션과 요청 수신 전에 Stripe 검증을 완료합니다.
+`STRIPE_ENABLED=false`면 비활성 로그만 남기며 설정 검증이나 외부 통신을 하지 않습니다.
+`true`일 때는 다음을 순서대로 수행합니다.
+
+1. 비밀/제한 키 형식, 두 복귀 URL과 포트, 성공 URL 플레이스홀더, 실서비스 HTTPS를
+   확인합니다. 오류에는 잘못된 환경변수 이름만 표시하고 입력 값은 노출하지 않습니다.
+2. 실제 비동기 SDK로 `GET /v1/checkout/sessions?limit=1`을 호출합니다. 새 샌드박스의
+   빈 목록도 성공입니다. 고객·등록 세션·결제를 생성하지 않고 조회 데이터는 기록하지 않습니다.
+3. 성공 후에만 `Stripe startup verification succeeded (mode=test/live)`를 남깁니다.
+   인증 실패, Checkout 읽기 권한 부족, 네트워크/API 장애, 시간 초과는 서버 시작을
+   중단하며 원본 응답이나 비밀 키를 포함하지 않는 사유를 표시합니다. HTTP 클라이언트는
+   성공/실패 모두 정리합니다.
+
+기존 요청 제한 5초, SDK 네트워크 재시도 1회, 외부 호출 전체 제한 20초를 재사용합니다.
+활성화 상태에서 검증을 건너뛰는 별도 설정은 없습니다. API 워커마다 시작할 때 검사하며
+상시 상태 확인이나 Celery 작업은 아닙니다. 따라서 Stripe 장애 시 활성화된 신규 API
+프로세스는 시작할 수 없습니다.
+이 검사는 인증·연결과 Checkout **읽기 권한**을 확인합니다. 쓰기 권한, Link 제공/활성화,
+실계정 활성화, 복귀 URL 접속 가능 여부, 실제 카드 등록 성공까지 보장하지는 않습니다.
+샌드박스 등록 흐름도 별도로 테스트하세요.
+[공식 조회 API](https://docs.stripe.com/api/checkout/sessions/list) 참고.

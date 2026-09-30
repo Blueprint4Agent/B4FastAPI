@@ -11,6 +11,7 @@ import stripe
 
 from app.core.config.settings import SETTINGS
 from app.core.error.billing_exception import BillingErrorCode, BillingException
+from app.core.observability.logging import get_logger
 from app.core.observability.service import observe_service
 from app.models.billing import (
     BillingConfigResponse,
@@ -22,28 +23,73 @@ from app.models.billing import (
     BillingSetupStatusResponse,
 )
 
+logger = get_logger("app.service.billing")
+
 
 class BillingService:
-    def config(self) -> BillingConfigResponse:
+    def _configuration_errors(self) -> list[str]:
         key = SETTINGS.STRIPE_SECRET_KEY.strip()
+        prefixes = ("sk_test_", "rk_test_", "sk_live_", "rk_live_")
         livemode = key.startswith(("sk_live_", "rk_live_"))
-        valid_key = key.startswith(("sk_test_", "rk_test_", "sk_live_", "rk_live_"))
-        urls = [SETTINGS.STRIPE_SETUP_SUCCESS_URL, SETTINGS.STRIPE_SETUP_CANCEL_URL]
-        valid_urls = all(self._valid_url(url, livemode) for url in urls)
+        errors = []
+        if not any(key.startswith(prefix) and len(key) > len(prefix) for prefix in prefixes):
+            errors.append("STRIPE_SECRET_KEY must be a Stripe secret or restricted API key.")
+        for name, url in (
+            ("STRIPE_SETUP_SUCCESS_URL", SETTINGS.STRIPE_SETUP_SUCCESS_URL),
+            ("STRIPE_SETUP_CANCEL_URL", SETTINGS.STRIPE_SETUP_CANCEL_URL),
+        ):
+            if not self._valid_url(url, livemode):
+                errors.append(
+                    f"{name} must be an absolute HTTP(S) URL without credentials or a fragment; "
+                    "live mode requires HTTPS."
+                )
+        if "{CHECKOUT_SESSION_ID}" not in SETTINGS.STRIPE_SETUP_SUCCESS_URL:
+            errors.append("STRIPE_SETUP_SUCCESS_URL must contain {CHECKOUT_SESSION_ID}.")
+        return errors
+
+    def config(self) -> BillingConfigResponse:
         return BillingConfigResponse(
-            enabled=bool(
-                SETTINGS.STRIPE_ENABLED
-                and valid_key
-                and valid_urls
-                and "{CHECKOUT_SESSION_ID}" in urls[0]
-            ),
-            livemode=livemode,
+            enabled=SETTINGS.STRIPE_ENABLED and not self._configuration_errors(),
+            livemode=SETTINGS.STRIPE_SECRET_KEY.strip().startswith(("sk_live_", "rk_live_")),
         )
+
+    async def initialize(self) -> None:
+        if not SETTINGS.STRIPE_ENABLED:
+            logger.info("Stripe integration is disabled.")
+            return
+        errors = self._configuration_errors()
+        if errors:
+            raise RuntimeError("Invalid Stripe configuration: " + " ".join(errors))
+        mode = "live" if self.config().livemode else "test"
+        logger.info("Stripe startup verification started (mode=%s).", mode)
+        try:
+            async with self._provider() as client:
+                try:
+                    # Authenticate against the API this integration actually uses.
+                    # Read at most one entry; never create resources or log its contents.
+                    await client.v1.checkout.sessions.list_async(params={"limit": 1})
+                except stripe.AuthenticationError:
+                    raise RuntimeError(
+                        "Stripe startup verification failed: authentication rejected. "
+                        "Check STRIPE_SECRET_KEY."
+                    ) from None
+                except stripe.PermissionError:
+                    raise RuntimeError(
+                        "Stripe startup verification failed: Checkout read permission denied. "
+                        "Check the Stripe API key permissions."
+                    ) from None
+        except BillingException:
+            raise RuntimeError(
+                "Stripe startup verification failed: Checkout API request failed or timed out. "
+                "Check network connectivity, Stripe availability and API key permissions."
+            ) from None
+        logger.info("Stripe startup verification succeeded (mode=%s).", mode)
 
     @staticmethod
     def _valid_url(url: str, livemode: bool) -> bool:
         try:
             parsed = urlsplit(url)
+            _ = parsed.port  # Reject malformed/out-of-range ports during configuration validation.
             return bool(
                 parsed.scheme in ("http", "https")
                 and parsed.hostname

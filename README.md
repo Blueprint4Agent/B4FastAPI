@@ -546,3 +546,5 @@ Standalone worker/Beat setup and migration audit: [English](src/backend/CELERY.m
 Korean guide: [한국어](notes/ko/backend/CELERY.md).
 
 Stripe / Link registration foundation: [English](notes/billing.md) · [한국어](notes/ko/billing.md).
+
+API authentication policy audit: [English](notes/api-authentication.md) · [한국어](notes/ko/api-authentication.md).

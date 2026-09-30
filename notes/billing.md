@@ -23,7 +23,10 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
 4. Start the API normally; startup Alembic applies `0008_billing_customers` after migration
    0007. Back up production databases before normal rollout. Downgrade drops the local
    mapping table only; it cannot undo remote Stripe objects. The app still boots with billing disabled.
-5. Sign in and authorize Swagger `/docs` with the bearer access token. Read billing config,
+5. In Swagger `/docs`, open Authorize and use OAuth2PasswordBearer with your app
+   email as username and your app password. This obtains a bearer token through
+   `/api/v1/auth/token`. Neither X-API-Key nor the Stripe secret key authenticates
+   billing routes. Read billing config,
    then `POST /api/v1/billing/setup-sessions` with a UUID body:
 
    ```json
@@ -49,7 +52,8 @@ needs no frontend publishable key or Stripe.js dependency.
 
 All four operations require a bearer session; API-key-only requests are rejected.
 `GET /config` under `/api/v1/billing` exposes only `enabled` and `livemode`.
-Disabled/incomplete configuration gives `BILLING_DISABLED` (503) on provider operations;
+Disabled configuration gives `BILLING_DISABLED` (503) on provider operations;
+enabled but incomplete configuration now aborts startup before serving requests;
 provider failures/timeouts become sanitized `BILLING_UNAVAILABLE` (502). A foreign or
 missing setup session gives `BILLING_NOT_FOUND` (404). Success responses use `no-store`.
 Customer IDs are server-owned and never supplied by callers. Extra setup fields are rejected.
@@ -82,3 +86,27 @@ No live Stripe account or end-to-end provider registration is verified by mocked
 - [Stripe: Link with Checkout](https://docs.stripe.com/payments/link/checkout-link)
 - [Stripe Python SDK](https://github.com/stripe/stripe-python)
 - [Stripe test cards](https://docs.stripe.com/testing)
+
+## Stripe startup verification
+
+Like SMTP initialization, the API lifespan awaits Stripe initialization before database
+migrations and before serving traffic. With `STRIPE_ENABLED=false`, it logs that Stripe
+is disabled and does no validation or network access. With `STRIPE_ENABLED=true`, it:
+
+1. Validates the secret/restricted key prefix, both return URLs (including ports), the
+   success placeholder, and HTTPS in live mode. Errors name fields but never their values.
+2. Uses the installed async SDK to issue a read-only `GET /v1/checkout/sessions?limit=1`.
+   Successful empty lists are valid, including a fresh sandbox. No customer, session or
+   payment is created; the returned session data is discarded and never logged by this probe.
+3. Logs `Stripe startup verification succeeded (mode=test/live)` only after success.
+   Invalid authentication, denied Checkout read permission, network/API failures or timeout
+   abort startup with a sanitized reason. The HTTP client is closed on success and failure.
+
+The existing limits apply: 5-second requests, one SDK network retry and a 20-second
+provider budget. There is no separate bypass flag when Stripe is enabled. Each API worker
+performs its own check on start; this is not continuous readiness polling or a Celery task.
+A Stripe outage therefore prevents a new Stripe-enabled API process from becoming ready.
+The probe verifies authentication/connectivity and Checkout **read** permission only.
+It does not prove write permissions, Link eligibility/enabling, live account activation,
+return URL reachability or successful card registration; complete the sandbox flow too.
+Read API reference: [List Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/list).

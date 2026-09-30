@@ -698,3 +698,8 @@ Signup verification token lookup and deletion are one Redis WATCH/MULTI transact
 Bearer-only Stripe-hosted card/Link setup follows the router/service/repository loop.
 Stripe owns registration state; no webhook projection or billing worker exists yet.
 See [configuration, ownership, retries and limitations](../../notes/billing.md).
+
+When Stripe is enabled, lifespan must await BillingService.initialize before migrations
+and serving requests. Invalid configuration or a failed bounded read-only Checkout
+probe aborts startup; disabled Stripe performs no external I/O. See the billing guide
+for permission coverage and sanitized failure behavior.
