@@ -179,3 +179,22 @@ async def delete_refresh_token(user_id: int) -> None:
         session_keys = [_refresh_session_key(session_id) for session_id in session_ids]
         await redis.delete(*session_keys)
     await redis.delete(_refresh_user_sessions_key(user_id))
+
+
+async def delete_account_tokens(user_id: int) -> None:
+    """Remove all refresh and one-time token indexes for a deleted account."""
+    await delete_refresh_token(user_id)
+    redis = await RedisManager.get_client()
+    await redis.delete(
+        *(
+            f"account_delete:{user_id}:{part}"
+            for part in ("challenge", "cooldown", "budget", "failures")
+        )
+    )
+    for prefix in ("email_verify", "password_reset"):
+        key = f"{prefix}_user_token:{user_id}"
+        token = await redis.get(key)
+        if token:
+            value = token.decode() if isinstance(token, bytes) else token
+            await redis.delete(f"{prefix}_token:{value}")
+        await redis.delete(key)

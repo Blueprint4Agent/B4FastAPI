@@ -134,3 +134,11 @@ and the latest successful login across linked identities (nullable if never reco
 Active means account enabled, not currently online. IPs, user agents, passwords,
 tokens and provider identifiers are excluded. This read-only snapshot is not a full
 login audit/history or live-presence feed. No role changes are exposed through this API.
+
+Account deletion: `DELETE /api/v1/auth/me` accepts `{email, code}` with bearer authentication
+(API-key-only requests are rejected), returns 204 and expires both refresh cookies.
+Deletion removes owned credentials/identities/API keys and rejects subsequent use of
+all previous tokens. Matching email and last-admin protection have typed error codes.
+Verification accepts the existing language headers for the queued welcome message.
+
+`POST /api/v1/auth/me/deletion-code` sends only to the session owner, returns expires_in=600/retry_after=60, and documents typed 429/503 responses. A six-digit code is required even for OAuth accounts; disabling email fails closed.

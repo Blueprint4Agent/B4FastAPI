@@ -9,7 +9,7 @@ from app.core.config.settings import SETTINGS, Settings
 from app.core.observability.logging import get_logger, mask_email
 
 logger = get_logger("app.core.mail.queue")
-MailKind = Literal["signup_verification", "password_reset"]
+MailKind = Literal["signup_verification", "password_reset", "welcome", "account_deletion"]
 MAIL_TASK_NAME = "b4fastapi.mail.send"
 
 
@@ -41,6 +41,29 @@ class MailQueueService:
             ttl_minutes=self.settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES,
         )
 
+    async def enqueue_welcome(self, *, to_email: str, user_name: str, language: str) -> None:
+        await self._enqueue(
+            "welcome",
+            to_email=to_email,
+            user_name=user_name,
+            link=self.settings.APP_BASE_URL.rstrip("/") + "/",
+            language=language,
+            ttl_minutes=24 * 60,
+        )
+
+    async def enqueue_account_deletion(
+        self, *, to_email: str, user_name: str, code: str, language: str
+    ) -> None:
+        await self._enqueue(
+            "account_deletion",
+            to_email=to_email,
+            user_name=user_name,
+            link="",
+            code=code,
+            language=language,
+            ttl_minutes=10,
+        )
+
     async def _enqueue(
         self,
         kind: MailKind,
@@ -50,6 +73,7 @@ class MailQueueService:
         link: str,
         language: str,
         ttl_minutes: int,
+        code: str | None = None,
     ) -> None:
         if not self.settings.EMAIL_ENABLED:
             return
@@ -59,6 +83,7 @@ class MailQueueService:
             payload={
                 "message": {
                     "kind": kind,
+                    **({"code": code} if kind == "account_deletion" else {}),
                     "to_email": to_email,
                     "user_name": user_name,
                     "link": link,

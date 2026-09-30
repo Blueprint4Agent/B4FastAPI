@@ -423,6 +423,12 @@
           },
           "error": {
             "enum": [
+              "ACCOUNT_DELETE_CODE_INVALID",
+              "ACCOUNT_DELETE_CODE_THROTTLED",
+              "ACCOUNT_DELETE_CODE_SEND_FAILED",
+              "ACCOUNT_DELETE_FAILED",
+              "ACCOUNT_DELETE_CONFIRMATION_REQUIRED",
+              "LAST_ADMIN_REQUIRED",
               "ADMIN_USERS_FAILED",
               "SIGNUP_FAILED",
               "EMAIL_ALREADY_EXISTS",
@@ -618,6 +624,45 @@
           "channel"
         ],
         "title": "ConnectedPayload",
+        "type": "object"
+      },
+      "DeleteAccountCodeResponse": {
+        "properties": {
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "retry_after": {
+            "title": "Retry After",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expires_in",
+          "retry_after"
+        ],
+        "title": "DeleteAccountCodeResponse",
+        "type": "object"
+      },
+      "DeleteAccountForm": {
+        "properties": {
+          "code": {
+            "pattern": "^[0-9]{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "email": {
+            "maxLength": 255,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "code"
+        ],
+        "title": "DeleteAccountForm",
         "type": "object"
       },
       "ForgotPasswordForm": {
@@ -2266,6 +2311,147 @@
       }
     },
     "/api/v1/auth/me": {
+      "delete": {
+        "description": "Permanently deletes the current account, credentials, OAuth identities and API keys. Requires bearer authentication, matching email confirmation and a single-use emailed code. Clears refresh cookies; all sessions stop authenticating.",
+        "operationId": "delete_me_api_v1_auth_me_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccountForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ACCOUNT_DELETE_CODE_INVALID",
+                    "message": "The deletion code is invalid, expired or locked. Request a new code after the cooldown."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INVALID_TOKEN",
+                    "message": "Invalid refresh token."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "LOGIN_DISABLED",
+                    "message": "Login is currently disabled."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "USER_NOT_FOUND",
+                    "message": "User not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "LAST_ADMIN_REQUIRED",
+                    "message": "Assign another active administrator before deleting this account."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ACCOUNT_DELETE_FAILED",
+                    "message": "Failed to delete account."
+                  }
+                },
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InternalErrorResponse"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Delete Me",
+        "tags": [
+          "Auth"
+        ]
+      },
       "get": {
         "operationId": "me_api_v1_auth_me_get",
         "responses": {
@@ -2469,6 +2655,122 @@
           }
         ],
         "summary": "Update Me",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me/deletion-code": {
+      "post": {
+        "operationId": "request_deletion_code_api_v1_auth_me_deletion_code_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccountCodeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INVALID_TOKEN",
+                    "message": "Invalid refresh token."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "LOGIN_DISABLED",
+                    "message": "Login is currently disabled."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "USER_NOT_FOUND",
+                    "message": "User not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ACCOUNT_DELETE_CODE_THROTTLED",
+                    "message": "Wait before requesting another deletion code."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ACCOUNT_DELETE_CODE_SEND_FAILED",
+                    "message": "Unable to queue the deletion code. Try again later."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Request Deletion Code",
         "tags": [
           "Auth"
         ]

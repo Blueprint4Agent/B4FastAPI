@@ -14,6 +14,7 @@ from sqlalchemy import (
     or_,
     select,
     text,
+    update,
 )
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
@@ -32,6 +33,7 @@ class UserRole(StrEnum):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = {"sqlite_autoincrement": True}
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
@@ -94,6 +96,16 @@ class AuthIdentity(Base):
     last_login_user_agent: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     user = relationship("User", back_populates="auth_identities")
+
+
+class DeleteAccountCodeResponse(BaseModel):
+    expires_in: int
+    retry_after: int
+
+
+class DeleteAccountForm(BaseModel):
+    email: str = Field(pattern=EMAIL_PATTERN, max_length=255)
+    code: str = Field(pattern=r"^[0-9]{6}$")
 
 
 class SignupForm(BaseModel):
@@ -472,16 +484,14 @@ class UserRepository:
     async def mark_email_verified(self, user_id: int) -> UserResponse | None:
         async with get_db() as db:
             result = await db.execute(
-                select(User).where(User.id == user_id, User.is_active.is_(True))
+                update(User)
+                .where(User.id == user_id, User.is_active.is_(True), User.is_verified.is_(False))
+                .values(is_verified=True)
+                .returning(User)
             )
             user = result.scalar_one_or_none()
-            if user is None:
-                return None
-
-            user.is_verified = True
             await db.commit()
-            await db.refresh(user)
-            return UserResponse.model_validate(user)
+            return UserResponse.model_validate(user) if user else None
 
     async def update_password_hash(self, user_id: int, password_hash: str) -> bool:
         async with get_db() as db:
@@ -538,6 +548,29 @@ class UserRepository:
             await db.commit()
 
         return await self.get_user_response_by_id(user_id)
+
+    async def delete_account(self, user_id: int, email: str) -> None:
+        """Delete credentials and owned keys atomically; serialize with role changes."""
+        async with get_db() as db:
+            if db.bind.dialect.name == "sqlite":
+                await db.execute(text("BEGIN IMMEDIATE"))
+            elif db.bind.dialect.name == "postgresql":
+                await db.execute(text("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"))
+            user = await db.scalar(select(User).where(User.id == user_id))
+            if user is None or not user.is_active:
+                raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+            if user.email.casefold() != email.strip().casefold():
+                raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CONFIRMATION_REQUIRED)
+            if user.role == UserRole.ADMIN.value:
+                admins = await db.scalar(
+                    select(func.count(User.id)).where(
+                        User.role == UserRole.ADMIN.value, User.is_active.is_(True)
+                    )
+                )
+                if admins <= 1:
+                    raise AuthException(code=AuthErrorCode.LAST_ADMIN_REQUIRED)
+            await db.delete(user)
+            await db.commit()
 
     async def set_operator_role(self, email: str, role: UserRole) -> tuple[int, str, str]:
         """Serialize operator changes and preserve at least one existing active admin."""

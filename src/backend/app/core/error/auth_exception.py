@@ -11,6 +11,36 @@ from .error import (
 
 
 class AuthErrorCode(Enum):
+    ACCOUNT_DELETE_CODE_INVALID = ServiceErrorCode(
+        "ACCOUNT_DELETE_CODE_INVALID",
+        "The deletion code is invalid, expired or locked. Request a new code after the cooldown.",
+        status.HTTP_400_BAD_REQUEST,
+    )
+    ACCOUNT_DELETE_CODE_THROTTLED = ServiceErrorCode(
+        "ACCOUNT_DELETE_CODE_THROTTLED",
+        "Wait before requesting another deletion code.",
+        status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+    ACCOUNT_DELETE_CODE_SEND_FAILED = ServiceErrorCode(
+        "ACCOUNT_DELETE_CODE_SEND_FAILED",
+        "Unable to queue the deletion code. Try again later.",
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+    ACCOUNT_DELETE_FAILED = ServiceErrorCode(
+        "ACCOUNT_DELETE_FAILED",
+        "Failed to delete account.",
+        status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+    ACCOUNT_DELETE_CONFIRMATION_REQUIRED = ServiceErrorCode(
+        "ACCOUNT_DELETE_CONFIRMATION_REQUIRED",
+        "Enter your current email to confirm deletion.",
+        status.HTTP_400_BAD_REQUEST,
+    )
+    LAST_ADMIN_REQUIRED = ServiceErrorCode(
+        "LAST_ADMIN_REQUIRED",
+        "Assign another active administrator before deleting this account.",
+        status.HTTP_409_CONFLICT,
+    )
     ADMIN_USERS_FAILED = ServiceErrorCode(
         "ADMIN_USERS_FAILED",
         "Failed to load the user directory.",

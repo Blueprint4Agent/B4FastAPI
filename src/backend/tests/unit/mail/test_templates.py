@@ -7,6 +7,7 @@ from app.core.mail.templates import (
     EmailContent,
     build_password_reset_email,
     build_verification_email,
+    build_welcome_email,
 )
 
 
@@ -25,7 +26,9 @@ class Links(HTMLParser):
             self.scripts.append(tag)
 
 
-@pytest.mark.parametrize("builder", [build_verification_email, build_password_reset_email])
+@pytest.mark.parametrize(
+    "builder", [build_verification_email, build_password_reset_email, build_welcome_email]
+)
 @pytest.mark.parametrize("language", ["en", "ko-KR"])
 def test_mail_preserves_links_plaintext_and_escapes_dynamic_html(
     builder: Callable[..., EmailContent], language: str
@@ -46,3 +49,21 @@ def test_mail_preserves_links_plaintext_and_escapes_dynamic_html(
     assert name in content.text
     assert f'lang="{language.split("-")[0]}"' in content.html
     assert content.subject
+
+
+@pytest.mark.parametrize("language", ["en", "ko"])
+def test_deletion_email_explains_consequences_without_action_links(language):
+    """Scenario: reading a deletion email cannot trigger deletion or expose an action URL."""
+    from app.core.mail.templates import build_account_deletion_email
+
+    # Given: an email with a six-digit code and untrusted display name.
+    content = build_account_deletion_email(
+        name="<script>name</script>", code="123456", language=language
+    )
+    # When: an email client parses its content.
+    parsed = Links()
+    parsed.feed(content.html)
+    # Then: code and expiry remain visible, with no actionable links or scripts.
+    assert "123456" in content.text and "123456" in content.html
+    assert "10" in content.text
+    assert not parsed.hrefs and not parsed.scripts

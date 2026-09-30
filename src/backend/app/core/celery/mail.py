@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from celery import Task
 from celery.signals import worker_init
-from pydantic import BaseModel, Field, FiniteFloat, ValidationError
+from pydantic import BaseModel, Field, FiniteFloat, ValidationError, model_validator
 from redis import Redis
 from redis.exceptions import RedisError
 
@@ -24,10 +24,20 @@ class MailJob(BaseModel):
     kind: MailKind
     to_email: str = Field(min_length=1)
     user_name: str
-    link: str = Field(min_length=1)
+    link: str = ""
+    code: str | None = Field(default=None, pattern=r"^[0-9]{6}$")
     language: str
     created_at: FiniteFloat
     expires_at: FiniteFloat
+
+    @model_validator(mode="after")
+    def validate_content(self) -> "MailJob":
+        if self.kind == "account_deletion":
+            if self.code is None:
+                raise ValueError("Missing deletion code")
+        elif not self.link:
+            raise ValueError("Missing mail link")
+        return self
 
 
 def archive_failure(*, task_id: str, record: dict[str, object]) -> None:
@@ -107,17 +117,18 @@ def send_mail(
             self, message=message, delivery_attempt=delivery_attempt, reason="expired"
         )
         return
-    sender = (
-        MAIL_SERVICE.send_signup_verification_email
-        if job.kind == "signup_verification"
-        else MAIL_SERVICE.send_password_reset_email
-    )
+    sender = {
+        "signup_verification": MAIL_SERVICE.send_signup_verification_email,
+        "password_reset": MAIL_SERVICE.send_password_reset_email,
+        "welcome": MAIL_SERVICE.send_welcome_email,
+        "account_deletion": MAIL_SERVICE.send_account_deletion_email,
+    }[job.kind]
     try:
         asyncio.run(
             sender(
                 to_email=job.to_email,
                 user_name=job.user_name,
-                link=job.link,
+                **({"code": job.code} if job.kind == "account_deletion" else {"link": job.link}),
                 language=job.language,
                 raise_on_failure=True,
             )

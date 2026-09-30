@@ -440,3 +440,149 @@ def test_email_enabled_forgot_password_issues_reset_token(
     )
     assert login_after_reset_response.status_code == 403
     assert login_after_reset_response.json()["detail"]["error"] == "EMAIL_NOT_VERIFIED"
+
+
+def _request_delete_code(client, headers, monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from app.core.config.settings import SETTINGS
+    from app.core.mail.queue import MAIL_QUEUE_SERVICE
+
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    publish = AsyncMock()
+    monkeypatch.setattr(MAIL_QUEUE_SERVICE, "enqueue_account_deletion", publish)
+    response = client.post("/api/v1/auth/me/deletion-code", headers=headers)
+    assert response.status_code == 200
+    assert response.json() == {"expires_in": 600, "retry_after": 60}
+    assert client.post("/api/v1/auth/me/deletion-code", headers=headers).status_code == 429
+    return publish.call_args.kwargs["code"]
+
+
+@pytest.mark.primary_data
+def test_delete_account_revokes_credentials_and_allows_fresh_signup(
+    integration_client, monkeypatch
+):
+    """Scenario: confirmed deletion removes owned data and old tokens cannot access a replacement."""
+    # Given: an account with a session and an owned API key.
+    client = integration_client
+    signup = client.post("/api/v1/auth/signup", json=build_signup_payload()).json()
+    login = client.post("/api/v1/auth/login", json=build_login_payload()).json()
+    headers = {"Authorization": f"Bearer {login['access_token']}"}
+    key = client.post("/api/v1/api-keys", json={"name": "delete-account-key"}, headers=headers)
+    assert key.status_code == 200
+    code = _request_delete_code(client, headers, monkeypatch)
+    api_headers = {"X-API-Key": key.json()["api_key"]}
+    assert client.post("/api/v1/auth/me/deletion-code", headers=api_headers).status_code == 401
+    assert (
+        client.request(
+            "DELETE",
+            "/api/v1/auth/me",
+            json={"email": signup["email"], "code": code},
+            headers=api_headers,
+        ).status_code
+        == 401
+    )
+    wrong = "000000" if code != "000000" else "111111"
+    assert (
+        client.request(
+            "DELETE",
+            "/api/v1/auth/me",
+            json={"email": signup["email"], "code": wrong},
+            headers=headers,
+        ).status_code
+        == 400
+    )
+    # When: only a session plus matching email may delete the account.
+    anonymous = client.request("DELETE", "/api/v1/auth/me", json={"email": signup["email"]})
+    assert anonymous.status_code == 401
+    malformed = client.request("DELETE", "/api/v1/auth/me", json={"email": "bad"}, headers=headers)
+    assert malformed.status_code == 422
+    mismatch = client.request(
+        "DELETE",
+        "/api/v1/auth/me",
+        json={"email": "other@example.com", "code": code},
+        headers=headers,
+    )
+    assert mismatch.status_code == 400
+    response = client.request(
+        "DELETE", "/api/v1/auth/me", json={"email": signup["email"], "code": code}, headers=headers
+    )
+    assert response.status_code == 204
+    assert "template_refresh_token" not in client.cookies
+    assert client.post("/api/v1/auth/refresh", json={}).status_code == 401
+    assert client.get("/api/v1/auth/me", headers=api_headers).status_code == 401
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 404
+    assert client.post("/api/v1/auth/login", json=build_login_payload()).status_code == 401
+    # Then: the email is reusable, but the old bearer subject is never reused (including SQLite).
+    from app.core.config.settings import SETTINGS
+
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", False)
+    replacement = client.post("/api/v1/auth/signup", json=build_signup_payload())
+    assert replacement.status_code == 200
+    assert replacement.json()["id"] != signup["id"]
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 404
+
+    async def owned_counts():
+        from sqlalchemy import func
+
+        from app.models.api_key import APIKey
+        from app.models.user import AuthIdentity, Credential
+
+        async with database.get_db() as db:
+            return [
+                await db.scalar(
+                    select(func.count()).select_from(model).where(model.user_id == signup["id"])
+                )
+                for model in (Credential, AuthIdentity, APIKey)
+            ]
+
+    assert asyncio.run(owned_counts()) == [0, 0, 0]
+
+
+@pytest.mark.primary_data
+def test_delete_last_admin_is_rejected(integration_client, monkeypatch):
+    """Scenario: deleting the last active administrator preserves administrative access."""
+    # Given: the only administrator.
+    client = integration_client
+    signup = client.post("/api/v1/auth/signup", json=build_signup_payload()).json()
+    asyncio.run(_set_user_role_by_email(signup["email"], "admin"))
+    login = client.post("/api/v1/auth/login", json=build_login_payload()).json()
+    code = _request_delete_code(
+        client, {"Authorization": f"Bearer {login['access_token']}"}, monkeypatch
+    )
+    # When: they confirm self deletion.
+    response = client.request(
+        "DELETE",
+        "/api/v1/auth/me",
+        json={"email": signup["email"], "code": code},
+        headers={"Authorization": f"Bearer {login['access_token']}"},
+    )
+    # Then: the account remains usable and the reason is actionable.
+    assert response.status_code == 409
+    assert response.json()["detail"]["error"] == "LAST_ADMIN_REQUIRED"
+
+
+@pytest.mark.email_enabled
+def test_welcome_is_queued_once_after_activation(email_enabled_integration_client):
+    """Scenario: activation queues a localized greeting, while token replay does not."""
+    from urllib.parse import parse_qs, urlparse
+
+    # Given: a pending signup and its queued verification URL.
+    client = email_enabled_integration_client
+    client.post("/api/v1/auth/signup", json=build_signup_payload())
+    message = client.published_mail[0][1]["message"]
+    assert message["kind"] == "signup_verification"
+    token = parse_qs(urlparse(message["link"]).query)["token"][0]
+    # When: activation succeeds.
+    response = client.post(
+        "/api/v1/auth/verify-email", json={"token": token}, headers={"X-App-Language": "ko"}
+    )
+    # Then: one greeting is queued, with no new verification or password-reset task.
+    assert response.status_code == 200
+    assert [item[1]["message"]["kind"] for item in client.published_mail] == [
+        "signup_verification",
+        "welcome",
+    ]
+    assert client.published_mail[-1][1]["message"]["language"] == "ko"
+    assert client.post("/api/v1/auth/verify-email", json={"token": token}).status_code == 401
+    assert len(client.published_mail) == 2

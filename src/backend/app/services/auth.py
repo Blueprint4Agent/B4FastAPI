@@ -33,6 +33,7 @@ from app.models.user import (
     UserRoleStatsResponse,
     Users,
 )
+from app.utils.account_verification import consume_deletion_code, issue_deletion_code
 from app.utils.cookies import get_refresh_cookie_value
 from app.utils.security import hash_password, verify_password
 from app.utils.token import (
@@ -42,6 +43,7 @@ from app.utils.token import (
     create_email_verification_token,
     create_password_reset_token,
     create_refresh_token,
+    delete_account_tokens,
     delete_refresh_token,
     get_refresh_session,
     store_email_verification_token,
@@ -203,7 +205,7 @@ class AuthService:
         )
         profile = await self._fetch_oauth_profile(provider, provider_config, access_token)
 
-        user = await self._resolve_oauth_user(profile)
+        user = await self._resolve_oauth_user(profile, request.headers.get("accept-language"))
         user_ip = self._get_client_ip(request)
         await Users.update_login_metadata(
             user_id=user.id,
@@ -246,6 +248,64 @@ class AuthService:
                 message=f"OAuth callback requires code and state (provider={provider.value}).",
             )
         return code, state
+
+    async def request_account_deletion_code(
+        self, user_id: int, preferred_language: str | None = None
+    ) -> None:
+        self._ensure_login_enabled()
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+        user = await Users.get_user_response_by_id(user_id)
+        if user is None:
+            raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+        try:
+            code, retry_after = await issue_deletion_code(
+                user_id,
+                ttl=600,
+                cooldown=60,
+                request_limit=5,
+                request_window=3600,
+            )
+            if code is None:
+                raise AuthException(
+                    code=AuthErrorCode.ACCOUNT_DELETE_CODE_THROTTLED,
+                    details={"remaining_seconds": retry_after},
+                )
+            await MAIL_QUEUE_SERVICE.enqueue_account_deletion(
+                to_email=user.email,
+                user_name=user.name,
+                code=code,
+                language=self._resolve_email_language(preferred_language),
+            )
+        except AuthException:
+            raise
+        except Exception as error:
+            raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CODE_SEND_FAILED) from error
+
+    async def delete_account(self, user_id: int, email: str, code: str) -> None:
+        self._ensure_login_enabled()
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+        try:
+            user = await Users.get_user_response_by_id(user_id)
+            if user is None:
+                raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+            if user.email.casefold() != email.strip().casefold():
+                raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CONFIRMATION_REQUIRED)
+            if not await consume_deletion_code(user_id, code, attempt_limit=5, window=600):
+                raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CODE_INVALID)
+            await Users.delete_account(user_id, email)
+        except AuthException:
+            raise
+        except Exception as error:
+            raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_FAILED) from error
+        try:
+            await delete_account_tokens(user_id)
+        except Exception:
+            # The deleted DB principal rejects access/refresh/one-time tokens even
+            # while Redis is unavailable; orphaned entries retain their normal TTL.
+            logger.exception("Deleted account token cleanup failed (user_id=%s).", user_id)
+        logger.info("Account deleted (user_id=%s).", user_id)
 
     async def signup(self, form: SignupForm, preferred_language: str | None = None) -> UserResponse:
         logger.info("Signup attempt (email=%s).", mask_email(form.email))
@@ -542,7 +602,9 @@ class AuthService:
                 return str(item["email"]).strip().lower(), True
         return "", False
 
-    async def _resolve_oauth_user(self, profile: OAuthIdentityProfile):
+    async def _resolve_oauth_user(
+        self, profile: OAuthIdentityProfile, preferred_language: str | None = None
+    ):
         if not profile.email_verified:
             logger.debug(
                 "OAuth profile rejected: unverified email (provider=%s).", profile.provider.value
@@ -613,6 +675,7 @@ class AuthService:
         logger.info(
             "OAuth user created (provider=%s, user_id=%s).", profile.provider.value, created_user.id
         )
+        await self._send_welcome_email(created_user, preferred_language)
         return created_user
 
     async def _http_request_json(
@@ -660,7 +723,7 @@ class AuthService:
 
         return client_ip
 
-    async def verify_email(self, token: str) -> UserResponse:
+    async def verify_email(self, token: str, preferred_language: str | None = None) -> UserResponse:
         user_id = await consume_email_verification_token(token)
         if user_id is None:
             logger.debug("Email verification failed: token invalid or expired.")
@@ -672,6 +735,7 @@ class AuthService:
         user = await Users.mark_email_verified(user_id)
         if user is None:
             raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+        await self._send_welcome_email(user, preferred_language)
         logger.info("Email verified (user_id=%s).", user.id)
         return user
 
@@ -797,6 +861,17 @@ class AuthService:
     async def _reset_login_fail_count(self, user_ip: str) -> None:
         redis = await RedisManager.get_client()
         await redis.delete(f"login_fail:{user_ip}")
+
+    async def _send_welcome_email(self, user: UserResponse, preferred_language: str | None) -> None:
+        try:
+            await MAIL_QUEUE_SERVICE.enqueue_welcome(
+                to_email=user.email,
+                user_name=user.name,
+                language=self._resolve_email_language(preferred_language),
+            )
+        except Exception:
+            # A greeting must not turn completed activation/OAuth login into failure.
+            logger.exception("Welcome email publication failed (user_id=%s).", user.id)
 
     async def _send_verification_email(
         self,
