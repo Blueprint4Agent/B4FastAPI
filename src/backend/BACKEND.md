@@ -686,3 +686,9 @@ and issuance for the remainder of the ten-minute attempt window; resending does 
 reset that budget. Redis/mail outages fail closed. EMAIL_ENABLED=false offers no bypass.
 The confirmation is a deletion-specific proof, separate from signup/reset tokens;
 receiving/opening the email itself cannot delete the account.
+
+Deletion code emails reuse the shared branded HTML shell and warning panel. The code replaces the CTA; code mail never includes an action or fallback link. Plaintext remains available.
+
+Email brand defaults to B4A; EMAIL_BRAND_NAME overrides it for generated services. Recreate workers after changing mail branding or templates.
+
+Signup verification token lookup and deletion are one Redis WATCH/MULTI transaction, so concurrent consumers cannot both activate the account. Resend still invalidates older tokens; Celery only delivers messages and does not verify tokens.

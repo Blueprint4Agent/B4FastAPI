@@ -78,7 +78,7 @@ class Settings(BaseModel):
     SMTP_USE_SSL: bool = os.getenv("SMTP_USE_SSL", "false").lower() == "true"
     SMTP_TIMEOUT_SECONDS: int = int(os.getenv("SMTP_TIMEOUT_SECONDS", "10"))
     SMTP_VALIDATE_ON_STARTUP: bool = os.getenv("SMTP_VALIDATE_ON_STARTUP", "true").lower() == "true"
-    EMAIL_BRAND_NAME: str = os.getenv("EMAIL_BRAND_NAME", "Blueprint4FastAPI")
+    EMAIL_BRAND_NAME: str = os.getenv("EMAIL_BRAND_NAME", "B4A")
     # Celery always uses a real broker, independently of REDIS_IN_MEMORY.
     CELERY_BROKER_URL: str = os.getenv("CELERY_BROKER_URL", "")
     CELERY_QUEUE: str = os.getenv("CELERY_QUEUE", "b4fastapi.default")
