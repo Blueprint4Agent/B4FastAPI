@@ -145,8 +145,8 @@ class VerificationTests(unittest.TestCase):
         (child / "new-runtime.ts").write_text("export const value = 1;\n")
         self.assertEqual(v.plan(self.root)["frontend"], "full")
 
-    def test_ci_required_names_and_no_path_filters(self):
-        # Workflow jobs remain present even on the lightweight path.
+    def test_manual_ci_retains_verification_jobs(self):
+        # Manual workflows retain full verification without automatic events.
         repo = Path(v.__file__).resolve().parent.parent
         workflow = repo / ".github/workflows/build.yml"
         names = ["Frontend checks", "Backend checks"]
@@ -157,9 +157,10 @@ class VerificationTests(unittest.TestCase):
         for name in names:
             self.assertIn(f"name: {name}", text)
         self.assertNotIn("paths:", text)
-        self.assertIn(
-            "cancel-in-progress: ${{ github.event_name == 'pull_request' }}", text
-        )
+        self.assertIn("cancel-in-progress: false", text)
+        self.assertIn("    workflow_dispatch:", text)
+        self.assertNotIn("\n    pull_request:", text)
+        self.assertNotIn("\n    push:", text)
         self.assertIn("fetch-depth: 0", text)
         self.assertIn("VERIFY_BASE:", text)
         self.assertIn(

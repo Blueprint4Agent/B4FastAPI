@@ -131,8 +131,7 @@ Values may differ by environment; their contents are never printed.
 Add shared backend settings to both `src/backend/.env.example` and
 `docker/.env.example`. `make env-contract-check` reports which example is missing
 each key and fails on mismatches, without requiring actual `.env` files or the
-frontend submodule. It also runs through `make check`, `make ci`, and GitHub CI's
-backend checks as a required validation step alongside lint/format checks. The regular
+frontend submodule. It also runs through `make check`, `make ci`, and local backend verification as a required validation step alongside lint/format checks. The regular
 env commands enforce this same comparison; `docker-env-check` additionally catches
 keys missing from the actual deployment `.env`. Frontend `VITE_*` settings are
 separate. Keys present only in a local `.env` are reported as additional keys;
@@ -449,18 +448,18 @@ Read guides/status → create task branch → draft the [worklog](.github/WORKLO
 With COMMIT_TITLE, `make git-governance-check` validates the staged snapshot and
 COMMIT_BODY_FILE; without it, the command checks HEAD. Supply PR_TITLE and
 PR_BODY_FILE together for planned PR validation. Untracked worklogs do not count.
-PR CI checks each authored commit and its matching worklog in the actual PR range,
-and reruns on title/body edits. History-integration merge commits are excluded.
-Python 3 standard library is required. See AGENTS.md for the complete workflow.
-
-Main requires a PR, Git governance and repository code checks. Required approval
-count is zero for solo maintenance; successful CI does not imply human design review.
-Writing the plan at task start is procedural; CI verifies committed evidence.
+Install local hooks with `make hooks-install` (included in `make init`). Commit messages and
+staged worklogs are checked on commit; every outgoing authored commit and change-scoped
+verification are checked on push. Actual PR metadata must be checked after edits and before
+merge using `PR_NUMBER=<number> make git-governance-pr-check`. Integration merges are excluded.
+Main requires PRs and resolved conversations and blocks deletion/force pushes. GitHub CI is
+manual-only with no required status checks; zero required approvals remain.
+See [local hooks](notes/local-hooks.md) · [한국어](notes/ko/local-hooks.md).
 
 ## Architecture checks
 
 Run `make architecture-check` to validate the documented static layer boundaries.
-It also runs in `make check` and required PR CI. Errors include file/line locations.
+It also runs in `make check` and local verification and optional manual CI. Errors include file/line locations.
 Use `make backend-architecture-check` or `make frontend-architecture-check` for
 a narrower scope. Backend routers delegate DB work to services; lower layers cannot
 import routers/app.main. Frontend UI consumes page-owned hooks instead of runtime API
@@ -517,7 +516,7 @@ can use it with login disabled; ordinary users cannot access its API or route.
 Roles remain managed with `make user-role`. Active means enabled, not online.
 No recorded login is shown explicitly; displayed times use the device time zone.
 
-Frontend state management and React optimization policy: [English](src/frontend/notes/react-performance.md) · [한국어](src/frontend/notes/ko/react-performance.md). Use `make frontend-react-performance-check` for safeguards and `make frontend-test-routes` for production route recovery; both are enforced by the frontend CI workflow.
+Frontend state management and React optimization policy: [English](src/frontend/notes/react-performance.md) · [한국어](src/frontend/notes/ko/react-performance.md). Use `make frontend-react-performance-check` for safeguards and `make frontend-test-routes` for production route recovery; both are included in local frontend verification.
 
 ## New project identity
 

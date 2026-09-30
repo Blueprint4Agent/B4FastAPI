@@ -8,15 +8,6 @@ on:
                 required: false
                 type: string
                 default: ""
-    schedule:
-        # Scheduled main desktop build. GitHub cron is UTC; 16:00 UTC is 01:00 KST.
-        - cron: "0 16 * * *"
-    push:
-        tags:
-            - "v*"
-    release:
-        types:
-            - published
 
 permissions:
     contents: write

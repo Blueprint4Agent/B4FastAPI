@@ -31,7 +31,7 @@ Before finalizing a commit, run validation through the root `Makefile` hooks.
 
 1. Run `make verify-plan`, then `make verify`. The shared classifier selects the minimum safe checks from actual changes. Set `VERIFY_BASE=<base-sha>` for all branch changes; the default HEAD includes staged, unstaged and untracked files.
 2. Docs and structurally unchanged locale copy use dependency-free text/JSON checks. Runtime, UI, protected/unknown files select progressively broader checks. Use `VERIFY_FULL=1 make verify` to escalate; never manually downgrade an uncertain change.
-3. Do not repeat checks already passed for the same relevant content in the child or through a delegated Make target. Re-run when subsequent changes invalidate that evidence. Parent CI still validates integration independently.
+3. Do not repeat checks already passed for the same relevant content in the child or through a delegated Make target. Re-run when subsequent changes invalidate that evidence. Parent integration targets still validate packaging/contracts locally.
 4. Record the selected scope and omitted checks/reason in the worklog and a short final summary. Required Git governance, ready PRs and merge protection remain mandatory.
 5. Follow [change-scoped verification](notes/verification.md). Keep related follow-up edits in one task PR until implementation is settled; update the parent gitlink once the child is merged. Read log summaries first, investigate failures selectively, and use a single CI watcher instead of repeated status probes.
 
@@ -164,35 +164,47 @@ contracts from parent files.
    `COMMIT_TITLE='type(scope): summary' COMMIT_BODY_FILE=/tmp/commit.txt make git-governance-check`.
    Planned validation reads the Git index, not untracked or unstaged content. Run it again after staging changes.
 7. Commit, push and create a ready PR. Validate PR_TITLE and PR_BODY_FILE together.
-8. Wait for required Git governance and code checks before merge; verify MERGE auto-merge registration.
+8. Confirm local hook checks and actual PR metadata validation before merge; use merge commits and verify MERGE if auto-merge is registered.
 
 The worklog template requires Design, Verification Plan, Loop Alignment and Verification
 in addition to the existing four sections. Each authored commit must add/modify a worklog
 whose Commit Title exactly matches that commit. Merge commits used to integrate branch
 history are excluded from per-commit checks; changes must be authored in ordinary commits.
 Start-time planning is a human/agent obligation: Git cannot prove when a plan was written.
-CI enforces committed evidence, nonempty sections and metadata, not design correctness.
+Local governance enforces committed evidence, nonempty sections and metadata, not design correctness.
 
-## PR Governance Enforcement
+## Local Governance and Manual GitHub Workflows
 
-`make git-governance-pr-check` reads the GitHub PR event via GITHUB_EVENT_PATH, checks
-branch/title/body, and validates every non-merge commit in base SHA..head SHA using
-its committed files. The dedicated Git governance workflow fetches full history and
-runs again on PR metadata edits. A local check without COMMIT_TITLE checks HEAD.
-The validator uses Python 3 (standard library only); the shell entry point is retained.
+Install versioned hooks once per clone with `make hooks-install` (also part of `make init`).
+The parent installs hooks in its initialized frontend submodule too. Existing custom
+core.hooksPath settings are preserved and require explicit reconciliation.
 
-Main policy: PR required, Git governance plus repository code checks required, deletion
-and force-push blocked. Approval count is zero to support solo maintenance; CI passing
-does not imply human review. Merge commit is the default, and alternate methods still
-require the user's explicit instruction. Required status contexts must match actual job names.
+`commit-msg` checks the actual message and staged matching worklog. Integration merge
+commits are excluded. `pre-push` requires a clean working tree/submodule and the exact
+checked-out HEAD, fetches remote main, checks every authored commit since its merge base,
+and runs `make verify-plan` then `make verify` against that full branch range. A failed
+check blocks the push. Do not bypass hooks to complete ordinary tasks.
 
-The desired ruleset is versioned in `.github/main-ruleset.json`. Apply it through
-GitHub Rulesets after the named CI jobs exist, preserving existing required checks.
-PR conversations must be resolved before merging. Ruleset changes require repository
-administration permission; do not bypass checks when that permission is unavailable.
+After creating or editing PR metadata run `PR_NUMBER=<number> make git-governance-pr-check`.
+This reads the actual GitHub title/body and verifies the complete commit range locally.
+Planned PR validation with PR_TITLE/PR_BODY_FILE remains available. Rerun the actual PR
+check immediately before merge; metadata edited on GitHub cannot trigger a local hook.
+
+GitHub workflows are workflow_dispatch-only, including image/desktop builds; no automatic
+PR, push, schedule, tag or release runs. Main still requires a PR, resolved conversations,
+and protects deletion/non-fast-forward updates, with zero required approvals. Required
+status checks are removed from `.github/main-ruleset.json` and the live ruleset. Use merge
+commits by default. Local hooks are bypassable and are not a server-side CI guarantee.
+Do not disable PR or history protection. Apply ruleset changes only with repository admin
+permission; never bypass unavailable permissions.
+
+Successful Make command receipts are local and content-bound for at most 24 hours.
+Only unchanged code/docs/config, tool/environment context and required build outputs
+permit reuse; worklog-only outcome edits still receive text and governance validation.
+CI/manual Actions and VERIFY_FULL=1 ignore receipts. See notes/local-hooks.md.
 
 ## Frontend state and React performance
 
 Follow the pinned frontend [state/performance policy](src/frontend/notes/react-performance.md) for all frontend runtime work. State ownership review, React.memo at expensive stable-prop boundaries (or an explicit reason not to apply it), and observed evidence are the default workflow. Do not add Zustand/Redux or blanket memo wrappers without a concrete need. Keep independent optimizations in separate branches/worklogs/PRs. Frontend worklogs and enforcement belong in B4React; parent worklogs record integration checks and loop impact.
 
-`make frontend-react-performance-check` delegates static/policy fixtures to the pinned child; it is also included transitively in `make check`. `make frontend-test` covers render/config regressions; `make frontend-test-routes` builds and checks production chunk loading/recovery. Run browser UI checks for layout changes. The required parent Frontend checks CI also runs production route tests, preserving the child harness when integrating a new gitlink.
+`make frontend-react-performance-check` delegates static/policy fixtures to the pinned child; it is also included transitively in `make check`. `make frontend-test` covers render/config regressions; `make frontend-test-routes` builds and checks production chunk loading/recovery. Run browser UI checks for layout changes. Parent local verification also runs production route tests, preserving the child harness when integrating a new gitlink.
