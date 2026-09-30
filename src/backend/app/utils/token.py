@@ -3,6 +3,7 @@ import secrets
 from datetime import UTC, datetime, timedelta
 
 from jose import jwt
+from redis.exceptions import WatchError
 
 from app.core.cache.redis import RedisManager
 from app.core.config.settings import SETTINGS
@@ -133,22 +134,28 @@ async def get_refresh_session_user_id(session_id: str) -> int | None:
 async def consume_email_verification_token(token: str) -> int | None:
     redis = await RedisManager.get_client()
     key = f"email_verify_token:{token}"
-    stored_user_id = await redis.get(key)
-    if stored_user_id is None:
-        return None
-
-    try:
-        user_id = int(stored_user_id)
-    except (TypeError, ValueError):
-        return None
-
-    current_token = await redis.get(f"email_verify_user_token:{user_id}")
-    if current_token != token:
-        return None
-
-    await redis.delete(key)
-    await redis.delete(f"email_verify_user_token:{user_id}")
-    return user_id
+    for _ in range(8):
+        async with redis.pipeline(transaction=True) as pipe:
+            try:
+                await pipe.watch(key)
+                stored_user_id = await pipe.get(key)
+                if stored_user_id is None:
+                    return None
+                try:
+                    user_id = int(stored_user_id)
+                except (TypeError, ValueError):
+                    return None
+                user_key = f"email_verify_user_token:{user_id}"
+                await pipe.watch(user_key)
+                if await pipe.get(user_key) != token:
+                    return None
+                pipe.multi()
+                pipe.delete(key, user_key)
+                await pipe.execute()
+                return user_id
+            except WatchError:
+                continue
+    raise RuntimeError("Email verification token contention")
 
 
 async def consume_password_reset_token(token: str) -> int | None:

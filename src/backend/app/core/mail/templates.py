@@ -196,6 +196,7 @@ def _build_email_html(
     manual_link_label: str,
     theme: TemplateTheme,
     locale: str,
+    code: str | None = None,
 ) -> str:
     # Mail is self-contained: inline styles, system fonts and presentation tables.
     app_name, preheader, heading, intro, cta_label, link, outro, footer, manual_link_label = (
@@ -217,6 +218,26 @@ def _build_email_html(
         if footer.strip()
         else ""
     )
+    if code is not None:
+        action_html = (
+            f'<p style="margin:0 0 24px;padding:20px 12px;border:1px solid {theme.panel_border};'
+            f"border-radius:8px;background-color:{theme.muted_bg};color:{theme.text_primary};"
+            f"font-family:monospace;font-size:32px;line-height:1.4;letter-spacing:6px;"
+            f'font-weight:600;text-align:center;">{escape(code)}</p>'
+        )
+        fallback_html = ""
+    else:
+        action_html = f"""            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
+              <tr><td align="center" bgcolor="{theme.cta_bg}" style="border-radius:999px;background-color:{theme.cta_bg};mso-padding-alt:12px 24px;">
+                <a href="{link}" style="display:inline-block;padding:12px 24px;border:1px solid {theme.cta_bg};border-radius:999px;background-color:{theme.cta_bg};color:{theme.cta_fg};font-size:14px;font-weight:500;line-height:20px;text-decoration:none;text-align:center;">{cta_label}</a>
+              </td></tr>
+            </table>
+"""
+        fallback_html = f"""            <div style="margin-top:24px;padding-top:16px;border-top:1px solid {theme.panel_border};">
+              <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:{theme.text_secondary};">{manual_link_label}</p>
+              <a href="{link}" style="font-size:12px;line-height:1.6;color:{theme.text_secondary};text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;">{link}</a>
+            </div>
+"""
     return f"""<!doctype html>
 <html lang="{locale}">
   <head>
@@ -233,19 +254,12 @@ def _build_email_html(
           <tr><td style="padding:24px;">
             <h1 style="margin:0 0 12px;font-size:22px;font-weight:500;line-height:1.35;color:{theme.text_primary};">{heading}</h1>
             <p style="margin:0 0 24px;font-size:14px;line-height:1.6;color:{theme.text_secondary};">{intro}</p>
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
-              <tr><td align="center" bgcolor="{theme.cta_bg}" style="border-radius:999px;background-color:{theme.cta_bg};mso-padding-alt:12px 24px;">
-                <a href="{link}" style="display:inline-block;padding:12px 24px;border:1px solid {theme.cta_bg};border-radius:999px;background-color:{theme.cta_bg};color:{theme.cta_fg};font-size:14px;font-weight:500;line-height:20px;text-decoration:none;text-align:center;">{cta_label}</a>
-              </td></tr>
-            </table>
+            {action_html}
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr><td style="padding:12px 14px;border-radius:8px;background-color:{theme.muted_bg};font-size:12px;line-height:1.6;color:{theme.muted_fg};">{outro}</td></tr>
             </table>
             {footer_html}
-            <div style="margin-top:24px;padding-top:16px;border-top:1px solid {theme.panel_border};">
-              <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:{theme.text_secondary};">{manual_link_label}</p>
-              <a href="{link}" style="font-size:12px;line-height:1.6;color:{theme.text_secondary};text-decoration:underline;word-break:break-all;overflow-wrap:anywhere;">{link}</a>
-            </div>
+            {fallback_html}
           </td></tr>
         </table>
       </td></tr>
@@ -259,7 +273,7 @@ def build_verification_email(
     *,
     name: str | None,
     link: str,
-    app_name: str = "Blueprint4FastAPI",
+    app_name: str = "B4A",
     language: str | None = None,
 ) -> EmailContent:
     locale = resolve_locale(language)
@@ -286,7 +300,7 @@ def build_password_reset_email(
     *,
     name: str | None,
     link: str,
-    app_name: str = "Blueprint4FastAPI",
+    app_name: str = "B4A",
     language: str | None = None,
 ) -> EmailContent:
     locale = resolve_locale(language)
@@ -313,7 +327,7 @@ def build_welcome_email(
     *,
     name: str | None,
     link: str,
-    app_name: str = "Blueprint4FastAPI",
+    app_name: str = "B4A",
     language: str | None = None,
 ) -> EmailContent:
     locale = resolve_locale(language)
@@ -350,7 +364,7 @@ def build_account_deletion_email(
     *,
     name: str | None,
     code: str,
-    app_name: str = "Blueprint4FastAPI",
+    app_name: str = "B4A",
     language: str | None = None,
 ) -> EmailContent:
     locale = resolve_locale(language)
@@ -364,5 +378,18 @@ def build_account_deletion_email(
         intro = f"Hi {display_name}, you requested deletion of your {app_name} account. This code expires in 10 minutes."
         warning = "Entering this code and confirming deletion permanently removes your account and associated data. If you did not request this, do not share or enter this code."
     # A code-only email has no action URL, so opening a mail client cannot delete an account.
-    html = f"<html lang='{locale}'><body><h1>{escape(subject)}</h1><p>{escape(intro)}</p><p style='font-size:32px;letter-spacing:6px;font-weight:600'>{escape(code)}</p><p>{escape(warning)}</p></body></html>"
+    html = _build_email_html(
+        app_name=app_name,
+        preheader=intro,
+        heading=subject,
+        intro=intro,
+        cta_label="",
+        link="",
+        outro=warning,
+        footer="",
+        manual_link_label="",
+        theme=FRONTEND_LIGHT_THEME,
+        locale=locale,
+        code=code,
+    )
     return EmailContent(subject=subject, text=f"{intro}\n\n{code}\n\n{warning}", html=html)

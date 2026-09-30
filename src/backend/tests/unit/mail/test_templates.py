@@ -67,3 +67,10 @@ def test_deletion_email_explains_consequences_without_action_links(language):
     assert "123456" in content.text and "123456" in content.html
     assert "10" in content.text
     assert not parsed.hrefs and not parsed.scripts
+    assert 'role="presentation"' in content.html
+    assert "max-width:480px" in content.html
+    assert 'lang="' + language + '"' in content.html
+    assert "&lt;script&gt;" in content.html
+    assert "href=" not in content.html
+    assert "B4A" in content.html
+    assert "Blueprint4FastAPI" not in content.html
