@@ -24,7 +24,7 @@ help: ## Show available Make targets
 	@awk 'BEGIN {FS = ":.*##"; printf "Available targets:\n"} /^[a-zA-Z0-9_.-]+:.*##/ {printf "  %-28s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 .PHONY: init
-init: frontend-init ## Initialize backend, frontend, and docker env files
+init: frontend-init hooks-install ## Initialize backend, frontend, and docker env files
 	bash ./docker/scripts/init-env.sh
 
 .PHONY: env-sync env-check docker-env-sync docker-env-check env-contract-check
@@ -188,8 +188,8 @@ frontend-api-check: ## Detect generated frontend type drift
 export COMMIT_TITLE COMMIT_BODY_FILE PR_TITLE PR_BODY_FILE MERGE_METHOD ALLOW_NON_MERGE_METHOD
 
 .PHONY: git-governance-pr-check
-git-governance-pr-check: ## Validate actual PR metadata and every authored commit
-	bash ./scripts/validate-git-governance.sh --event-file "$(GITHUB_EVENT_PATH)"
+git-governance-pr-check: ## Validate actual PR metadata locally (PR_NUMBER) or a supplied event
+	@if [ -n "$(PR_NUMBER)" ]; then python3 scripts/git_hooks.py pr-check "$(PR_NUMBER)"; elif [ -n "$(GITHUB_EVENT_PATH)" ]; then bash ./scripts/validate-git-governance.sh --event-file "$(GITHUB_EVENT_PATH)"; else echo 'Set PR_NUMBER or GITHUB_EVENT_PATH' >&2; exit 1; fi
 
 .PHONY: architecture-check backend-architecture-check frontend-architecture-check
 architecture-check: backend-architecture-check frontend-architecture-check ## Check backend/frontend dependency boundaries
@@ -280,3 +280,11 @@ docker-celery-up: ## Start opt-in Celery worker and singleton Beat using the app
 
 docker-celery-down: ## Stop Celery processes without stopping API or Redis
 	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --profile celery stop celery-worker celery-beat
+
+.PHONY: hooks-install hooks-test
+hooks-install: ## Install commit-msg and pre-push hooks in this clone
+	python3 scripts/git_hooks.py install
+	$(MAKE) -C $(FRONTEND_DIR) hooks-install
+hooks-test: ## Test Git hooks and verification receipt invalidation
+	python3 -m unittest discover -s scripts -p 'test_git_hooks.py'
+	python3 -m unittest discover -s scripts -p 'test_verification_cache.py'

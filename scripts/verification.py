@@ -9,6 +9,8 @@ import subprocess
 import sys
 import time
 
+from verification_cache import Receipt
+
 LEVELS = {"none": 0, "docs": 1, "copy": 2, "behavior": 3, "ui": 4, "full": 5}
 
 
@@ -187,7 +189,7 @@ def lightweight(root, base, head):
 
 
 def targets(scope, parent, domain):
-    commands = []
+    commands = [["make", "hooks-test"]] if scope["frontend"] == "full" else []
     if parent and domain in ("all", "backend") and scope["backend"]:
         commands.append(
             [
@@ -281,6 +283,11 @@ def main():
             lightweight(root / "src/frontend", old, new)
         if args.action == "run":
             for command in commands:
+                receipt = Receipt(root, command)
+                if not args.full and receipt.reusable():
+                    print("Reused matching local verification: " + " ".join(command), flush=True)
+                    continue
+                receipt.invalidate()
                 print("Running: " + " ".join(command), flush=True)
                 logs = (
                     Path(git(root, "rev-parse", "--absolute-git-dir").decode().strip())
@@ -299,6 +306,7 @@ def main():
                         file=sys.stderr,
                     )
                     raise subprocess.CalledProcessError(completed.returncode, command)
+                receipt.save()
                 print(
                     f"Passed ({time.monotonic() - started:.1f}s). Log: {log}",
                     flush=True,

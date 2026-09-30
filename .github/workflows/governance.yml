@@ -1,13 +1,17 @@
 name: Git governance
 on:
-    pull_request:
-        branches: [main]
-        types: [opened, synchronize, reopened, edited, ready_for_review]
+    workflow_dispatch:
+        inputs:
+            pr_number:
+                description: "Pull request number to validate"
+                required: true
+                type: string
 permissions:
     contents: read
+    pull-requests: read
 concurrency:
-    group: governance-${{ github.event.pull_request.number }}
-    cancel-in-progress: true
+    group: governance-manual-${{ inputs.pr_number }}
+    cancel-in-progress: false
 jobs:
     governance:
         name: Git governance
@@ -15,9 +19,13 @@ jobs:
         steps:
             - uses: actions/checkout@v7
               with:
-                  ref: ${{ github.event.pull_request.head.sha }}
+                  ref: refs/pull/${{ inputs.pr_number }}/head
                   fetch-depth: 0
             - uses: actions/setup-python@v5
               with:
                   python-version: "3.12"
-            - run: make git-governance-pr-check
+            - name: Check actual PR metadata and authored commits
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  PR_NUMBER: ${{ inputs.pr_number }}
+              run: make git-governance-pr-check
