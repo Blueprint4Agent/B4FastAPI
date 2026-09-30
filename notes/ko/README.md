@@ -529,3 +529,7 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 ## Celery
 
 [worker·Beat 실행 및 기존 작업 이전 조사](backend/CELERY.md)를 참고하세요.
+
+Stripe·Link 카드 등록 기본 구성: [한국어](billing.md) · [English](../billing.md).
+
+API 인증 정책 점검: [한국어](api-authentication.md) · [English](../api-authentication.md).

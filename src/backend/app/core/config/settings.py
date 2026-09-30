@@ -37,6 +37,11 @@ class Settings(BaseModel):
     )
     OTEL_TRACE_SAMPLE_RATIO: float = float(os.getenv("OTEL_TRACE_SAMPLE_RATIO", "1.0"))
 
+    STRIPE_ENABLED: bool = os.getenv("STRIPE_ENABLED", "false").lower() == "true"
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_SETUP_SUCCESS_URL: str = os.getenv("STRIPE_SETUP_SUCCESS_URL", "")
+    STRIPE_SETUP_CANCEL_URL: str = os.getenv("STRIPE_SETUP_CANCEL_URL", "")
+
     SECRET_KEY: str = os.getenv("SECRET_KEY", "CHANGE_ME")
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))

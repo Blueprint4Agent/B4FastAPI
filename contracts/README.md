@@ -142,3 +142,9 @@ all previous tokens. Matching email and last-admin protection have typed error c
 Verification accepts the existing language headers for the queued welcome message.
 
 `POST /api/v1/auth/me/deletion-code` sends only to the session owner, returns expires_in=600/retry_after=60, and documents typed 429/503 responses. A six-digit code is required even for OAuth accounts; disabling email fails closed.
+
+## Billing setup
+
+`/api/v1/billing` provides bearer-only config, setup-session creation/status and
+customer-scoped card/Link cursor lists. No charges or local payment status are created.
+See [billing setup](../notes/billing.md) for exact retry and ownership semantics.

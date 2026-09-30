@@ -180,3 +180,5 @@ uv run ruff format .
 cd src/backend
 uv run pytest
 ```
+
+Stripe·Link 카드 등록: [설정 안내](../billing.md).

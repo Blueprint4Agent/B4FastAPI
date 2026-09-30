@@ -29,7 +29,8 @@ from app.core.observability.request_context import (
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
 from app.models.user import UserResponse, UserRole, Users
-from app.routers.v1 import api_key, auth, events
+from app.routers.v1 import api_key, auth, billing, events
+from app.services.billing import BillingService
 from app.utils.token import create_access_token
 
 logger = get_logger("app.main")
@@ -97,6 +98,7 @@ async def lifespan(_app: FastAPI):
         logger.info("OAuth configuration validation succeeded.")
 
     await MAIL_SERVICE.initialize()
+    await BillingService().initialize()
     await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
     logger.info("Database schema migration check complete (target=head).")
     await init_db()
@@ -260,6 +262,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
     app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])
+    app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
     app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
 
     if static_dist_dir.exists():

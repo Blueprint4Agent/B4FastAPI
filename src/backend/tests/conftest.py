@@ -17,6 +17,12 @@ from tests.fixtures.scenario_seed_data import (
 )
 
 
+@pytest.fixture(autouse=True)
+def stripe_disabled_by_default(monkeypatch):
+    """Tests opt in with a mocked provider; never probe a developer's Stripe account."""
+    monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", False)
+
+
 @pytest.fixture
 def sample_user() -> UserResponse:
     return UserResponse(

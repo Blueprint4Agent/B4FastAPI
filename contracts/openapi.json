@@ -475,6 +475,233 @@
         "title": "AuthErrorResponse",
         "type": "object"
       },
+      "BillingConfigResponse": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "livemode": {
+            "title": "Livemode",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "livemode"
+        ],
+        "title": "BillingConfigResponse",
+        "type": "object"
+      },
+      "BillingErrorDetail": {
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "error": {
+            "enum": [
+              "BILLING_DISABLED",
+              "BILLING_UNAVAILABLE",
+              "BILLING_NOT_FOUND",
+              "BILLING_RECONCILIATION_REQUIRED"
+            ],
+            "example": "BILLING_DISABLED",
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "BillingErrorDetail",
+        "type": "object"
+      },
+      "BillingErrorResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/BillingErrorDetail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "BillingErrorResponse",
+        "type": "object"
+      },
+      "BillingPaymentMethodResponse": {
+        "properties": {
+          "brand": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand"
+          },
+          "exp_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exp Month"
+          },
+          "exp_year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exp Year"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "last4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last4"
+          },
+          "type": {
+            "enum": [
+              "card",
+              "link"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ],
+        "title": "BillingPaymentMethodResponse",
+        "type": "object"
+      },
+      "BillingPaymentMethodsResponse": {
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BillingPaymentMethodResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "has_more"
+        ],
+        "title": "BillingPaymentMethodsResponse",
+        "type": "object"
+      },
+      "BillingSetupForm": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "description": "Reuse this UUID when retrying the same setup request.",
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "BillingSetupForm",
+        "type": "object"
+      },
+      "BillingSetupResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "url"
+        ],
+        "title": "BillingSetupResponse",
+        "type": "object"
+      },
+      "BillingSetupStatusResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "registered": {
+            "title": "Registered",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "complete",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "registered"
+        ],
+        "title": "BillingSetupStatusResponse",
+        "type": "object"
+      },
       "Body_oauth_token_login_api_v1_auth_token_post": {
         "properties": {
           "client_id": {
@@ -3576,6 +3803,577 @@
         "summary": "Verify Email",
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/api/v1/billing/config": {
+      "get": {
+        "operationId": "billing_config_api_v1_billing_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INVALID_TOKEN",
+                    "message": "Invalid refresh token."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Billing Config Api V1 Billing Config Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_RECONCILIATION_REQUIRED",
+                    "message": "Customer setup requires operator reconciliation."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Billing Config",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/payment-methods": {
+      "get": {
+        "operationId": "list_payment_methods_api_v1_billing_payment_methods_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "method_type",
+            "required": false,
+            "schema": {
+              "default": "card",
+              "enum": [
+                "card",
+                "link"
+              ],
+              "title": "Method Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "starting_after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "pattern": "^pm_[A-Za-z0-9]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Starting After"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPaymentMethodsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INVALID_TOKEN",
+                    "message": "Invalid refresh token."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 List Payment Methods Api V1 Billing Payment Methods Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_RECONCILIATION_REQUIRED",
+                    "message": "Customer setup requires operator reconciliation."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "List Payment Methods",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/setup-sessions": {
+      "post": {
+        "operationId": "create_setup_api_v1_billing_setup_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingSetupForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSetupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INVALID_TOKEN",
+                    "message": "Invalid refresh token."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Create Setup Api V1 Billing Setup Sessions Post"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_RECONCILIATION_REQUIRED",
+                    "message": "Customer setup requires operator reconciliation."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Create Setup",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/setup-sessions/{session_id}": {
+      "get": {
+        "operationId": "setup_status_api_v1_billing_setup_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "pattern": "^cs_[A-Za-z0-9_]+$",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSetupStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INVALID_TOKEN",
+                    "message": "Invalid refresh token."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Setup Status Api V1 Billing Setup Sessions  Session Id  Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_RECONCILIATION_REQUIRED",
+                    "message": "Customer setup requires operator reconciliation."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "summary": "Setup Status",
+        "tags": [
+          "Billing"
         ]
       }
     },
