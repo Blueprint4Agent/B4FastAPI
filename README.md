@@ -540,3 +540,8 @@ B4React's own branch/PR workflow before updating the parent pin.
 Search and pagination rules and usage: [English](notes/collections.md) · [한국어](notes/ko/collections.md).
 
 Change-scoped verification: [English](notes/verification.md) · [한국어](notes/ko/verification.md).
+
+## Celery
+
+Standalone worker/Beat setup and migration audit: [English](src/backend/CELERY.md).
+Korean guide: [한국어](notes/ko/backend/CELERY.md).

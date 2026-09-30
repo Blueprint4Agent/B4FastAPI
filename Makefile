@@ -256,3 +256,27 @@ verification-test: ## Test change classification and verification selection
 .PHONY: frontend-package-verified
 frontend-package-verified: ## Package dist already built and verified by frontend-test-routes
 	node scripts/package-frontend.mjs "$(FRONTEND_DIR)/dist" "$(BACKEND_DIR)/app/static/dist"
+
+CELERY_POOL ?= solo
+CELERY_CONCURRENCY ?= 1
+CELERY_BEAT_SCHEDULE ?= /tmp/b4fastapi-celerybeat
+
+.PHONY: celery-worker celery-beat celery-ping celery-probe
+celery-worker: ## Run standalone Celery worker (local default: solo; Linux production: prefork)
+	cd $(BACKEND_DIR) && $(UV) run celery -A app.core.celery.app:celery_app worker --loglevel=INFO --pool=$(CELERY_POOL) --concurrency=$(CELERY_CONCURRENCY)
+
+celery-beat: ## Run the single scheduler; no business schedules enabled by default
+	cd $(BACKEND_DIR) && $(UV) run celery -A app.core.celery.app:celery_app beat --loglevel=INFO --schedule=$(CELERY_BEAT_SCHEDULE)
+
+celery-ping: ## Check running Celery workers through the configured broker
+	cd $(BACKEND_DIR) && $(UV) run celery -A app.core.celery.app:celery_app inspect ping --timeout=5
+
+celery-probe: ## Send a harmless task; confirm completion and task ID in worker logs
+	cd $(BACKEND_DIR) && $(UV) run celery -A app.core.celery.app:celery_app call b4fastapi.probe
+
+.PHONY: docker-celery-up docker-celery-down
+docker-celery-up: ## Start opt-in Celery worker and singleton Beat using the app image
+	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --profile celery up -d celery-worker celery-beat
+
+docker-celery-down: ## Stop Celery processes without stopping API or Redis
+	cd $(DOCKER_DIR) && $(DOCKER_COMPOSE) --profile celery stop celery-worker celery-beat

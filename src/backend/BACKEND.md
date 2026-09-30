@@ -665,3 +665,10 @@ login audit/history or live-presence feed. No role changes are exposed through t
 ## Shared list rules
 
 Use the shared query annotations and `PageResponse` for new offset list endpoints. Follow [search and pagination](../../notes/collections.md) for validation, literal search, ordering, totals and frontend usage. Existing API-key full-list pagination remains an explicit compatibility exception pending a separate contract migration.
+
+## Standalone Celery foundation
+
+See [Celery setup and background-work audit](CELERY.md). Celery workers and singleton
+Beat run outside the API. The existing mail worker remains unchanged until its
+producer, retry/DLQ and deployment cutover are migrated together. No DB migration
+or billing schedule is introduced by the foundation.

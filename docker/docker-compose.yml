@@ -21,6 +21,31 @@ services:
       retries: 12
     restart: unless-stopped
 
+  celery-worker:
+    image: ${APP_IMAGE:-blueprint4fastapi:local}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    profiles: ["celery"]
+    env_file:
+      - ./.env
+    command: ["./.venv/bin/celery", "-A", "app.core.celery.app:celery_app", "worker", "--loglevel=INFO", "--pool=prefork", "--concurrency=2"]
+    stop_grace_period: 6m
+    restart: unless-stopped
+
+  celery-beat:
+    image: ${APP_IMAGE:-blueprint4fastapi:local}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    profiles: ["celery"]
+    env_file:
+      - ./.env
+    command: ["./.venv/bin/celery", "-A", "app.core.celery.app:celery_app", "beat", "--loglevel=INFO", "--schedule=/var/lib/celery/celerybeat-schedule"]
+    volumes:
+      - celery_beat_data:/var/lib/celery
+    restart: unless-stopped
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -155,6 +180,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  celery_beat_data:
   postgres_data:
   redis_data:
   tempo_data:
