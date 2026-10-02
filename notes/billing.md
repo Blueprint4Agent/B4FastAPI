@@ -43,9 +43,11 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    Follow `next_cursor` as `starting_after` while `has_more=true`; `limit` is 1–100 (20 default).
    Card summaries include brand/last4/expiry; Link summaries may have no card fields.
 
-The default return URLs open existing Settings. **This phase adds no billing Settings
-screen or automatic return-URL handler**; use Swagger to confirm registration. The typed
-B4React `useBillingApi` adapter is ready for a subsequent page. Stripe-hosted Checkout
+The default return URLs open the Billing section in Settings and verify registration
+through the status API. The profile menu opens Free/Monthly/Annual plans. Monthly
+₩3,990 / US$3.99 and annual ₩39,900 / US$39.99 are template example prices, not live
+Stripe prices or FX conversions. Only card/Link registration is connected; subscriptions,
+invoices and cancellation remain unavailable. See the [frontend billing guide](../src/frontend/notes/billing.md). Stripe-hosted Checkout
 needs no frontend publishable key or Stripe.js dependency.
 
 ## Contract and failure behavior
