@@ -39,6 +39,16 @@ class Settings(BaseModel):
 
     STRIPE_ENABLED: bool = os.getenv("STRIPE_ENABLED", "false").lower() == "true"
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_SUBSCRIPTIONS_ENABLED: bool = (
+        os.getenv("STRIPE_SUBSCRIPTIONS_ENABLED", "false").lower() == "true"
+    )
+    STRIPE_MONTHLY_KRW_PRICE_ID: str = os.getenv("STRIPE_MONTHLY_KRW_PRICE_ID", "")
+    STRIPE_MONTHLY_USD_PRICE_ID: str = os.getenv("STRIPE_MONTHLY_USD_PRICE_ID", "")
+    STRIPE_ANNUAL_KRW_PRICE_ID: str = os.getenv("STRIPE_ANNUAL_KRW_PRICE_ID", "")
+    STRIPE_ANNUAL_USD_PRICE_ID: str = os.getenv("STRIPE_ANNUAL_USD_PRICE_ID", "")
+    STRIPE_CHECKOUT_SUCCESS_URL: str = os.getenv("STRIPE_CHECKOUT_SUCCESS_URL", "")
+    STRIPE_CHECKOUT_CANCEL_URL: str = os.getenv("STRIPE_CHECKOUT_CANCEL_URL", "")
+
     STRIPE_SETUP_SUCCESS_URL: str = os.getenv("STRIPE_SETUP_SUCCESS_URL", "")
     STRIPE_SETUP_CANCEL_URL: str = os.getenv("STRIPE_SETUP_CANCEL_URL", "")
 

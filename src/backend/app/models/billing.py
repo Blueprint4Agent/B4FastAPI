@@ -1,4 +1,4 @@
-"""Customer identity only; Stripe owns payment credentials and registration state."""
+"""Customer identities and bounded Checkout reservations; Stripe owns billing state."""
 
 from datetime import UTC, datetime
 from typing import Literal
@@ -110,3 +110,84 @@ class BillingPaymentMethodsResponse(BaseModel):
     items: list[BillingPaymentMethodResponse]
     has_more: bool
     next_cursor: str | None = None
+
+
+class BillingCheckout(Base):
+    """One bounded Checkout attempt per customer/mode, shared across devices/workers."""
+
+    __tablename__ = "billing_checkouts"
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    livemode: Mapped[bool] = mapped_column(Boolean, primary_key=True)
+    creation_key: Mapped[str] = mapped_column(String(36), nullable=False)
+    price_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class BillingCheckouts:
+    @staticmethod
+    async def reserve(user_id: int, livemode: bool, price_id: str) -> BillingCheckout:
+        from datetime import timedelta
+
+        now = datetime.now(UTC)
+        values = dict(
+            creation_key=str(uuid4()), price_id=price_id, expires_at=now + timedelta(hours=1)
+        )
+        async with get_db() as db:
+            await db.execute(
+                update(BillingCheckout)
+                .where(
+                    BillingCheckout.user_id == user_id,
+                    BillingCheckout.livemode == livemode,
+                    BillingCheckout.expires_at <= now,
+                )
+                .values(**values)
+            )
+            await db.commit()
+            row = await db.get(BillingCheckout, (user_id, livemode))
+            if row is not None:
+                return row
+            row = BillingCheckout(user_id=user_id, livemode=livemode, **values)
+            db.add(row)
+            try:
+                await db.commit()
+                return row
+            except IntegrityError:
+                await db.rollback()
+                existing = await db.get(BillingCheckout, (user_id, livemode))
+                if existing is None:
+                    raise
+                return existing
+
+
+class BillingPriceResponse(BaseModel):
+    plan: Literal["monthly", "annual"]
+    currency: Literal["krw", "usd"]
+    amount: int = Field(ge=0, description="Minor currency units; KRW has no decimal places.")
+
+
+class BillingPlansResponse(BaseModel):
+    enabled: bool
+    livemode: bool
+    prices: list[BillingPriceResponse]
+
+
+class BillingCheckoutForm(BillingSetupForm):
+    plan: Literal["monthly", "annual"]
+    currency: Literal["krw", "usd"]
+
+
+class BillingSubscriptionResponse(BaseModel):
+    plan: Literal["free", "monthly", "annual", "unknown"]
+    status: str
+    currency: str | None = None
+    current_period_end: int | None = None
+    cancel_at_period_end: bool = False
+    has_subscription: bool = False
+
+
+class BillingCheckoutStatusResponse(BaseModel):
+    id: str
+    status: Literal["open", "complete", "expired"]
+    paid: bool

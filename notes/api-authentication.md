@@ -46,6 +46,6 @@ use the credential scheme and error code to diagnose that case.
 
 Evidence: `app/deps.py`, the auth/billing/API-key/events routers, runtime OpenAPI, and
 `tests/integration/api/v1/auth/test_api_auth_policy.py`. Tests issue real application keys
-in an isolated SQLite database, check both bearer-only operations and all four billing key guards, test both admin role
+in an isolated SQLite database, check both bearer-only operations and all eight billing key guards, test both admin role
 outcomes, exercise accepted operations and verify the exact OpenAPI exception inventory.
 No production user or real account is changed by these tests. Billing key access is covered by the real-key registration and ownership integration tests.

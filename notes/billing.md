@@ -44,15 +44,16 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    Card summaries include brand/last4/expiry; Link summaries may have no card fields.
 
 The default return URLs open the Billing section in Settings and verify registration
-through the status API. The profile menu opens a standalone, sidebar-free Free/Monthly/Annual screen with a close control. Monthly
-₩3,990 / US$3.99 and annual ₩39,900 / US$39.99 are template example prices, not live
-Stripe prices or FX conversions. Only card/Link registration is connected; subscriptions,
-invoices and cancellation remain unavailable. See the [frontend billing guide](../src/frontend/notes/billing.md). Stripe-hosted Checkout
+through the status API. The profile menu opens standalone Free/Monthly/Annual selection.
+Subscription prices now come from configured Stripe Price IDs; sandbox examples are monthly
+₩3,990 / US$3.99 and annual ₩39,900 / US$39.99. They are not FX conversions. Card/Link
+registration and subscription Checkout are connected; invoices and cancellation UI remain
+unavailable. See the [frontend billing guide](../src/frontend/notes/billing.md). Hosted Checkout
 needs no frontend publishable key or Stripe.js dependency.
 
 ## Contract and failure behavior
 
-All four operations accept a bearer session or an application API key (`X-API-Key`).
+All eight operations accept a bearer session or an application API key (`X-API-Key`).
 Keys act as their owner; existing keys gain billing access without reissuance.
 When both credentials are sent, both must be valid and identify the same user.
 In Swagger, clear expired OAuth2 authorization before testing only an API key.
@@ -75,7 +76,7 @@ SDK requests use 5-second timeouts, one network retry, and a 20-second service p
 
 Stripe remains authoritative; reads do not create customers or write registration state.
 No webhook endpoint, local payment projection, default payment method, deletion/detachment,
-charge, invoice, subscription, entitlement or notification is implemented. Add verified,
+invoice UI, entitlement or notification is implemented. Subscription Checkout and read-through status are described below. Add verified,
 replay-safe webhook processing before introducing any payment-driven local side effect.
 No worker/realtime loop is needed for this request/response-only foundation. A future UI
 must refetch on return and account/connectivity recovery and must not trust query parameters.
@@ -111,14 +112,14 @@ The existing limits apply: 5-second requests, one SDK network retry and a 20-sec
 provider budget. There is no separate bypass flag when Stripe is enabled. Each API worker
 performs its own check on start; this is not continuous readiness polling or a Celery task.
 A Stripe outage therefore prevents a new Stripe-enabled API process from becoming ready.
-The probe verifies authentication/connectivity and Checkout **read** permission only.
+The probe verifies authentication/connectivity and Checkout **read** permission; with subscriptions enabled it also reads and validates the four Price objects.
 It does not prove write permissions, Link eligibility/enabling, live account activation,
 return URL reachability or successful card registration; complete the sandbox flow too.
 Read API reference: [List Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/list).
 
 ## Request and response examples
 
-Illustrative schema-correct payloads; IDs and URLs are not usable provider objects. All four calls can use this header.
+Illustrative schema-correct payloads; IDs and URLs are not usable provider objects. The registration calls below can use this header.
 
 ```http
 X-API-Key: <APPLICATION_API_KEY>
@@ -183,3 +184,50 @@ Open the returned URL to finish hosted registration. Reuse request_id only for r
 The plans screen uses a compact currency dropdown above the cards at the upper right. Card/Link registration is available only in Settings Billing; plan selection has no registration action.
 
 Billing reuses the existing settings header/content spacing and row surfaces; frontend browser checks compare its geometry with General settings.
+
+## Subscription Checkout
+
+Enable `STRIPE_SUBSCRIPTIONS_ENABLED` only after setting all four recurring Price IDs:
+`STRIPE_MONTHLY_KRW_PRICE_ID`, `STRIPE_MONTHLY_USD_PRICE_ID`,
+`STRIPE_ANNUAL_KRW_PRICE_ID`, `STRIPE_ANNUAL_USD_PRICE_ID`. Prices must be active,
+positive per-unit licensed recurring prices, matching the configured month/year and
+currency and the key's test/live mode. Startup validates them read-only. No provider
+resources are auto-created at server startup. Use separate test/live IDs.
+
+Set `STRIPE_CHECKOUT_SUCCESS_URL` to the frontend's
+`/settings?billing_checkout={CHECKOUT_SESSION_ID}` and cancel to
+`/settings?billing_checkout=cancelled`. Live mode requires HTTPS. Restart the backend
+after environment changes. Docker has its own environment; local settings do not enable it.
+
+- `GET /api/v1/billing/plans`: `{enabled, livemode, prices: [{plan, currency, amount}]}`;
+  amount is minor currency units. Disabled subscriptions return an empty catalog.
+- `GET /api/v1/billing/subscription`: current Stripe `{plan, status, currency,
+  current_period_end, cancel_at_period_end, has_subscription}`. No subscription means
+  `plan=free,status=none`; unfamiliar prices mean `plan=unknown`, never Free. Multiple
+  subscriptions or an incomplete list require operator reconciliation.
+- `POST /api/v1/billing/checkout-sessions`: `{request_id, plan: monthly|annual,
+  currency: krw|usd}` → `{id,url}`. Customer, price, amount and return URL are server-owned.
+- `GET /api/v1/billing/checkout-sessions/{session_id}`: `{id,status,paid}`. `paid=true`
+  requires a complete, paid Checkout and active subscription belonging to the same
+  customer/user/mode. A URL parameter or complete/unpaid session does not prove payment.
+
+Migration 0009 stores a customer/mode Checkout reservation with a fixed price, UUID and
+one-hour expiration. Different devices/UUIDs converge on the same provider idempotency
+key and parameters. A different price, an existing nonterminal subscription, or an
+attempt with less than 31 minutes left returns `BILLING_CHECKOUT_CONFLICT` (409). The
+last case avoids changing Stripe's minimum expiration constraint during ambiguous retries;
+finish the existing hosted session or wait until the original hour expires. After expiry,
+reserve a new attempt and recheck subscriptions before creating. Do not bypass reservations
+by creating additional sessions for the same customer outside this application.
+
+The backend reads Stripe subscription state directly on request; it does not implement
+local paid entitlements, webhook projections or background synchronization. Add signed,
+replay-safe event handling before payment-driven local side effects. Existing subscriptions
+must be changed/cancelled by the operator in Stripe; the UI prevents a second purchase.
+
+Accounts with any Checkout reservation history cannot be deleted until operator review
+(`ACCOUNT_BILLING_REVIEW_REQUIRED`, 409). The user row is locked before checking history,
+so deletion cannot race the reservation foreign key and orphan a subscription. Before
+clearing that owner's reservation for deletion, inspect both test/live customer records,
+expire open sessions, and confirm all recurring subscriptions are cancelled with no pending
+creation. This is deliberately operator reconciliation, not automatic Stripe cancellation.

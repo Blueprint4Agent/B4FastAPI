@@ -13,7 +13,15 @@ class BillingErrorCode(Enum):
     BILLING_UNAVAILABLE = ServiceErrorCode(
         "BILLING_UNAVAILABLE", "Payment provider is temporarily unavailable.", 502
     )
-    BILLING_NOT_FOUND = ServiceErrorCode("BILLING_NOT_FOUND", "Setup session not found.", 404)
+    BILLING_PLAN_UNAVAILABLE = ServiceErrorCode(
+        "BILLING_PLAN_UNAVAILABLE", "Subscription plan is not configured.", 503
+    )
+    BILLING_CHECKOUT_CONFLICT = ServiceErrorCode(
+        "BILLING_CHECKOUT_CONFLICT",
+        "An existing subscription or another checkout requires attention.",
+        409,
+    )
+    BILLING_NOT_FOUND = ServiceErrorCode("BILLING_NOT_FOUND", "Billing resource not found.", 404)
     BILLING_RECONCILIATION_REQUIRED = ServiceErrorCode(
         "BILLING_RECONCILIATION_REQUIRED", "Customer setup requires operator reconciliation.", 409
     )

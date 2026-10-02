@@ -703,3 +703,5 @@ When Stripe is enabled, lifespan must await BillingService.initialize before mig
 and serving requests. Invalid configuration or a failed bounded read-only Checkout
 probe aborts startup; disabled Stripe performs no external I/O. See the billing guide
 for permission coverage and sanitized failure behavior.
+
+Subscription Checkout uses configured recurring Price IDs and durable per-customer reservations (migration 0009). Current subscription status is read directly from Stripe; no local entitlement or webhook projection exists. Follow the billing guide for request ownership, duplicate prevention, bounded retries and account-deletion reconciliation.

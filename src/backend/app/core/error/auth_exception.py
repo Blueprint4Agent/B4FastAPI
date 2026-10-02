@@ -11,6 +11,11 @@ from .error import (
 
 
 class AuthErrorCode(Enum):
+    ACCOUNT_BILLING_REVIEW_REQUIRED = ServiceErrorCode(
+        "ACCOUNT_BILLING_REVIEW_REQUIRED",
+        "Contact the operator to reconcile subscriptions before deleting this account.",
+        status.HTTP_409_CONFLICT,
+    )
     ACCOUNT_DELETE_CODE_INVALID = ServiceErrorCode(
         "ACCOUNT_DELETE_CODE_INVALID",
         "The deletion code is invalid, expired or locked. Request a new code after the cooldown.",
