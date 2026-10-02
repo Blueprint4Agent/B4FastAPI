@@ -177,3 +177,5 @@ Invalid API key → **401**:
 반환된 URL을 브라우저에서 열어 등록을 완료합니다. 같은 작업의 재시도에만 request_id를 재사용합니다. 미완료/만료 상태는 status가 open/expired이고 registered=false입니다. status만 보지 말고 registered를 확인하세요. has_more=true이면 next_cursor를 starting_after로 전달합니다. 비활성화 시 config는 enabled=false이며 나머지는 503 BILLING_DISABLED입니다. 기타 오류는 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 입력 검증, 502 BILLING_UNAVAILABLE입니다.
 
 플랜 카드 영역 우측 상단의 작은 드롭다운으로 통화를 선택합니다. 플랜 선택 화면의 결제수단 등록 영역은 제거했으며 카드·Link 등록은 설정의 결제 화면에서 제공합니다.
+
+결제 섹션은 기존 설정의 헤더·본문 간격과 행 카드 스타일을 재사용하며, 프론트 브라우저 검증에서 일반 설정과 실제 배치를 비교합니다.

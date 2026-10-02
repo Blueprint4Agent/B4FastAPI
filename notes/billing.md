@@ -181,3 +181,5 @@ Invalid API key → **401**:
 Open the returned URL to finish hosted registration. Reuse request_id only for retries of the same action. Status may also be open or expired, with registered=false; trust registered, not status alone. With has_more=true, pass next_cursor as starting_after. Disabled billing returns config enabled=false, while provider calls return 503 BILLING_DISABLED. Other failures: 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 validation, 502 BILLING_UNAVAILABLE.
 
 The plans screen uses a compact currency dropdown above the cards at the upper right. Card/Link registration is available only in Settings Billing; plan selection has no registration action.
+
+Billing reuses the existing settings header/content spacing and row surfaces; frontend browser checks compare its geometry with General settings.
