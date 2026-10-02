@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.deps import get_current_session_user
+from app.deps import get_current_user
 from app.main import register_exception_handlers
 from app.models.billing import BillingConfigResponse, BillingSetupResponse
 from app.routers.v1.billing import router
@@ -29,7 +29,7 @@ def test_setup_success_passes_session_owner(billing_app, sample_user):
     service.create_setup = AsyncMock(
         return_value=BillingSetupResponse(id="cs_test_fixture", url="https://checkout.stripe.com/x")
     )
-    billing_app.dependency_overrides[get_current_session_user] = lambda: sample_user
+    billing_app.dependency_overrides[get_current_user] = lambda: sample_user
     billing_app.dependency_overrides[BillingService] = lambda: service
     # When: a valid setup request is posted.
     response = TestClient(billing_app).post("/api/v1/billing/setup-sessions", json=SETUP_REQUEST)
@@ -40,17 +40,16 @@ def test_setup_success_passes_session_owner(billing_app, sample_user):
 
 
 @pytest.mark.parametrize("path", ["config", "payment-methods", "setup-sessions/cs_test_fixture"])
-@pytest.mark.parametrize("headers", [{}, {"X-API-Key": "sk_live_not_a_bearer"}])
-def test_billing_requires_bearer_session(billing_app, path, headers):
-    """Scenario: billing reads reject anonymous and API-key-only authentication."""
+def test_billing_requires_authentication(billing_app, path):
+    """Scenario: billing reads reject anonymous requests."""
     # Given/When: no bearer principal is supplied.
-    response = TestClient(billing_app).get(f"/api/v1/billing/{path}", headers=headers)
+    response = TestClient(billing_app).get(f"/api/v1/billing/{path}", headers={})
     # Then: normal domain authentication failure is returned.
     assert response.status_code == 401
     assert response.json()["detail"]["error"] == "INVALID_TOKEN"
 
 
-def test_setup_mutation_requires_bearer_session(billing_app):
+def test_setup_mutation_requires_authentication(billing_app):
     """Scenario: unauthenticated requests cannot create Stripe resources."""
     # Given/When: setup creation is requested without a session.
     response = TestClient(billing_app).post("/api/v1/billing/setup-sessions", json=SETUP_REQUEST)
@@ -70,7 +69,7 @@ def test_setup_mutation_requires_bearer_session(billing_app):
 def test_setup_rejects_untrusted_request_fields(billing_app, sample_user, body):
     """Scenario: invalid UUIDs and caller-selected customer/return URLs are rejected."""
     # Given: a session principal.
-    billing_app.dependency_overrides[get_current_session_user] = lambda: sample_user
+    billing_app.dependency_overrides[get_current_user] = lambda: sample_user
     # When: malformed or additional fields are supplied.
     response = TestClient(billing_app).post("/api/v1/billing/setup-sessions", json=body)
     # Then: validation rejects the request.
@@ -89,7 +88,7 @@ def test_setup_rejects_untrusted_request_fields(billing_app, sample_user, body):
 def test_billing_read_validation(billing_app, sample_user, path):
     """Scenario: invalid page parameters and session identifiers cannot reach Stripe."""
     # Given: a session principal.
-    billing_app.dependency_overrides[get_current_session_user] = lambda: sample_user
+    billing_app.dependency_overrides[get_current_user] = lambda: sample_user
     # When/Then: malformed paths/queries fail validation.
     assert TestClient(billing_app).get(f"/api/v1/billing/{path}").status_code == 422
 
@@ -99,7 +98,7 @@ def test_config_never_exposes_secrets(billing_app, sample_user):
     # Given: a configured service stub.
     service = BillingService()
     service.config = lambda: BillingConfigResponse(enabled=True, livemode=False)
-    billing_app.dependency_overrides[get_current_session_user] = lambda: sample_user
+    billing_app.dependency_overrides[get_current_user] = lambda: sample_user
     billing_app.dependency_overrides[BillingService] = lambda: service
     # When/Then: configuration contains no key, customer or redirect information.
     response = TestClient(billing_app).get("/api/v1/billing/config")

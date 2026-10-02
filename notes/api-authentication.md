@@ -8,10 +8,10 @@ Stripe keys belong only in backend configuration and do not authenticate callers
 
 | Operation (under `/api/v1`) | App API key | Additional requirement |
 | --- | --- | --- |
-| `GET /billing/config` | Rejected (401) | Bearer session |
-| `POST /billing/setup-sessions` | Rejected (401) | Bearer session |
-| `GET /billing/setup-sessions/{session_id}` | Rejected (401) | Bearer session and owned Stripe session |
-| `GET /billing/payment-methods` | Rejected (401) | Bearer session; only own methods |
+| `GET /billing/config` | Accepted | Active owner |
+| `POST /billing/setup-sessions` | Accepted | Active owner |
+| `GET /billing/setup-sessions/{session_id}` | Accepted | Owned Stripe session |
+| `GET /billing/payment-methods` | Accepted | Only own methods |
 | `POST /auth/me/deletion-code` | Rejected (401) | Bearer session, enabled login/email, issuance limits |
 | `DELETE /auth/me` | Rejected (401) | Bearer, matching email, one-time code, last-admin protection |
 | `GET /auth/admin/users` | Accepted | Key owner must currently have admin role; otherwise 403 |
@@ -21,10 +21,10 @@ Stripe keys belong only in backend configuration and do not authenticate callers
 | `GET /events/stream` | Accepted | Only own event channel |
 | `POST /auth/logout` | Accepted | Clears owner's refresh sessions; access JWTs expire normally |
 
-Exactly six operations are bearer-only; the two admin operations accept keys and independently
+Exactly two operations are bearer-only; the two admin operations accept keys and independently
 check the owner's current database role. Keys do not have billing or other endpoint scopes.
 They currently also allow profile edits, management of the owner's other keys and logout.
-This audit documents that broad existing authority; it does not grant or remove permissions.
+Billing now accepts that same owner authority; account deletion remains bearer-only.
 
 When both bearer and API key are supplied to an operation accepting either, both must be
 valid and identify the same user. An expired/invalid bearer can cause 401 even with a valid
@@ -46,7 +46,6 @@ use the credential scheme and error code to diagnose that case.
 
 Evidence: `app/deps.py`, the auth/billing/API-key/events routers, runtime OpenAPI, and
 `tests/integration/api/v1/auth/test_api_auth_policy.py`. Tests issue real application keys
-in an isolated SQLite database, check all six bearer-only operations, test both admin role
+in an isolated SQLite database, check both bearer-only operations and all four billing key guards, test both admin role
 outcomes, exercise accepted operations and verify the exact OpenAPI exception inventory.
-No production user or real account is changed by these tests. No authentication policy
-was changed as part of this audit.
+No production user or real account is changed by these tests. Billing key access is covered by the real-key registration and ownership integration tests.

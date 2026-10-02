@@ -3823,18 +3823,36 @@
           "401": {
             "content": {
               "application/json": {
-                "example": {
-                  "detail": {
-                    "error": "INVALID_TOKEN",
-                    "message": "Invalid refresh token."
-                  }
-                },
                 "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Billing Config Api V1 Billing Config Get"
                 }
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -3916,6 +3934,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Billing Config",
@@ -3987,18 +4008,36 @@
           "401": {
             "content": {
               "application/json": {
-                "example": {
-                  "detail": {
-                    "error": "INVALID_TOKEN",
-                    "message": "Invalid refresh token."
-                  }
-                },
                 "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 List Payment Methods Api V1 Billing Payment Methods Get"
                 }
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -4090,6 +4129,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "List Payment Methods",
@@ -4125,18 +4167,36 @@
           "401": {
             "content": {
               "application/json": {
-                "example": {
-                  "detail": {
-                    "error": "INVALID_TOKEN",
-                    "message": "Invalid refresh token."
-                  }
-                },
                 "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Create Setup Api V1 Billing Setup Sessions Post"
                 }
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -4228,6 +4288,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Create Setup",
@@ -4266,18 +4329,36 @@
           "401": {
             "content": {
               "application/json": {
-                "example": {
-                  "detail": {
-                    "error": "INVALID_TOKEN",
-                    "message": "Invalid refresh token."
-                  }
-                },
                 "schema": {
-                  "$ref": "#/components/schemas/AuthErrorResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Setup Status Api V1 Billing Setup Sessions  Session Id  Get"
                 }
               }
             },
             "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
           },
           "404": {
             "content": {
@@ -4369,6 +4450,9 @@
         "security": [
           {
             "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
           }
         ],
         "summary": "Setup Status",

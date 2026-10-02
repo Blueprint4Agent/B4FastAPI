@@ -23,7 +23,8 @@
    객체는 그대로입니다. 결제 기능이 꺼져 있어도 앱은 시작됩니다.
 5. `/docs`의 Authorize에서 OAuth2PasswordBearer를 선택하고 앱 이메일을 username,
    앱 비밀번호를 password로 입력합니다. `/api/v1/auth/token`으로 bearer 토큰을
-   발급받습니다. X-API-Key나 Stripe 비밀 키로는 결제 API 인증이 되지 않습니다.
+   발급받습니다. 또는 APIKeyHeader에 앱 API 키를 입력해 X-API-Key로 인증합니다.
+   Stripe 비밀 키는 서버 전용 설정이며 사용자 API 인증용이 아닙니다.
    이후 결제 설정을 조회합니다.
    `POST /api/v1/billing/setup-sessions`에 다음과 같이 UUID를 전달합니다.
 
@@ -42,14 +43,19 @@
    `limit`은 1–100, 기본 20입니다. 카드는 브랜드·끝 네 자리·만료일만 반환하며
    Link에는 카드 필드가 없을 수 있습니다.
 
-기본 복귀 URL은 기존 Settings를 엽니다. **이번 단계에는 앱 내부 결제 설정 화면이나
-복귀 URL 자동 처리 기능이 없습니다.** Swagger에서 등록을 확인하세요. B4React의
-`useBillingApi` 타입/API 연결부는 후속 화면에서 사용할 수 있도록 준비합니다.
+기본 복귀 URL은 설정의 결제 화면을 열고 상태 API로 등록 완료를 검증합니다.
+프로필 메뉴에서 사이드바 없는 독립 전체 화면으로 Free·월간·연간 플랜을 선택하고 우측 상단에서 닫을 수 있습니다. 월간 ₩3,990 / US$3.99,
+연간 ₩39,900 / US$39.99는 템플릿 예시이며 실제 Stripe 가격이나 환율 환산이 아닙니다.
+현재는 카드·Link 등록만 연결하고 구독·거래 내역·취소는 준비 중으로 표시합니다.
+[프론트 결제 가이드](../../src/frontend/notes/ko/billing.md)를 참고하세요.
 Stripe 제공 화면을 사용하므로 프론트엔드 공개 키나 Stripe.js는 필요하지 않습니다.
 
 ## 동작과 제한
 
-모든 API는 bearer 세션이 필요하며 API 키만으로 접근할 수 없습니다.
+Billing API 4개 모두 bearer 세션 또는 앱 API 키(`X-API-Key`)로 접근합니다.
+기존 키도 재발급 없이 소유자 권한으로 사용할 수 있습니다. 두 인증을 함께 보내면
+둘 다 유효하고 같은 사용자여야 합니다. Swagger에서 키만 테스트할 때는 만료된
+OAuth2 인증을 Logout한 뒤 APIKeyHeader만 등록하세요.
 `GET /api/v1/billing/config`는 `enabled`, `livemode`만 공개합니다.
 비활성은 `BILLING_DISABLED`(503)이며, 활성화된 설정이 미완료면 이제 서버 시작을
 중단합니다. 실행 중 Stripe 장애/시간 초과는
@@ -105,3 +111,71 @@ SMTP 초기화처럼 DB 마이그레이션과 요청 수신 전에 Stripe 검증
 실계정 활성화, 복귀 URL 접속 가능 여부, 실제 카드 등록 성공까지 보장하지는 않습니다.
 샌드박스 등록 흐름도 별도로 테스트하세요.
 [공식 조회 API](https://docs.stripe.com/api/checkout/sessions/list) 참고.
+
+## 요청·응답 예시
+
+실제 스키마에 맞춘 설명용 예시이며 ID와 URL은 실행 가능한 Stripe 객체가 아닙니다. 4개 API 모두 다음 헤더로 호출합니다.
+
+```http
+X-API-Key: <APPLICATION_API_KEY>
+```
+
+1. `GET /api/v1/billing/config` → **200**
+
+```json
+{"enabled": true, "livemode": false}
+```
+
+2. `POST /api/v1/billing/setup-sessions` → **201**
+
+Request:
+```json
+{"request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29"}
+```
+
+Response:
+```json
+{"id": "cs_test_example", "url": "https://checkout.stripe.com/c/pay/example"}
+```
+
+3. `GET /api/v1/billing/setup-sessions/cs_test_example` → **200**
+
+```json
+{"id": "cs_test_example", "status": "complete", "registered": true}
+```
+
+4. `GET /api/v1/billing/payment-methods?method_type=card&limit=20` → **200**
+
+```json
+{
+  "items": [{"id": "pm_example", "type": "card", "brand": "visa", "last4": "4242", "exp_month": 12, "exp_year": 2030}],
+  "has_more": false,
+  "next_cursor": null
+}
+```
+
+`GET /api/v1/billing/payment-methods?method_type=link` → **200**
+
+```json
+{
+  "items": [{"id": "pm_linkexample", "type": "link", "brand": null, "last4": null, "exp_month": null, "exp_year": null}],
+  "has_more": false,
+  "next_cursor": null
+}
+```
+
+Empty:
+```json
+{"items": [], "has_more": false, "next_cursor": null}
+```
+
+Invalid API key → **401**:
+```json
+{"detail": {"error": "API_KEY_INVALID", "message": "Invalid API key."}}
+```
+
+반환된 URL을 브라우저에서 열어 등록을 완료합니다. 같은 작업의 재시도에만 request_id를 재사용합니다. 미완료/만료 상태는 status가 open/expired이고 registered=false입니다. status만 보지 말고 registered를 확인하세요. has_more=true이면 next_cursor를 starting_after로 전달합니다. 비활성화 시 config는 enabled=false이며 나머지는 503 BILLING_DISABLED입니다. 기타 오류는 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 입력 검증, 502 BILLING_UNAVAILABLE입니다.
+
+플랜 카드 영역 우측 상단의 작은 드롭다운으로 통화를 선택합니다. 플랜 선택 화면의 결제수단 등록 영역은 제거했으며 카드·Link 등록은 설정의 결제 화면에서 제공합니다.
+
+결제 섹션은 기존 설정의 헤더·본문 간격과 행 카드 스타일을 재사용하며, 프론트 브라우저 검증에서 일반 설정과 실제 배치를 비교합니다.
