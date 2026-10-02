@@ -44,7 +44,7 @@
    Link에는 카드 필드가 없을 수 있습니다.
 
 기본 복귀 URL은 설정의 결제 화면을 열고 상태 API로 등록 완료를 검증합니다.
-프로필 메뉴에서 Free·월간·연간 플랜을 선택할 수 있습니다. 월간 ₩3,990 / US$3.99,
+프로필 메뉴에서 사이드바 없는 독립 전체 화면으로 Free·월간·연간 플랜을 선택하고 우측 상단에서 닫을 수 있습니다. 월간 ₩3,990 / US$3.99,
 연간 ₩39,900 / US$39.99는 템플릿 예시이며 실제 Stripe 가격이나 환율 환산이 아닙니다.
 현재는 카드·Link 등록만 연결하고 구독·거래 내역·취소는 준비 중으로 표시합니다.
 [프론트 결제 가이드](../../src/frontend/notes/ko/billing.md)를 참고하세요.
@@ -175,3 +175,5 @@ Invalid API key → **401**:
 ```
 
 반환된 URL을 브라우저에서 열어 등록을 완료합니다. 같은 작업의 재시도에만 request_id를 재사용합니다. 미완료/만료 상태는 status가 open/expired이고 registered=false입니다. status만 보지 말고 registered를 확인하세요. has_more=true이면 next_cursor를 starting_after로 전달합니다. 비활성화 시 config는 enabled=false이며 나머지는 503 BILLING_DISABLED입니다. 기타 오류는 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 입력 검증, 502 BILLING_UNAVAILABLE입니다.
+
+플랜 카드 영역 우측 상단의 작은 드롭다운으로 통화를 선택합니다. 플랜 선택 화면의 결제수단 등록 영역은 제거했으며 카드·Link 등록은 설정의 결제 화면에서 제공합니다.

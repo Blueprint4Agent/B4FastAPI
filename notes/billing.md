@@ -44,7 +44,7 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    Card summaries include brand/last4/expiry; Link summaries may have no card fields.
 
 The default return URLs open the Billing section in Settings and verify registration
-through the status API. The profile menu opens Free/Monthly/Annual plans. Monthly
+through the status API. The profile menu opens a standalone, sidebar-free Free/Monthly/Annual screen with a close control. Monthly
 ₩3,990 / US$3.99 and annual ₩39,900 / US$39.99 are template example prices, not live
 Stripe prices or FX conversions. Only card/Link registration is connected; subscriptions,
 invoices and cancellation remain unavailable. See the [frontend billing guide](../src/frontend/notes/billing.md). Stripe-hosted Checkout
@@ -179,3 +179,5 @@ Invalid API key → **401**:
 ```
 
 Open the returned URL to finish hosted registration. Reuse request_id only for retries of the same action. Status may also be open or expired, with registered=false; trust registered, not status alone. With has_more=true, pass next_cursor as starting_after. Disabled billing returns config enabled=false, while provider calls return 503 BILLING_DISABLED. Other failures: 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 validation, 502 BILLING_UNAVAILABLE.
+
+The plans screen uses a compact currency dropdown above the cards at the upper right. Card/Link registration is available only in Settings Billing; plan selection has no registration action.
