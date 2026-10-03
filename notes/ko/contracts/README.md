@@ -126,3 +126,5 @@ bootstrap 관리자도 같은 권한 검사를 적용합니다. `page`(1 이상)
 제공합니다. 청구나 로컬 결제 상태는 생성하지 않습니다. [설정 안내](../billing.md) 참고.
 
 구독 결제는 인증된 가격·현재 구독·Checkout 생성·소유자별 복귀 상태 API를 제공합니다. 금액은 최소 통화 단위이며 클라이언트는 플랜·통화·요청 UUID만 보내고 가격 ID·고객·금액·주소는 보내지 않습니다. paid=true만 결제 확인이며 현재 구독은 Stripe에서 조회합니다. Checkout 이력의 운영자 확인이 필요하면 계정 삭제는 ACCOUNT_BILLING_REVIEW_REQUIRED를 반환합니다.
+
+구독 관리 POST /billing/subscription/change는 expected_version과 기간 종료 시 free/monthly/annual/keep 변경을 사용합니다. 구독 응답에 can_manage/change_version/pending_plan/pending_effective_at을 추가합니다. 결제 정보·최근 청구서 4개·제한된 포털 세션은 인증이 필요하며 고객·주소·가격은 서버가 결정합니다.
