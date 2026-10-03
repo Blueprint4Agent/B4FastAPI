@@ -22,6 +22,7 @@ def stripe_disabled_by_default(monkeypatch):
     """Tests opt in with a mocked provider; never probe a developer's Stripe account."""
     monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", False)
     monkeypatch.setattr(SETTINGS, "STRIPE_SUBSCRIPTIONS_ENABLED", False)
+    monkeypatch.setattr(SETTINGS, "STRIPE_PORTAL_CONFIGURATION_ID", "")
 
 
 @pytest.fixture

@@ -150,3 +150,5 @@ customer-scoped card/Link cursor lists. No charges or local payment status are c
 See [billing setup](../notes/billing.md) for exact retry and ownership semantics.
 
 Subscription billing exposes authenticated plans, current subscription, checkout creation and owner-checked return status. Monetary amounts use minor currency units; clients send only plan/currency/request UUID, never price/customer/amount/URLs. Only paid=true confirms payment; current subscription is read from Stripe. Account deletion can return ACCOUNT_BILLING_REVIEW_REQUIRED for checkout history pending operator reconciliation.
+
+Subscription management adds owner-scoped POST /billing/subscription/change with expected_version and period-end-only free/monthly/annual/keep semantics. Subscription snapshots expose can_manage/change_version/pending_plan/pending_effective_at. Billing profile, four recent invoices and restricted portal sessions are authenticated; customer/URLs/prices remain server-owned.

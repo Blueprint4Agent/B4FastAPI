@@ -47,13 +47,12 @@ The default return URLs open the Billing section in Settings and verify registra
 through the status API. The profile menu opens standalone Free/Monthly/Annual selection.
 Subscription prices now come from configured Stripe Price IDs; sandbox examples are monthly
 ₩3,990 / US$3.99 and annual ₩39,900 / US$39.99. They are not FX conversions. Card/Link
-registration and subscription Checkout are connected; invoices and cancellation UI remain
-unavailable. See the [frontend billing guide](../src/frontend/notes/billing.md). Hosted Checkout
+registration, subscription Checkout, invoices and period-end plan management are connected. See the [frontend billing guide](../src/frontend/notes/billing.md). Hosted Checkout
 needs no frontend publishable key or Stripe.js dependency.
 
 ## Contract and failure behavior
 
-All eight operations accept a bearer session or an application API key (`X-API-Key`).
+All twelve operations accept a bearer session or an application API key (`X-API-Key`).
 Keys act as their owner; existing keys gain billing access without reissuance.
 When both credentials are sent, both must be valid and identify the same user.
 In Swagger, clear expired OAuth2 authorization before testing only an API key.
@@ -75,8 +74,7 @@ recreating the reservation. Do not blindly rotate a reservation after an ambiguo
 SDK requests use 5-second timeouts, one network retry, and a 20-second service provider budget.
 
 Stripe remains authoritative; reads do not create customers or write registration state.
-No webhook endpoint, local payment projection, default payment method, deletion/detachment,
-invoice UI, entitlement or notification is implemented. Subscription Checkout and read-through status are described below. Add verified,
+No webhook endpoint, local payment projection or entitlement enforcement is implemented. Default payment method and invoice summaries are read from Stripe; profile/card editing uses its restricted portal. Subscription Checkout and read-through status are described below. Add verified,
 replay-safe webhook processing before introducing any payment-driven local side effect.
 No worker/realtime loop is needed for this request/response-only foundation. A future UI
 must refetch on return and account/connectivity recovery and must not trust query parameters.
@@ -222,8 +220,7 @@ by creating additional sessions for the same customer outside this application.
 
 The backend reads Stripe subscription state directly on request; it does not implement
 local paid entitlements, webhook projections or background synchronization. Add signed,
-replay-safe event handling before payment-driven local side effects. Existing subscriptions
-must be changed/cancelled by the operator in Stripe; the UI prevents a second purchase.
+replay-safe event handling before payment-driven local side effects. Supported subscriptions can be changed/cancelled at period end through the authenticated management endpoint; unsupported/externally managed states require operator review. The UI prevents a second purchase.
 
 Accounts with any Checkout reservation history cannot be deleted until operator review
 (`ACCOUNT_BILLING_REVIEW_REQUIRED`, 409). The user row is locked before checking history,
@@ -231,3 +228,15 @@ so deletion cannot race the reservation foreign key and orphan a subscription. B
 clearing that owner's reservation for deletion, inspect both test/live customer records,
 expire open sessions, and confirm all recurring subscriptions are cancelled with no pending
 creation. This is deliberately operator reconciliation, not automatic Stripe cancellation.
+
+## Period-end management and billing details
+
+`POST /billing/subscription/change` accepts `{plan: free|monthly|annual|keep, expected_version, request_id}`. Read `change_version` from the current subscription immediately before confirmation. An account/mode database lock serializes changes across workers; stale or unsupported changes return `BILLING_CHANGE_CONFLICT` (409). Existing subscriptions keep their currency. `pending_plan` and `pending_effective_at` describe the reservation while `plan` remains the current plan.
+
+Free sets cancel_at_period_end; keep clears cancellation or releases this application's schedule. Monthly/annual changes use two Stripe schedule phases and no prorations; renewal starts the new billing interval. No immediate refunds or charges occur. Only simple active single-item subscriptions without discounts, trials, tax-rate overrides, transfers, pauses or external schedules support self-service. A provider failure between schedule creation and ownership marking may require operator reconciliation; refresh and review state before retrying. Direct Dashboard mutations must be coordinated with application changes.
+
+`GET /billing/profile` returns customer email/name/address, effective default payment-method ID and portal availability. `GET /billing/invoices` returns the four most recent invoices in minor currency units; View all opens Stripe. `POST /billing/portal-sessions` takes request UUID and overview/customer_update/payment_method_update flow. The server owns the customer and return URL. Set STRIPE_PORTAL_CONFIGURATION_ID to an active configuration with customer_update (email/name/address), payment_method_update and invoice_history enabled, but subscription_cancel/update disabled; runtime rejects configurations that bypass app plan policy. Leave it blank to disable portal actions. The local sandbox configuration is provisioned in ignored backend .env; production and Docker remain separately configured.
+
+All twelve endpoints accept bearer/application API keys with no-store responses. Required Stripe permissions additionally include customer/invoice reads, subscription/schedule writes, and portal session creation/configuration reads. No card numbers are handled by this application. Scheduled execution belongs to Stripe; local paid entitlements still require a separate webhook design.
+
+When STRIPE_PORTAL_CONFIGURATION_ID is set, startup performs a read-only active/mode/feature-policy validation. Runtime repeats this check before creating each portal session.

@@ -44,5 +44,5 @@ bearer 전용 API가 자동 인증되지는 않습니다. Swagger의 인증 방�
 
 근거: `app/deps.py`, auth/billing/API-key/events 라우터, 실행 중 OpenAPI 생성 결과,
 `tests/integration/api/v1/auth/test_api_auth_policy.py`. 격리된 SQLite에서 실제 앱 키를
-발급하여 2개 차단 API와 Billing 8개 키 인증 분기, 관리자/일반 사용자 분기, 키 허용 기능, OpenAPI 목록을 검증합니다.
+발급하여 2개 차단 API와 Billing 12개 키 인증 분기, 관리자/일반 사용자 분기, 키 허용 기능, OpenAPI 목록을 검증합니다.
 실제 운영 사용자나 계정은 변경하지 않았습니다. Billing 키 등록/조회와 소유자 격리도 통합 테스트합니다.

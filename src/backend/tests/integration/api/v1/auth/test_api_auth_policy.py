@@ -140,6 +140,22 @@ def test_openapi_session_only_inventory_is_explicit(integration_client):
         ("GET", "/api/v1/billing/payment-methods", None),
         ("GET", "/api/v1/billing/plans", None),
         ("GET", "/api/v1/billing/subscription", None),
+        ("GET", "/api/v1/billing/profile", None),
+        ("GET", "/api/v1/billing/invoices", None),
+        (
+            "POST",
+            "/api/v1/billing/portal-sessions",
+            {"request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29"},
+        ),
+        (
+            "POST",
+            "/api/v1/billing/subscription/change",
+            {
+                "request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29",
+                "plan": "free",
+                "expected_version": "a" * 64,
+            },
+        ),
         ("GET", "/api/v1/billing/checkout-sessions/cs_test_fixture", None),
         (
             "POST",
