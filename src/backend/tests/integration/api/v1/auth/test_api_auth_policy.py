@@ -138,6 +138,18 @@ def test_openapi_session_only_inventory_is_explicit(integration_client):
         ),
         ("GET", "/api/v1/billing/setup-sessions/cs_test_fixture", None),
         ("GET", "/api/v1/billing/payment-methods", None),
+        ("GET", "/api/v1/billing/plans", None),
+        ("GET", "/api/v1/billing/subscription", None),
+        ("GET", "/api/v1/billing/checkout-sessions/cs_test_fixture", None),
+        (
+            "POST",
+            "/api/v1/billing/checkout-sessions",
+            {
+                "request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29",
+                "plan": "monthly",
+                "currency": "krw",
+            },
+        ),
     ],
 )
 def test_billing_api_key_guards(integration_client, credentials, method, path, body):

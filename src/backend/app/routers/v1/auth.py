@@ -370,6 +370,7 @@ async def request_deletion_code(
         AuthErrorCode.USER_NOT_FOUND,
         AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.ACCOUNT_DELETE_FAILED,
+        AuthErrorCode.ACCOUNT_BILLING_REVIEW_REQUIRED,
         AuthErrorCode.EMAIL_DISABLED,
         AuthErrorCode.ACCOUNT_DELETE_CODE_INVALID,
         AuthErrorCode.ACCOUNT_DELETE_CONFIRMATION_REQUIRED,

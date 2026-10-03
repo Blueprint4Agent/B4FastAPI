@@ -551,12 +551,14 @@ class UserRepository:
 
     async def delete_account(self, user_id: int, email: str) -> None:
         """Delete credentials and owned keys atomically; serialize with role changes."""
+        from app.models.billing import BillingCheckout
+
         async with get_db() as db:
             if db.bind.dialect.name == "sqlite":
                 await db.execute(text("BEGIN IMMEDIATE"))
             elif db.bind.dialect.name == "postgresql":
                 await db.execute(text("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"))
-            user = await db.scalar(select(User).where(User.id == user_id))
+            user = await db.scalar(select(User).where(User.id == user_id).with_for_update())
             if user is None or not user.is_active:
                 raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
             if user.email.casefold() != email.strip().casefold():
@@ -569,6 +571,15 @@ class UserRepository:
                 )
                 if admins <= 1:
                     raise AuthException(code=AuthErrorCode.LAST_ADMIN_REQUIRED)
+            if (
+                await db.scalar(
+                    select(BillingCheckout.user_id)
+                    .where(BillingCheckout.user_id == user_id)
+                    .limit(1)
+                )
+                is not None
+            ):
+                raise AuthException(code=AuthErrorCode.ACCOUNT_BILLING_REVIEW_REQUIRED)
             await db.delete(user)
             await db.commit()
 

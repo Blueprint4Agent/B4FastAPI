@@ -124,3 +124,5 @@ bootstrap 관리자도 같은 권한 검사를 적용합니다. `page`(1 이상)
 
 `/api/v1/billing`은 bearer 또는 앱 API 키 인증 설정·등록 세션 생성/상태·본인 카드/Link 커서 목록을
 제공합니다. 청구나 로컬 결제 상태는 생성하지 않습니다. [설정 안내](../billing.md) 참고.
+
+구독 결제는 인증된 가격·현재 구독·Checkout 생성·소유자별 복귀 상태 API를 제공합니다. 금액은 최소 통화 단위이며 클라이언트는 플랜·통화·요청 UUID만 보내고 가격 ID·고객·금액·주소는 보내지 않습니다. paid=true만 결제 확인이며 현재 구독은 Stripe에서 조회합니다. Checkout 이력의 운영자 확인이 필요하면 계정 삭제는 ACCOUNT_BILLING_REVIEW_REQUIRED를 반환합니다.

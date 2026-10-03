@@ -103,3 +103,20 @@ def test_config_never_exposes_secrets(billing_app, sample_user):
     # When/Then: configuration contains no key, customer or redirect information.
     response = TestClient(billing_app).get("/api/v1/billing/config")
     assert response.json() == {"enabled": True, "livemode": False}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {**SETUP_REQUEST, "plan": "free", "currency": "krw"},
+        {**SETUP_REQUEST, "plan": "monthly", "currency": "eur"},
+        {**SETUP_REQUEST, "plan": "monthly", "currency": "krw", "price": "price_untrusted"},
+        {**SETUP_REQUEST, "plan": "monthly", "currency": "krw", "amount": 1},
+    ],
+)
+def test_checkout_rejects_untrusted_pricing(billing_app, sample_user, body):
+    # Given/When: a caller tries to override the server-owned catalog.
+    billing_app.dependency_overrides[get_current_user] = lambda: sample_user
+    response = TestClient(billing_app).post("/api/v1/billing/checkout-sessions", json=body)
+    # Then: no provider call is made.
+    assert response.status_code == 422

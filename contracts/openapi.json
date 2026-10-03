@@ -423,6 +423,7 @@
           },
           "error": {
             "enum": [
+              "ACCOUNT_BILLING_REVIEW_REQUIRED",
               "ACCOUNT_DELETE_CODE_INVALID",
               "ACCOUNT_DELETE_CODE_THROTTLED",
               "ACCOUNT_DELETE_CODE_SEND_FAILED",
@@ -475,6 +476,68 @@
         "title": "AuthErrorResponse",
         "type": "object"
       },
+      "BillingCheckoutForm": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "enum": [
+              "krw",
+              "usd"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "monthly",
+              "annual"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Reuse this UUID when retrying the same setup request.",
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "plan",
+          "currency"
+        ],
+        "title": "BillingCheckoutForm",
+        "type": "object"
+      },
+      "BillingCheckoutStatusResponse": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "paid": {
+            "title": "Paid",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "open",
+              "complete",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "paid"
+        ],
+        "title": "BillingCheckoutStatusResponse",
+        "type": "object"
+      },
       "BillingConfigResponse": {
         "properties": {
           "enabled": {
@@ -511,6 +574,8 @@
             "enum": [
               "BILLING_DISABLED",
               "BILLING_UNAVAILABLE",
+              "BILLING_PLAN_UNAVAILABLE",
+              "BILLING_CHECKOUT_CONFLICT",
               "BILLING_NOT_FOUND",
               "BILLING_RECONCILIATION_REQUIRED"
             ],
@@ -640,6 +705,65 @@
         "title": "BillingPaymentMethodsResponse",
         "type": "object"
       },
+      "BillingPlansResponse": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "livemode": {
+            "title": "Livemode",
+            "type": "boolean"
+          },
+          "prices": {
+            "items": {
+              "$ref": "#/components/schemas/BillingPriceResponse"
+            },
+            "title": "Prices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "enabled",
+          "livemode",
+          "prices"
+        ],
+        "title": "BillingPlansResponse",
+        "type": "object"
+      },
+      "BillingPriceResponse": {
+        "properties": {
+          "amount": {
+            "description": "Minor currency units; KRW has no decimal places.",
+            "minimum": 0.0,
+            "title": "Amount",
+            "type": "integer"
+          },
+          "currency": {
+            "enum": [
+              "krw",
+              "usd"
+            ],
+            "title": "Currency",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "monthly",
+              "annual"
+            ],
+            "title": "Plan",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "currency",
+          "amount"
+        ],
+        "title": "BillingPriceResponse",
+        "type": "object"
+      },
       "BillingSetupForm": {
         "additionalProperties": false,
         "properties": {
@@ -700,6 +824,62 @@
           "registered"
         ],
         "title": "BillingSetupStatusResponse",
+        "type": "object"
+      },
+      "BillingSubscriptionResponse": {
+        "properties": {
+          "cancel_at_period_end": {
+            "default": false,
+            "title": "Cancel At Period End",
+            "type": "boolean"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "has_subscription": {
+            "default": false,
+            "title": "Has Subscription",
+            "type": "boolean"
+          },
+          "plan": {
+            "enum": [
+              "free",
+              "monthly",
+              "annual",
+              "unknown"
+            ],
+            "title": "Plan",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "status"
+        ],
+        "title": "BillingSubscriptionResponse",
         "type": "object"
       },
       "Body_oauth_token_login_api_v1_auth_token_post": {
@@ -2624,8 +2804,8 @@
               "application/json": {
                 "example": {
                   "detail": {
-                    "error": "LAST_ADMIN_REQUIRED",
-                    "message": "Assign another active administrator before deleting this account."
+                    "error": "ACCOUNT_BILLING_REVIEW_REQUIRED",
+                    "message": "Contact the operator to reconcile subscriptions before deleting this account."
                   }
                 },
                 "schema": {
@@ -3806,6 +3986,327 @@
         ]
       }
     },
+    "/api/v1/billing/checkout-sessions": {
+      "post": {
+        "operationId": "create_checkout_api_v1_billing_checkout_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingCheckoutForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSetupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Create Checkout Api V1 Billing Checkout Sessions Post"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Create Checkout Api V1 Billing Checkout Sessions Post"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Create Checkout",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/checkout-sessions/{session_id}": {
+      "get": {
+        "operationId": "checkout_status_api_v1_billing_checkout_sessions__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "pattern": "^cs_[A-Za-z0-9_]+$",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCheckoutStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Checkout Status Api V1 Billing Checkout Sessions  Session Id  Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Checkout Status Api V1 Billing Checkout Sessions  Session Id  Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Checkout Status",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/api/v1/billing/config": {
       "get": {
         "operationId": "billing_config_api_v1_billing_config_get",
@@ -3877,8 +4378,8 @@
               "application/json": {
                 "example": {
                   "detail": {
-                    "error": "BILLING_RECONCILIATION_REQUIRED",
-                    "message": "Customer setup requires operator reconciliation."
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
                   }
                 },
                 "schema": {
@@ -4062,8 +4563,8 @@
               "application/json": {
                 "example": {
                   "detail": {
-                    "error": "BILLING_RECONCILIATION_REQUIRED",
-                    "message": "Customer setup requires operator reconciliation."
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
                   }
                 },
                 "schema": {
@@ -4135,6 +4636,145 @@
           }
         ],
         "summary": "List Payment Methods",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/plans": {
+      "get": {
+        "operationId": "plans_api_v1_billing_plans_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingPlansResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Plans Api V1 Billing Plans Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Plans Api V1 Billing Plans Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Plans",
         "tags": [
           "Billing"
         ]
@@ -4221,8 +4861,8 @@
               "application/json": {
                 "example": {
                   "detail": {
-                    "error": "BILLING_RECONCILIATION_REQUIRED",
-                    "message": "Customer setup requires operator reconciliation."
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
                   }
                 },
                 "schema": {
@@ -4383,8 +5023,8 @@
               "application/json": {
                 "example": {
                   "detail": {
-                    "error": "BILLING_RECONCILIATION_REQUIRED",
-                    "message": "Customer setup requires operator reconciliation."
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
                   }
                 },
                 "schema": {
@@ -4456,6 +5096,145 @@
           }
         ],
         "summary": "Setup Status",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/subscription": {
+      "get": {
+        "operationId": "subscription_api_v1_billing_subscription_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSubscriptionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Subscription Api V1 Billing Subscription Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Subscription Api V1 Billing Subscription Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Subscription",
         "tags": [
           "Billing"
         ]

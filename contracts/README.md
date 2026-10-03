@@ -148,3 +148,5 @@ Verification accepts the existing language headers for the queued welcome messag
 `/api/v1/billing` provides bearer-or-application-API-key config, setup-session creation/status and
 customer-scoped card/Link cursor lists. No charges or local payment status are created.
 See [billing setup](../notes/billing.md) for exact retry and ownership semantics.
+
+Subscription billing exposes authenticated plans, current subscription, checkout creation and owner-checked return status. Monetary amounts use minor currency units; clients send only plan/currency/request UUID, never price/customer/amount/URLs. Only paid=true confirms payment; current subscription is read from Stripe. Account deletion can return ACCOUNT_BILLING_REVIEW_REQUIRED for checkout history pending operator reconciliation.
