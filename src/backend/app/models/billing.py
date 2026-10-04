@@ -1,11 +1,13 @@
 """Customer identities and bounded Checkout reservations; Stripe owns billing state."""
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, select, update
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -25,6 +27,21 @@ class BillingCustomer(Base):
 
 
 class BillingCustomers:
+    @staticmethod
+    @asynccontextmanager
+    async def locked(user_id: int, livemode: bool) -> AsyncIterator[BillingCustomer | None]:
+        """Serialize changes across workers; release the lock when provider work finishes."""
+        async with get_db() as db:
+            if db.bind.dialect.name == "sqlite":
+                await db.execute(text("BEGIN IMMEDIATE"))
+            row = await db.scalar(
+                select(BillingCustomer)
+                .where(BillingCustomer.user_id == user_id, BillingCustomer.livemode == livemode)
+                .with_for_update()
+            )
+            yield row
+            await db.commit()
+
     @staticmethod
     async def get(user_id: int, livemode: bool) -> BillingCustomer | None:
         async with get_db() as db:
@@ -185,9 +202,45 @@ class BillingSubscriptionResponse(BaseModel):
     current_period_end: int | None = None
     cancel_at_period_end: bool = False
     has_subscription: bool = False
+    can_manage: bool = False
+    change_version: str | None = None
+    pending_plan: Literal["free", "monthly", "annual"] | None = None
+    pending_effective_at: int | None = None
 
 
 class BillingCheckoutStatusResponse(BaseModel):
     id: str
     status: Literal["open", "complete", "expired"]
     paid: bool
+
+
+class BillingChangeForm(BillingSetupForm):
+    plan: Literal["free", "monthly", "annual", "keep"]
+    expected_version: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class BillingProfileResponse(BaseModel):
+    email: str | None = None
+    name: str | None = None
+    address: list[str] = Field(default_factory=list)
+    default_payment_method: str | None = None
+    portal_enabled: bool = False
+
+
+class BillingInvoiceResponse(BaseModel):
+    id: str
+    number: str | None = None
+    created: int
+    status: str
+    amount: int
+    currency: str
+    url: str | None = None
+
+
+class BillingInvoicesResponse(BaseModel):
+    items: list[BillingInvoiceResponse]
+    has_more: bool
+
+
+class BillingPortalForm(BillingSetupForm):
+    flow: Literal["overview", "payment_method_update", "customer_update"] = "overview"

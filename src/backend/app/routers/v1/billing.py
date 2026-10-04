@@ -6,11 +6,15 @@ from app.core.error.billing_exception import billing_error_responses
 from app.core.error.response_contracts import current_user_error_responses
 from app.deps import get_current_user
 from app.models.billing import (
+    BillingChangeForm,
     BillingCheckoutForm,
     BillingCheckoutStatusResponse,
     BillingConfigResponse,
+    BillingInvoicesResponse,
     BillingPaymentMethodsResponse,
     BillingPlansResponse,
+    BillingPortalForm,
+    BillingProfileResponse,
     BillingSetupForm,
     BillingSetupResponse,
     BillingSetupStatusResponse,
@@ -107,3 +111,39 @@ async def checkout_status(
     service: BillingService = Depends(BillingService),
 ) -> BillingCheckoutStatusResponse:
     return await service.checkout_status(current_user.id, session_id)
+
+
+@router.post("/subscription/change", response_model=BillingSubscriptionResponse)
+async def change_subscription(
+    form: BillingChangeForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingSubscriptionResponse:
+    return await service.change_subscription(current_user.id, form)
+
+
+@router.get("/profile", response_model=BillingProfileResponse)
+async def billing_profile(
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingProfileResponse:
+    return await service.profile(current_user.id)
+
+
+@router.get("/invoices", response_model=BillingInvoicesResponse)
+async def billing_invoices(
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingInvoicesResponse:
+    return await service.invoices(current_user.id)
+
+
+@router.post(
+    "/portal-sessions", response_model=BillingSetupResponse, status_code=status.HTTP_201_CREATED
+)
+async def billing_portal(
+    form: BillingPortalForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingSetupResponse:
+    return await service.portal(current_user.id, form)

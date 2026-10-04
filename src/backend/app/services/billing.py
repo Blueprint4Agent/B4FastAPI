@@ -1,11 +1,13 @@
 """Hosted registration and subscriptions; Stripe remains the billing source of truth."""
 
 import asyncio
+import hashlib
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from typing import Literal
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import stripe
 
@@ -14,15 +16,20 @@ from app.core.error.billing_exception import BillingErrorCode, BillingException
 from app.core.observability.logging import get_logger
 from app.core.observability.service import observe_service
 from app.models.billing import (
+    BillingChangeForm,
     BillingCheckoutForm,
     BillingCheckouts,
     BillingCheckoutStatusResponse,
     BillingConfigResponse,
     BillingCustomers,
+    BillingInvoiceResponse,
+    BillingInvoicesResponse,
     BillingPaymentMethodResponse,
     BillingPaymentMethodsResponse,
     BillingPlansResponse,
+    BillingPortalForm,
     BillingPriceResponse,
+    BillingProfileResponse,
     BillingSetupForm,
     BillingSetupResponse,
     BillingSetupStatusResponse,
@@ -83,6 +90,8 @@ class BillingService:
                     # Authenticate against the API this integration actually uses.
                     # Read at most one entry; never create resources or log its contents.
                     await client.v1.checkout.sessions.list_async(params={"limit": 1})
+                    if SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID:
+                        await self._portal_configuration(client)
                     if SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
                         for (plan, currency), price_id in self._price_ids().items():
                             await self._price(client, plan, currency, price_id)
@@ -99,7 +108,7 @@ class BillingService:
         except BillingException as error:
             if error.code.error == "BILLING_PLAN_UNAVAILABLE":
                 raise RuntimeError(
-                    "Stripe startup verification failed: configured recurring prices do not match the required plan, currency or mode."
+                    "Stripe startup verification failed: configured billing resources do not match the required plan, currency, portal policy or mode."
                 ) from None
             raise RuntimeError(
                 "Stripe startup verification failed: Billing API request failed or timed out. "
@@ -336,7 +345,7 @@ class BillingService:
             if len(subscriptions) > 1:
                 raise BillingException(BillingErrorCode.BILLING_RECONCILIATION_REQUIRED)
             return (
-                self._subscription_response(subscriptions[0])
+                await self._managed_response(client, subscriptions[0])
                 if subscriptions
                 else BillingSubscriptionResponse(plan="free", status="none")
             )
@@ -413,3 +422,276 @@ class BillingService:
                 and subscription.status == "active"
             )
             return BillingCheckoutStatusResponse(id=session.id, status=session.status, paid=paid)
+
+    async def _managed_response(
+        self, client: stripe.StripeClient, subscription: stripe.Subscription
+    ) -> BillingSubscriptionResponse:
+        result = self._subscription_response(subscription)
+        item = subscription["items"].data[0] if len(subscription["items"].data) == 1 else None
+        schedule_id = getattr(subscription, "schedule", None)
+        schedule = (
+            await client.v1.subscription_schedules.retrieve_async(schedule_id)
+            if schedule_id
+            else None
+        )
+        owned = not schedule or (
+            getattr(schedule.metadata, "b4a_managed", None) == "period_end_v1"
+            and schedule.customer == subscription.customer
+        )
+        result.can_manage = bool(
+            SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED
+            and subscription.status == "active"
+            and result.plan in ("monthly", "annual")
+            and result.current_period_end
+            and item
+            and getattr(item, "quantity", 1) == 1
+            and getattr(subscription, "collection_method", "charge_automatically")
+            == "charge_automatically"
+            and not getattr(subscription, "discounts", [])
+            and not getattr(subscription, "default_tax_rates", [])
+            and not getattr(item, "discounts", [])
+            and not getattr(item, "tax_rates", [])
+            and not getattr(subscription, "trial_end", None)
+            and not getattr(subscription, "pause_collection", None)
+            and not getattr(subscription, "transfer_data", None)
+            and owned
+        )
+        if subscription.cancel_at_period_end:
+            result.pending_plan = "free"
+            result.pending_effective_at = result.current_period_end
+        future = []
+        if schedule:
+            future = (
+                [
+                    phase
+                    for phase in schedule.phases
+                    if phase.start_date >= result.current_period_end
+                ]
+                if result.current_period_end
+                else []
+            )
+            if owned and future:
+                phase = future[0]
+                price = phase["items"][0].price if len(phase["items"]) == 1 else None
+                mapped = {value: key for key, value in self._price_ids().items()}
+                match = mapped.get(price if isinstance(price, str) else getattr(price, "id", None))
+                if match:
+                    result.pending_plan = match[0]
+                    result.pending_effective_at = phase.start_date
+                else:
+                    result.can_manage = False
+        result.change_version = hashlib.sha256(
+            json.dumps(
+                {
+                    "id": subscription.id,
+                    "plan": result.plan,
+                    "currency": result.currency,
+                    "status": result.status,
+                    "end": result.current_period_end,
+                    "cancel": subscription.cancel_at_period_end,
+                    "schedule": schedule_id,
+                    "future": [phase.to_dict() for phase in future],
+                },
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
+        return result
+
+    @observe_service("billing.change_subscription")
+    async def change_subscription(
+        self, user_id: int, form: BillingChangeForm
+    ) -> BillingSubscriptionResponse:
+        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        async with (
+            self._provider() as client,
+            BillingCustomers.locked(user_id, self.config().livemode) as row,
+        ):
+            if row is None or not row.stripe_customer_id:
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            subscriptions = await self._subscriptions(client, row.stripe_customer_id)
+            if len(subscriptions) != 1:
+                raise BillingException(BillingErrorCode.BILLING_CHANGE_CONFLICT)
+            subscription = subscriptions[0]
+            current = await self._managed_response(client, subscription)
+            if (
+                not current.can_manage
+                or current.change_version != form.expected_version
+                or (
+                    form.plan in ("monthly", "annual")
+                    and current.current_period_end <= int(datetime.now(UTC).timestamp()) + 60
+                )
+            ):
+                raise BillingException(BillingErrorCode.BILLING_CHANGE_CONFLICT)
+            if subscription.customer != row.stripe_customer_id:
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            target = form.plan
+            if target == current.plan:
+                target = "keep"
+            prefix = f"billing-change:{subscription.id}:{form.request_id}"
+            schedule_id = getattr(subscription, "schedule", None)
+            if target in ("free", "keep"):
+                if schedule_id:
+                    await client.v1.subscription_schedules.release_async(
+                        schedule_id,
+                        params={"preserve_cancel_date": False},
+                        options={"idempotency_key": prefix + ":release"},
+                    )
+                await client.v1.subscriptions.update_async(
+                    subscription.id,
+                    params={"cancel_at_period_end": target == "free", "proration_behavior": "none"},
+                    options={"idempotency_key": prefix + ":cancel"},
+                )
+            else:
+                price_id = self._price_ids().get((target, current.currency))
+                if not price_id:
+                    raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+                await self._price(client, target, current.currency, price_id)
+                if subscription.cancel_at_period_end:
+                    await client.v1.subscriptions.update_async(
+                        subscription.id,
+                        params={"cancel_at_period_end": False, "proration_behavior": "none"},
+                        options={"idempotency_key": prefix + ":resume"},
+                    )
+                if not schedule_id:
+                    schedule = await client.v1.subscription_schedules.create_async(
+                        params={"from_subscription": subscription.id},
+                        options={"idempotency_key": prefix + ":create"},
+                    )
+                    schedule_id = schedule.id
+                else:
+                    schedule = await client.v1.subscription_schedules.retrieve_async(schedule_id)
+                item = subscription["items"].data[0]
+                await client.v1.subscription_schedules.update_async(
+                    schedule_id,
+                    params={
+                        "end_behavior": "release",
+                        "proration_behavior": "none",
+                        "metadata": {"b4a_managed": "period_end_v1"},
+                        "phases": [
+                            {
+                                "start_date": schedule.current_phase.start_date,
+                                "end_date": current.current_period_end,
+                                "items": [{"price": item.price.id, "quantity": 1}],
+                                "proration_behavior": "none",
+                            },
+                            {
+                                "start_date": current.current_period_end,
+                                "duration": {
+                                    "interval": "month" if target == "monthly" else "year",
+                                    "interval_count": 1,
+                                },
+                                "items": [{"price": price_id, "quantity": 1}],
+                                "proration_behavior": "none",
+                                "billing_cycle_anchor": "phase_start",
+                            },
+                        ],
+                    },
+                    options={"idempotency_key": prefix + ":update"},
+                )
+            updated = await client.v1.subscriptions.retrieve_async(subscription.id)
+            return await self._managed_response(client, updated)
+
+    @observe_service("billing.profile")
+    async def profile(self, user_id: int) -> BillingProfileResponse:
+        async with self._provider() as client:
+            row = await BillingCustomers.get(user_id, self.config().livemode)
+            if not row or not row.stripe_customer_id:
+                return BillingProfileResponse(
+                    portal_enabled=bool(SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID)
+                )
+            customer = await client.v1.customers.retrieve_async(row.stripe_customer_id)
+            if getattr(customer, "deleted", False):
+                raise BillingException(BillingErrorCode.BILLING_RECONCILIATION_REQUIRED)
+            address = getattr(customer, "address", None)
+            default = getattr(customer.invoice_settings, "default_payment_method", None)
+            subscriptions = await self._subscriptions(client, row.stripe_customer_id)
+            if len(subscriptions) == 1:
+                default = getattr(subscriptions[0], "default_payment_method", None) or default
+            return BillingProfileResponse(
+                email=getattr(customer, "email", None),
+                name=getattr(customer, "name", None),
+                address=[
+                    str(getattr(address, key))
+                    for key in ("line1", "line2", "city", "state", "postal_code", "country")
+                    if address and getattr(address, key, None)
+                ],
+                default_payment_method=default
+                if isinstance(default, str)
+                else getattr(default, "id", None),
+                portal_enabled=bool(SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID),
+            )
+
+    @observe_service("billing.invoices")
+    async def invoices(self, user_id: int) -> BillingInvoicesResponse:
+        async with self._provider() as client:
+            row = await BillingCustomers.get(user_id, self.config().livemode)
+            if not row or not row.stripe_customer_id:
+                return BillingInvoicesResponse(items=[], has_more=False)
+            invoices = await client.v1.invoices.list_async(
+                params={"customer": row.stripe_customer_id, "limit": 4}
+            )
+            return BillingInvoicesResponse(
+                items=[
+                    BillingInvoiceResponse(
+                        id=item.id,
+                        number=item.number,
+                        created=item.created,
+                        status=item.status or "draft",
+                        amount=item.amount_paid if item.status == "paid" else item.amount_due,
+                        currency=item.currency,
+                        url=item.hosted_invoice_url,
+                    )
+                    for item in invoices.data
+                ],
+                has_more=invoices.has_more,
+            )
+
+    @observe_service("billing.portal")
+    async def portal(self, user_id: int, form: BillingPortalForm) -> BillingSetupResponse:
+        if not SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID:
+            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        async with self._provider() as client:
+            # Restrict portal editing to profile/cards/invoices; plan policy stays in this service.
+            config = await self._portal_configuration(client)
+            customer_id = await self._customer(client, user_id)
+            parts = urlsplit(SETTINGS.STRIPE_SETUP_CANCEL_URL)
+            query = [
+                (k, v)
+                for k, v in parse_qsl(parts.query)
+                if k not in ("billing_setup", "billing_checkout", "section")
+            ]
+            query.append(("section", "billing"))
+            return_url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
+            params = {"customer": customer_id, "configuration": config.id, "return_url": return_url}
+            if form.flow == "payment_method_update":
+                params["flow_data"] = {
+                    "type": form.flow,
+                    "after_completion": {
+                        "type": "redirect",
+                        "redirect": {"return_url": return_url},
+                    },
+                }
+            session = await client.v1.billing_portal.sessions.create_async(
+                params=params,
+                options={"idempotency_key": f"billing-portal:{customer_id}:{form.request_id}"},
+            )
+            return BillingSetupResponse(id=session.id, url=session.url)
+
+    async def _portal_configuration(self, client: stripe.StripeClient):
+        config = await client.v1.billing_portal.configurations.retrieve_async(
+            SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID
+        )
+        features = config.features
+        if (
+            not config.active
+            or config.livemode != self.config().livemode
+            or features.subscription_cancel.enabled
+            or features.subscription_update.enabled
+            or not features.customer_update.enabled
+            or not features.payment_method_update.enabled
+            or not features.invoice_history.enabled
+            or not {"email", "name", "address"}.issubset(features.customer_update.allowed_updates)
+        ):
+            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        return config
