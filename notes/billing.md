@@ -52,11 +52,11 @@ needs no frontend publishable key or Stripe.js dependency.
 
 ## Contract and failure behavior
 
-All twelve operations accept a bearer session or an application API key (`X-API-Key`).
+All sixteen operations accept a bearer session or an application API key (`X-API-Key`).
 Keys act as their owner; existing keys gain billing access without reissuance.
 When both credentials are sent, both must be valid and identify the same user.
 In Swagger, clear expired OAuth2 authorization before testing only an API key.
-`GET /config` under `/api/v1/billing` exposes only `enabled` and `livemode`.
+`GET /config` under `/api/v1/billing` exposes `enabled`, `livemode` and optional `publishable_key`; secret keys remain server-only.
 Disabled configuration gives `BILLING_DISABLED` (503) on provider operations;
 enabled but incomplete configuration now aborts startup before serving requests;
 provider failures/timeouts become sanitized `BILLING_UNAVAILABLE` (502). A foreign or
@@ -237,6 +237,17 @@ Free sets cancel_at_period_end; keep clears cancellation or releases this applic
 
 `GET /billing/profile` returns customer email/name/address, effective default payment-method ID and portal availability. `GET /billing/invoices` returns the four most recent invoices in minor currency units; View all opens Stripe. `POST /billing/portal-sessions` takes request UUID and overview/customer_update/payment_method_update flow. The server owns the customer and return URL. Set STRIPE_PORTAL_CONFIGURATION_ID to an active configuration with customer_update (email/name/address), payment_method_update and invoice_history enabled, but subscription_cancel/update disabled; runtime rejects configurations that bypass app plan policy. Leave it blank to disable portal actions. The local sandbox configuration is provisioned in ignored backend .env; production and Docker remain separately configured.
 
-All twelve endpoints accept bearer/application API keys with no-store responses. Required Stripe permissions additionally include customer/invoice reads, subscription/schedule writes, and portal session creation/configuration reads. No card numbers are handled by this application. Scheduled execution belongs to Stripe; local paid entitlements still require a separate webhook design.
+All sixteen endpoints accept bearer/application API keys with no-store responses. Required Stripe permissions additionally include customer/invoice reads, subscription/schedule writes, and portal session creation/configuration reads. No card numbers are handled by this application. Scheduled execution belongs to Stripe; local paid entitlements still require a separate webhook design.
 
 When STRIPE_PORTAL_CONFIGURATION_ID is set, startup performs a read-only active/mode/feature-policy validation. Runtime repeats this check before creating each portal session.
+
+## In-app profile and card management
+
+Set optional `STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`) for embedded card entry; its mode must match the secret key. Local and Docker `.env.example` files include the blank setting; actual account values belong in the environment. Config exposes only this public key, enablement and mode. An unset public key leaves read/profile/default/removal APIs usable and disables embedded registration.
+
+- `PUT /billing/profile`: `{request_id,email,name,address:{country,city,state,line1,line2,postal_code}}`; returns the provider profile including `address_fields` and display `address`.
+- `POST /billing/payment-methods/{method_id}`: `{request_id,action:default|remove}`; owner/mode checks and customer lock precede provider writes. Default updates both customer and the single active subscription. Removing its active default returns `409 BILLING_METHOD_REQUIRED`; select a replacement first.
+- `POST /billing/card-setups`: `{request_id}`; creates an off-session card-only SetupIntent for the authenticated customer and returns `{id,client_secret}` with no-store. The secret is for Stripe Elements only; never log or persist it.
+- `GET /billing/card-setups/{intent_id}`: `{registered}`; true requires succeeded SetupIntent, attached payment method and matching customer/user/mode. Return URLs alone never prove registration.
+
+Setup/default/detach writes require corresponding Stripe permissions. Raw card numbers and CVC go directly from Elements to Stripe. Link methods identify a wallet; their API object does not expose underlying card brand/last four/expiry. Only real card methods provide these fields. Invoice overview remains in the restricted portal. No webhook entitlement projection is added.

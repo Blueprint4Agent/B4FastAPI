@@ -94,15 +94,15 @@ def test_billing_read_validation(billing_app, sample_user, path):
 
 
 def test_config_never_exposes_secrets(billing_app, sample_user):
-    """Scenario: configuration contains only enablement and Stripe mode flags."""
+    """Scenario: configuration permits a public key but never provider secrets."""
     # Given: a configured service stub.
     service = BillingService()
     service.config = lambda: BillingConfigResponse(enabled=True, livemode=False)
     billing_app.dependency_overrides[get_current_user] = lambda: sample_user
     billing_app.dependency_overrides[BillingService] = lambda: service
-    # When/Then: configuration contains no key, customer or redirect information.
+    # When/Then: configuration contains no secret, customer or redirect information.
     response = TestClient(billing_app).get("/api/v1/billing/config")
-    assert response.json() == {"enabled": True, "livemode": False}
+    assert response.json() == {"enabled": True, "livemode": False, "publishable_key": None}
 
 
 @pytest.mark.parametrize(

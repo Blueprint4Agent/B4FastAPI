@@ -52,11 +52,11 @@ Stripe 제공 화면을 사용하므로 프론트엔드 공개 키나 Stripe.js�
 
 ## 동작과 제한
 
-Billing API 12개 모두 bearer 세션 또는 앱 API 키(`X-API-Key`)로 접근합니다.
+Billing API 16개 모두 bearer 세션 또는 앱 API 키(`X-API-Key`)로 접근합니다.
 기존 키도 재발급 없이 소유자 권한으로 사용할 수 있습니다. 두 인증을 함께 보내면
 둘 다 유효하고 같은 사용자여야 합니다. Swagger에서 키만 테스트할 때는 만료된
 OAuth2 인증을 Logout한 뒤 APIKeyHeader만 등록하세요.
-`GET /api/v1/billing/config`는 `enabled`, `livemode`만 공개합니다.
+`GET /api/v1/billing/config`는 `enabled`, `livemode`, 선택 `publishable_key`를 공개하며 비밀 키는 서버에 유지합니다.
 비활성은 `BILLING_DISABLED`(503)이며, 활성화된 설정이 미완료면 이제 서버 시작을
 중단합니다. 실행 중 Stripe 장애/시간 초과는
 `BILLING_UNAVAILABLE`(502), 본인 소유가 아닌 세션이나 없는 세션은
@@ -226,6 +226,17 @@ Free는 기간 종료 시 해지, keep은 해지·변경 예약 철회입니다.
 
 GET /billing/profile은 이메일·이름·주소·기본 결제수단·포털 사용 여부, GET /billing/invoices는 최근 청구서 4개를 반환합니다. 모두 보기·정보 편집·결제수단 관리는 POST /billing/portal-sessions로 연결합니다. STRIPE_PORTAL_CONFIGURATION_ID에는 고객 정보(email/name/address)·카드·청구서 관리만 허용하고 구독 취소·변경은 비활성인 설정을 지정합니다. 구독 정책을 우회하는 포털 설정은 거부하며 미설정 시 버튼이 비활성화됩니다. 로컬 테스트 설정은 무시된 backend .env에 저장했고 운영·Docker 설정은 별도입니다.
 
-12개 API 모두 bearer/앱 API 키와 no-store를 사용합니다. Stripe 고객·청구서 읽기, 구독·일정 쓰기, 포털 세션 생성·설정 읽기 권한이 필요합니다. 카드 원문을 직접 처리하지 않으며 예약 실행은 Stripe가 담당합니다. 유료 이용 권한의 로컬 반영은 별도 웹훅 설계가 필요합니다.
+16개 API 모두 bearer/앱 API 키와 no-store를 사용합니다. Stripe 고객·청구서 읽기, 구독·일정 쓰기, 포털 세션 생성·설정 읽기 권한이 필요합니다. 카드 원문을 직접 처리하지 않으며 예약 실행은 Stripe가 담당합니다. 유료 이용 권한의 로컬 반영은 별도 웹훅 설계가 필요합니다.
 
 STRIPE_PORTAL_CONFIGURATION_ID가 설정되면 시작 시 활성 여부·모드·허용 기능을 읽기 전용으로 검증하고, 포털 세션 생성 전에도 다시 확인합니다.
+
+## 앱 내 결제 정보·카드 관리
+
+선택 설정 `STRIPE_PUBLISHABLE_KEY` (`pk_test_…` 또는 `pk_live_…`)로 앱 내 카드 입력창을 활성화합니다. 공개 키와 비밀 키의 테스트/운영 모드는 같아야 합니다. 로컬·Docker `.env.example`에는 빈 항목을 제공하고 실제 값은 환경에 설정합니다. config는 공개 키·활성화·모드만 반환합니다. 공개 키가 없어도 조회·결제 정보 편집·기본 지정·삭제 API는 사용 가능합니다.
+
+- `PUT /billing/profile`: 요청 UUID·이메일·이름·구조화된 주소(country/city/state/line1/line2/postal_code)를 저장합니다. 응답에 `address_fields`와 표시용 주소를 포함합니다.
+- `POST /billing/payment-methods/{method_id}`: 요청 UUID와 default/remove 동작을 받습니다. 고객 잠금과 소유자·모드 확인 후 처리합니다. 기본 지정은 고객과 단일 활성 구독에 반영합니다. 활성 구독의 기본 수단 삭제는 `409 BILLING_METHOD_REQUIRED`로 차단하므로 먼저 대체 수단을 지정해야 합니다.
+- `POST /billing/card-setups`: 요청 UUID로 고객의 카드 전용 off-session SetupIntent를 만들고 `{id,client_secret}`을 no-store로 반환합니다. secret은 Stripe 입력창에서만 사용하고 저장·로그에 남기지 않습니다.
+- `GET /billing/card-setups/{intent_id}`: `{registered}`를 반환합니다. 성공 상태·연결된 결제수단·고객/사용자/모드가 일치해야 true입니다. 복귀 URL 자체는 등록 성공 증거가 아닙니다.
+
+Stripe의 SetupIntent·기본 지정·결제수단 분리 권한이 필요합니다. 카드 번호와 CVC는 입력창에서 Stripe로 직접 전달합니다. Link API 객체는 지갑 내부의 카드 브랜드·끝 4자리·만료일을 제공하지 않으며 실제 card 객체만 해당 값을 표시합니다. 전체 청구서 조회는 제한된 포털을 사용합니다. 웹훅 기반 이용 권한 반영은 이번 범위에 포함하지 않습니다.

@@ -23,6 +23,7 @@ def stripe_disabled_by_default(monkeypatch):
     monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", False)
     monkeypatch.setattr(SETTINGS, "STRIPE_SUBSCRIPTIONS_ENABLED", False)
     monkeypatch.setattr(SETTINGS, "STRIPE_PORTAL_CONFIGURATION_ID", "")
+    monkeypatch.setattr(SETTINGS, "STRIPE_PUBLISHABLE_KEY", "")
 
 
 @pytest.fixture

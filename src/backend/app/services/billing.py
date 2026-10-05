@@ -16,6 +16,9 @@ from app.core.error.billing_exception import BillingErrorCode, BillingException
 from app.core.observability.logging import get_logger
 from app.core.observability.service import observe_service
 from app.models.billing import (
+    BillingAddress,
+    BillingCardSetupResponse,
+    BillingCardSetupStatus,
     BillingChangeForm,
     BillingCheckoutForm,
     BillingCheckouts,
@@ -24,11 +27,13 @@ from app.models.billing import (
     BillingCustomers,
     BillingInvoiceResponse,
     BillingInvoicesResponse,
+    BillingMethodForm,
     BillingPaymentMethodResponse,
     BillingPaymentMethodsResponse,
     BillingPlansResponse,
     BillingPortalForm,
     BillingPriceResponse,
+    BillingProfileForm,
     BillingProfileResponse,
     BillingSetupForm,
     BillingSetupResponse,
@@ -67,12 +72,18 @@ class BillingService:
                     errors.append("All subscription Price IDs must be configured.")
         if "{CHECKOUT_SESSION_ID}" not in SETTINGS.STRIPE_SETUP_SUCCESS_URL:
             errors.append("STRIPE_SETUP_SUCCESS_URL must contain {CHECKOUT_SESSION_ID}.")
+        public_key = SETTINGS.STRIPE_PUBLISHABLE_KEY.strip()
+        if public_key and not public_key.startswith("pk_live_" if livemode else "pk_test_"):
+            errors.append(
+                "STRIPE_PUBLISHABLE_KEY must be a public key matching the secret key mode."
+            )
         return errors
 
     def config(self) -> BillingConfigResponse:
         return BillingConfigResponse(
             enabled=SETTINGS.STRIPE_ENABLED and not self._configuration_errors(),
             livemode=SETTINGS.STRIPE_SECRET_KEY.strip().startswith(("sk_live_", "rk_live_")),
+            publishable_key=SETTINGS.STRIPE_PUBLISHABLE_KEY.strip() or None,
         )
 
     async def initialize(self) -> None:
@@ -616,10 +627,124 @@ class BillingService:
                     for key in ("line1", "line2", "city", "state", "postal_code", "country")
                     if address and getattr(address, key, None)
                 ],
+                address_fields=BillingAddress(
+                    **{
+                        key: getattr(address, key, None) or ""
+                        for key in BillingAddress.model_fields
+                    }
+                ),
                 default_payment_method=default
                 if isinstance(default, str)
                 else getattr(default, "id", None),
                 portal_enabled=bool(SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID),
+            )
+
+    @observe_service("billing.update_profile")
+    async def update_profile(
+        self, user_id: int, form: BillingProfileForm
+    ) -> BillingProfileResponse:
+        async with self._provider() as client:
+            customer_id = await self._customer(client, user_id)
+            async with BillingCustomers.locked(user_id, self.config().livemode):
+                await client.v1.customers.update_async(
+                    customer_id,
+                    params={
+                        "email": form.email.strip(),
+                        "name": form.name.strip(),
+                        "address": form.address.model_dump(),
+                    },
+                    options={"idempotency_key": f"profile:{customer_id}:{form.request_id}"},
+                )
+        return await self.profile(user_id)
+
+    @observe_service("billing.manage_method")
+    async def manage_method(
+        self, user_id: int, method_id: str, form: BillingMethodForm
+    ) -> BillingProfileResponse:
+        async with (
+            self._provider() as client,
+            BillingCustomers.locked(user_id, self.config().livemode) as row,
+        ):
+            if not row or not row.stripe_customer_id:
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            method = await client.v1.payment_methods.retrieve_async(method_id)
+            if (
+                method.customer != row.stripe_customer_id
+                or method.livemode != self.config().livemode
+            ):
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            customer = await client.v1.customers.retrieve_async(row.stripe_customer_id)
+            subscriptions = await self._subscriptions(client, row.stripe_customer_id)
+            if len(subscriptions) > 1:
+                raise BillingException(BillingErrorCode.BILLING_RECONCILIATION_REQUIRED)
+            default = getattr(customer.invoice_settings, "default_payment_method", None)
+            active_default = (
+                getattr(subscriptions[0], "default_payment_method", None) or default
+                if subscriptions
+                else None
+            )
+            prefix = f"method:{row.stripe_customer_id}:{form.request_id}"
+            if form.action == "remove":
+                if active_default == method_id or (subscriptions and not active_default):
+                    raise BillingException(BillingErrorCode.BILLING_METHOD_REQUIRED)
+                await client.v1.payment_methods.detach_async(
+                    method_id, options={"idempotency_key": prefix + ":detach"}
+                )
+                if default == method_id:
+                    await client.v1.customers.update_async(
+                        row.stripe_customer_id,
+                        params={"invoice_settings": {"default_payment_method": ""}},
+                        options={"idempotency_key": prefix + ":clear"},
+                    )
+            else:
+                if method.type not in ("card", "link"):
+                    raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+                await client.v1.customers.update_async(
+                    row.stripe_customer_id,
+                    params={"invoice_settings": {"default_payment_method": method_id}},
+                    options={"idempotency_key": prefix + ":customer"},
+                )
+                for subscription in subscriptions:
+                    await client.v1.subscriptions.update_async(
+                        subscription.id,
+                        params={"default_payment_method": method_id},
+                        options={"idempotency_key": prefix + ":subscription"},
+                    )
+        return await self.profile(user_id)
+
+    @observe_service("billing.create_card_setup")
+    async def create_card_setup(
+        self, user_id: int, form: BillingSetupForm
+    ) -> BillingCardSetupResponse:
+        if not self.config().publishable_key:
+            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        async with self._provider() as client:
+            customer_id = await self._customer(client, user_id)
+            intent = await client.v1.setup_intents.create_async(
+                params={
+                    "customer": customer_id,
+                    "payment_method_types": ["card"],
+                    "usage": "off_session",
+                    "metadata": {"b4a_user_id": str(user_id)},
+                },
+                options={"idempotency_key": f"card-setup:{customer_id}:{form.request_id}"},
+            )
+            return BillingCardSetupResponse(id=intent.id, client_secret=intent.client_secret)
+
+    @observe_service("billing.card_setup_status")
+    async def card_setup_status(self, user_id: int, intent_id: str) -> BillingCardSetupStatus:
+        async with self._provider() as client:
+            row = await BillingCustomers.get(user_id, self.config().livemode)
+            if not row or not row.stripe_customer_id:
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            intent = await client.v1.setup_intents.retrieve_async(intent_id)
+            if (
+                intent.customer != row.stripe_customer_id
+                or intent.livemode != self.config().livemode
+            ):
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            return BillingCardSetupStatus(
+                registered=intent.status == "succeeded" and bool(intent.payment_method)
             )
 
     @observe_service("billing.invoices")

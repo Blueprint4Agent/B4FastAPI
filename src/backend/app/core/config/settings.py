@@ -39,6 +39,7 @@ class Settings(BaseModel):
 
     STRIPE_ENABLED: bool = os.getenv("STRIPE_ENABLED", "false").lower() == "true"
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
     STRIPE_PORTAL_CONFIGURATION_ID: str = os.getenv("STRIPE_PORTAL_CONFIGURATION_ID", "")
     STRIPE_SUBSCRIPTIONS_ENABLED: bool = (
         os.getenv("STRIPE_SUBSCRIPTIONS_ENABLED", "false").lower() == "true"
