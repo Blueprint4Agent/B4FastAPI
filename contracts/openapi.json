@@ -476,6 +476,81 @@
         "title": "AuthErrorResponse",
         "type": "object"
       },
+      "BillingAddress": {
+        "additionalProperties": false,
+        "properties": {
+          "city": {
+            "default": "",
+            "maxLength": 100,
+            "title": "City",
+            "type": "string"
+          },
+          "country": {
+            "default": "",
+            "maxLength": 2,
+            "pattern": "^([A-Z]{2})?$",
+            "title": "Country",
+            "type": "string"
+          },
+          "line1": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Line1",
+            "type": "string"
+          },
+          "line2": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Line2",
+            "type": "string"
+          },
+          "postal_code": {
+            "default": "",
+            "maxLength": 20,
+            "title": "Postal Code",
+            "type": "string"
+          },
+          "state": {
+            "default": "",
+            "maxLength": 100,
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "title": "BillingAddress",
+        "type": "object"
+      },
+      "BillingCardSetupResponse": {
+        "properties": {
+          "client_secret": {
+            "title": "Client Secret",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "client_secret"
+        ],
+        "title": "BillingCardSetupResponse",
+        "type": "object"
+      },
+      "BillingCardSetupStatus": {
+        "properties": {
+          "registered": {
+            "title": "Registered",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "registered"
+        ],
+        "title": "BillingCardSetupStatus",
+        "type": "object"
+      },
       "BillingChangeForm": {
         "additionalProperties": false,
         "properties": {
@@ -580,6 +655,17 @@
           "livemode": {
             "title": "Livemode",
             "type": "boolean"
+          },
+          "publishable_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishable Key"
           }
         },
         "required": [
@@ -610,6 +696,7 @@
               "BILLING_PLAN_UNAVAILABLE",
               "BILLING_CHECKOUT_CONFLICT",
               "BILLING_CHANGE_CONFLICT",
+              "BILLING_METHOD_REQUIRED",
               "BILLING_NOT_FOUND",
               "BILLING_RECONCILIATION_REQUIRED"
             ],
@@ -715,6 +802,31 @@
           "has_more"
         ],
         "title": "BillingInvoicesResponse",
+        "type": "object"
+      },
+      "BillingMethodForm": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "default",
+              "remove"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Reuse this UUID when retrying the same setup request.",
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "action"
+        ],
+        "title": "BillingMethodForm",
         "type": "object"
       },
       "BillingPaymentMethodResponse": {
@@ -900,6 +1012,40 @@
         "title": "BillingPriceResponse",
         "type": "object"
       },
+      "BillingProfileForm": {
+        "additionalProperties": false,
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/BillingAddress"
+          },
+          "email": {
+            "maxLength": 255,
+            "pattern": "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$",
+            "title": "Email",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 150,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "request_id": {
+            "description": "Reuse this UUID when retrying the same setup request.",
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "email",
+          "name",
+          "address"
+        ],
+        "title": "BillingProfileForm",
+        "type": "object"
+      },
       "BillingProfileResponse": {
         "properties": {
           "address": {
@@ -908,6 +1054,9 @@
             },
             "title": "Address",
             "type": "array"
+          },
+          "address_fields": {
+            "$ref": "#/components/schemas/BillingAddress"
           },
           "default_payment_method": {
             "anyOf": [
@@ -4216,6 +4365,327 @@
         ]
       }
     },
+    "/api/v1/billing/card-setups": {
+      "post": {
+        "operationId": "create_card_setup_api_v1_billing_card_setups_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingSetupForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCardSetupResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Create Card Setup Api V1 Billing Card Setups Post"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Create Card Setup Api V1 Billing Card Setups Post"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Create Card Setup",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/api/v1/billing/card-setups/{intent_id}": {
+      "get": {
+        "operationId": "card_setup_status_api_v1_billing_card_setups__intent_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "intent_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "pattern": "^seti_[A-Za-z0-9]+$",
+              "title": "Intent Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingCardSetupStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Card Setup Status Api V1 Billing Card Setups  Intent Id  Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Card Setup Status Api V1 Billing Card Setups  Intent Id  Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Card Setup Status",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/api/v1/billing/checkout-sessions": {
       "post": {
         "operationId": "create_checkout_api_v1_billing_checkout_sessions_post",
@@ -5010,6 +5480,178 @@
         ]
       }
     },
+    "/api/v1/billing/payment-methods/{method_id}": {
+      "post": {
+        "operationId": "manage_billing_method_api_v1_billing_payment_methods__method_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "method_id",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "pattern": "^pm_[A-Za-z0-9]+$",
+              "title": "Method Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingMethodForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Manage Billing Method Api V1 Billing Payment Methods  Method Id  Post"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Manage Billing Method Api V1 Billing Payment Methods  Method Id  Post"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Manage Billing Method",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/api/v1/billing/plans": {
       "get": {
         "operationId": "plans_api_v1_billing_plans_get",
@@ -5442,6 +6084,163 @@
           }
         ],
         "summary": "Billing Profile",
+        "tags": [
+          "Billing"
+        ]
+      },
+      "put": {
+        "operationId": "update_billing_profile_api_v1_billing_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingProfileForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Update Billing Profile Api V1 Billing Profile Put"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "API_KEY_USER_MISMATCH",
+                    "message": "API key does not belong to the authenticated user."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/APIKeyErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BillingErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Update Billing Profile Api V1 Billing Profile Put"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_CHECKOUT_CONFLICT",
+                    "message": "An existing subscription or another checkout requires attention."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_UNAVAILABLE",
+                    "message": "Payment provider is temporarily unavailable."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "BILLING_DISABLED",
+                    "message": "Billing is not configured."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/BillingErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Update Billing Profile",
         "tags": [
           "Billing"
         ]

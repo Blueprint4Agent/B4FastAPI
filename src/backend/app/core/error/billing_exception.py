@@ -24,6 +24,11 @@ class BillingErrorCode(Enum):
     BILLING_CHANGE_CONFLICT = ServiceErrorCode(
         "BILLING_CHANGE_CONFLICT", "Subscription changed. Refresh before confirming again.", 409
     )
+    BILLING_METHOD_REQUIRED = ServiceErrorCode(
+        "BILLING_METHOD_REQUIRED",
+        "Choose another default payment method before removing this one.",
+        409,
+    )
     BILLING_NOT_FOUND = ServiceErrorCode("BILLING_NOT_FOUND", "Billing resource not found.", 404)
     BILLING_RECONCILIATION_REQUIRED = ServiceErrorCode(
         "BILLING_RECONCILIATION_REQUIRED", "Customer setup requires operator reconciliation.", 409

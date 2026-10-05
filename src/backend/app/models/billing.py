@@ -96,6 +96,7 @@ class BillingCustomers:
 class BillingConfigResponse(BaseModel):
     enabled: bool
     livemode: bool
+    publishable_key: str | None = None
 
 
 class BillingSetupForm(BaseModel):
@@ -219,10 +220,41 @@ class BillingChangeForm(BillingSetupForm):
     expected_version: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
+class BillingAddress(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    country: str = Field(default="", pattern=r"^([A-Z]{2})?$", max_length=2)
+    city: str = Field(default="", max_length=100)
+    state: str = Field(default="", max_length=100)
+    line1: str = Field(default="", max_length=200)
+    line2: str = Field(default="", max_length=200)
+    postal_code: str = Field(default="", max_length=20)
+
+
+class BillingProfileForm(BillingSetupForm):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    email: str = Field(pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$", max_length=255)
+    name: str = Field(min_length=1, max_length=150)
+    address: BillingAddress
+
+
+class BillingMethodForm(BillingSetupForm):
+    action: Literal["default", "remove"]
+
+
+class BillingCardSetupResponse(BaseModel):
+    id: str
+    client_secret: str
+
+
+class BillingCardSetupStatus(BaseModel):
+    registered: bool
+
+
 class BillingProfileResponse(BaseModel):
     email: str | None = None
     name: str | None = None
     address: list[str] = Field(default_factory=list)
+    address_fields: BillingAddress = Field(default_factory=BillingAddress)
     default_payment_method: str | None = None
     portal_enabled: bool = False
 

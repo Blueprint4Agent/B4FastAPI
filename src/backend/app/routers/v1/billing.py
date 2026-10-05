@@ -6,14 +6,18 @@ from app.core.error.billing_exception import billing_error_responses
 from app.core.error.response_contracts import current_user_error_responses
 from app.deps import get_current_user
 from app.models.billing import (
+    BillingCardSetupResponse,
+    BillingCardSetupStatus,
     BillingChangeForm,
     BillingCheckoutForm,
     BillingCheckoutStatusResponse,
     BillingConfigResponse,
     BillingInvoicesResponse,
+    BillingMethodForm,
     BillingPaymentMethodsResponse,
     BillingPlansResponse,
     BillingPortalForm,
+    BillingProfileForm,
     BillingProfileResponse,
     BillingSetupForm,
     BillingSetupResponse,
@@ -147,3 +151,40 @@ async def billing_portal(
     service: BillingService = Depends(BillingService),
 ) -> BillingSetupResponse:
     return await service.portal(current_user.id, form)
+
+
+@router.put("/profile", response_model=BillingProfileResponse)
+async def update_billing_profile(
+    form: BillingProfileForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingProfileResponse:
+    return await service.update_profile(current_user.id, form)
+
+
+@router.post("/payment-methods/{method_id}", response_model=BillingProfileResponse)
+async def manage_billing_method(
+    method_id: Annotated[str, Path(pattern=r"^pm_[A-Za-z0-9]+$", max_length=255)],
+    form: BillingMethodForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingProfileResponse:
+    return await service.manage_method(current_user.id, method_id, form)
+
+
+@router.post("/card-setups", response_model=BillingCardSetupResponse, status_code=201)
+async def create_card_setup(
+    form: BillingSetupForm,
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingCardSetupResponse:
+    return await service.create_card_setup(current_user.id, form)
+
+
+@router.get("/card-setups/{intent_id}", response_model=BillingCardSetupStatus)
+async def card_setup_status(
+    intent_id: Annotated[str, Path(pattern=r"^seti_[A-Za-z0-9]+$", max_length=255)],
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingCardSetupStatus:
+    return await service.card_setup_status(current_user.id, intent_id)
