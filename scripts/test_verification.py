@@ -100,7 +100,8 @@ class VerificationTests(unittest.TestCase):
     def test_full_parent_reuses_verified_build_for_packaging(self):
         scope = {"backend": True, "frontend": "full"}
         commands = v.targets(scope, True, "frontend")
-        self.assertIn(["make", "frontend-test-routes"], commands)
+        self.assertIn(["make", "project-brand"], commands)
+        self.assertIn(["make", "-C", "src/frontend", "test-routes"], commands)
         self.assertIn(
             ["make", "frontend-contract-check", "frontend-package-verified"], commands
         )

@@ -84,3 +84,41 @@ class ReceiptTests(unittest.TestCase):
         self.assertTrue(receipt.reusable())
         (child / "app.ts").write_text("modified child\n")
         self.assertFalse(cache.Receipt(self.root, ["make", "-C", "src/frontend", "check", "test"]).reusable())
+
+class EnvironmentTests(unittest.TestCase):
+    def test_hook_helper_and_duplicate_path_entries_are_equivalent(self):
+        with patch.object(cache.subprocess, "check_output", return_value="/git/helpers\n"):
+            normal = cache.normalized_path("/tools:/usr/bin:/tools")
+            hook = cache.normalized_path("/git/helpers:/tools:/usr/bin")
+            self.assertEqual(normal, hook)
+            self.assertNotEqual(normal, cache.normalized_path("/other:/tools:/usr/bin"))
+            self.assertNotEqual(normal, cache.normalized_path("/usr/bin:/tools"))
+
+    def test_real_tool_and_environment_changes_remain_distinct(self):
+        with patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}, clear=True):
+            first = cache.context()
+            with patch.dict(os.environ, {"VITE_API_BASE_URL": "https://different.example"}):
+                self.assertNotEqual(first, cache.context())
+            with patch.object(cache.shutil, "which", return_value="/different/tool"):
+                self.assertNotEqual(first, cache.context())
+
+
+class ScopedCommandTests(unittest.TestCase):
+    setUp = ReceiptTests.setUp
+    receipt = ReceiptTests.receipt
+
+    def test_one_selection_does_not_authorize_another(self):
+        first = ["make", "test-selected", "TEST_FILES=src/tests/billing.test.ts"]
+        second = ["make", "test-selected", "TEST_FILES=src/tests/admin.test.ts"]
+        self.receipt(first).save()
+        self.assertTrue(self.receipt(first).reusable())
+        self.assertFalse(self.receipt(second).reusable())
+        self.assertFalse(self.receipt(["make", "test"]).reusable())
+
+    def test_hook_path_reuses_real_context(self):
+        self.ctx.stop()
+        with patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}, clear=True):
+            helper = cache.subprocess.check_output(["git", "--exec-path"], text=True).strip()
+            self.receipt().save()
+            with patch.dict(os.environ, {"PATH": helper + ":/usr/bin:/bin:/usr/bin", "GIT_EXEC_PATH": helper}):
+                self.assertTrue(self.receipt().reusable())

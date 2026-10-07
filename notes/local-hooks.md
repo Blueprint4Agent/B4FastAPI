@@ -40,3 +40,10 @@ branch deletion/force pushes; required CI statuses are removed, with zero requir
 Hooks can be bypassed or not installed; GitHub therefore no longer guarantees that a merged
 commit passed checks. Agents and contributors must install hooks, retain worklog evidence,
 run actual PR metadata checks and merge through PRs. Do not skip hooks in normal work.
+
+Receipt v2 canonicalizes duplicate PATH entries and Git's injected helper directory, while
+retaining PATH precedence, actual tool versions/resolution and environment/config changes.
+Use the same shell/toolchain for child and parent commands; a different Python installation
+is a valid cache miss. Static checks and tests have separate receipts. Scoped test commands
+include their complete selected suites/cases. Parent branding precedes child checks and build
+and route receipts use the same child command identity. See verification.md for scope rules.
