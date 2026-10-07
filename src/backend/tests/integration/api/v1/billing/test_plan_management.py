@@ -424,3 +424,103 @@ def test_same_request_recovers_schedule_creation_after_update_failure(integratio
     assert result.status_code == 200
     assert result.json()["pending_plan"] == "annual"
     assert len(accepted) == 1
+
+
+def test_subscription_reads_use_db_and_mutations_replace_snapshot(integration_client, managed):
+    provider, _state = managed
+    headers = ready(integration_client)
+    first = integration_client.get("/api/v1/billing/subscription", headers=headers)
+    assert first.json()["plan"] == "monthly"
+    reads = provider.v1.subscriptions.list_async.await_count
+    for _ in range(3):
+        assert (
+            integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+            == first.json()
+        )
+    assert provider.v1.subscriptions.list_async.await_count == reads
+    changed = change(integration_client, headers, "free")
+    assert changed.status_code == 200
+    provider.v1.subscriptions.list_async.reset_mock()
+    snapshot = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+    assert snapshot["pending_plan"] == "free"
+    provider.v1.subscriptions.list_async.assert_not_called()
+
+
+def test_webhook_syncs_without_email_and_ignores_obsolete_event_plan(
+    integration_client, managed, monkeypatch
+):
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    provider, state = managed
+    headers = ready(integration_client)
+    assert (
+        integration_client.get("/api/v1/billing/subscription", headers=headers).json()["status"]
+        == "active"
+    )
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", False)
+    monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
+    state["subscription"].status = "past_due"
+    payload = json.dumps(
+        {
+            "id": "evt_duplicate",
+            "type": "customer.subscription.updated",
+            "livemode": False,
+            "data": {"object": {"customer": "cus_fixture", "status": "active"}},
+        }
+    ).encode()
+    timestamp = str(int(time.time()))
+    signature = hmac.new(
+        b"whsec_fixture", timestamp.encode() + b"." + payload, hashlib.sha256
+    ).hexdigest()
+    webhook_headers = {"stripe-signature": f"t={timestamp},v1={signature}"}
+    for _ in range(2):
+        response = integration_client.post(
+            "/api/v1/billing/webhook", content=payload, headers=webhook_headers
+        )
+        assert response.status_code == 200, response.text
+    provider.v1.subscriptions.list_async.reset_mock()
+    snapshot = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+    assert snapshot["status"] == "past_due"
+    assert not snapshot["can_manage"]
+    provider.v1.subscriptions.list_async.assert_not_called()
+    assert (
+        integration_client.post(
+            "/api/v1/billing/webhook", content=payload + b" ", headers=webhook_headers
+        ).status_code
+        == 400
+    )
+
+
+def test_server_reconciliation_repairs_missing_webhook(integration_client, managed):
+    import asyncio
+
+    from sqlalchemy import update
+
+    from app.core.db.session import get_db
+    from app.models.billing import BillingCustomer
+    from app.services.billing_reconciliation import reconcile_subscriptions
+
+    provider, _state = managed
+    headers = ready(integration_client)
+    assert (
+        integration_client.get("/api/v1/billing/subscription", headers=headers).json()["plan"]
+        == "monthly"
+    )
+    provider.v1.subscriptions.list_async.return_value = stripe_object(data=[], has_more=False)
+
+    async def scenario():
+        async with get_db() as db:
+            await db.execute(update(BillingCustomer).values(subscription_synced_at=None))
+            await db.commit()
+        await reconcile_subscriptions()
+
+    asyncio.run(scenario())
+    provider.v1.subscriptions.list_async.reset_mock()
+    assert (
+        integration_client.get("/api/v1/billing/subscription", headers=headers).json()["plan"]
+        == "free"
+    )
+    provider.v1.subscriptions.list_async.assert_not_called()

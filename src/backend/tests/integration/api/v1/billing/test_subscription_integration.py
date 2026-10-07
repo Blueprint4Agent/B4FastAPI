@@ -117,11 +117,11 @@ def test_catalog_checkout_and_verified_return(integration_client, provider, auth
         {"price": "price_monthly_krw", "quantity": 1}
     ]
     # Then: return is verified, and active subscriptions prevent a second purchase.
-    result = client.get("/api/v1/billing/checkout-sessions/cs_test_checkout", headers=headers)
-    assert result.json()["paid"] is True
     provider.v1.subscriptions.list_async.return_value = stripe_object(
         data=[subscription()], has_more=False
     )
+    result = client.get("/api/v1/billing/checkout-sessions/cs_test_checkout", headers=headers)
+    assert result.json()["paid"] is True
     current = client.get("/api/v1/billing/subscription", headers=headers).json()
     assert current["plan"] == "monthly" and current["has_subscription"]
     assert (
@@ -250,8 +250,16 @@ def test_unknown_subscription_and_pagination_never_look_free(integration_client,
     result = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
     assert result["plan"] == "unknown" and result["has_subscription"]
     provider.v1.subscriptions.list_async.return_value.has_more = True
+    # Provider changes are reconciled by synchronization, not every GET.
+    owner = integration_client.get("/api/v1/auth/me", headers=headers).json()["id"]
+    from app.core.error.billing_exception import BillingException
+
+    with pytest.raises(BillingException):
+        asyncio.run(BillingService().sync_subscription(owner))
+    # A failed synchronization cannot turn the last known unknown plan into Free.
     assert (
-        integration_client.get("/api/v1/billing/subscription", headers=headers).status_code == 409
+        integration_client.get("/api/v1/billing/subscription", headers=headers).json()["plan"]
+        == "unknown"
     )
 
 

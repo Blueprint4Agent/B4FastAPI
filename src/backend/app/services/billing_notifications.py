@@ -39,8 +39,6 @@ class BillingNotificationService:
             raise BillingException(BillingErrorCode.BILLING_WEBHOOK_INVALID) from None
         if event.get("livemode") != BillingService().config().livemode:
             raise BillingException(BillingErrorCode.BILLING_WEBHOOK_INVALID)
-        if not SETTINGS.EMAIL_ENABLED:
-            return
         data = _mapping(event.get("data"))
         obj = _mapping(data.get("object"))
         customer = obj.get("customer")
@@ -50,6 +48,30 @@ class BillingNotificationService:
         if user is None:
             return
         event_type = event.get("type")
+        sync_events = {
+            "customer.subscription.created",
+            "customer.subscription.updated",
+            "customer.subscription.deleted",
+            "customer.subscription.paused",
+            "customer.subscription.resumed",
+            "invoice.paid",
+            "invoice.payment_failed",
+            "invoice.payment_action_required",
+            "checkout.session.completed",
+            "checkout.session.async_payment_succeeded",
+            "checkout.session.async_payment_failed",
+            "subscription_schedule.updated",
+            "subscription_schedule.released",
+            "subscription_schedule.canceled",
+            "subscription_schedule.completed",
+            "subscription_schedule.aborted",
+        }
+        if event_type in sync_events:
+            # Fetch current provider state under a customer lock: duplicate or older payloads
+            # cannot roll the DB back to an obsolete plan. Failure returns non-2xx for redelivery.
+            await BillingService().sync_subscription(user.id)
+        if not SETTINGS.EMAIL_ENABLED:
+            return
         kind, plan, key = None, None, None
         if (
             event_type == "invoice.paid"

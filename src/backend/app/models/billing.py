@@ -7,7 +7,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, select, text, update
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,6 +23,9 @@ class BillingCustomer(Base):
     livemode: Mapped[bool] = mapped_column(Boolean, primary_key=True)
     creation_key: Mapped[str] = mapped_column(String(36), unique=True, nullable=False)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), unique=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(255))
+    subscription_snapshot: Mapped[dict | None] = mapped_column(JSON)
+    subscription_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 

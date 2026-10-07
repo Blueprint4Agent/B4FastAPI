@@ -28,7 +28,12 @@ def create_celery_app(settings: Settings) -> Celery:
         "b4fastapi",
         broker=settings.celery_broker_url,
         task_cls=ContextTask,
-        include=["app.core.celery.tasks", "app.core.celery.mail", "app.core.celery.notifications"],
+        include=[
+            "app.core.celery.tasks",
+            "app.core.celery.mail",
+            "app.core.celery.notifications",
+            "app.core.celery.billing",
+        ],
     )
     app.conf.update(
         accept_content=["json"],
@@ -58,7 +63,8 @@ def create_celery_app(settings: Settings) -> Celery:
         worker_hijack_root_logger=False,
         worker_redirect_stdouts=False,
         beat_schedule={
-            "lifecycle-mail-outbox": {"task": "b4fastapi.notifications.drain", "schedule": 60.0}
+            "lifecycle-mail-outbox": {"task": "b4fastapi.notifications.drain", "schedule": 60.0},
+            "billing-reconciliation": {"task": "b4fastapi.billing.reconcile", "schedule": 300.0},
         },
     )
     return app

@@ -86,6 +86,9 @@ def test_signed_webhook_rejects_tampering_and_ignores_failure_renewal(monkeypatc
     monkeypatch.setattr(SETTINGS, "STRIPE_SECRET_KEY", "sk_test_fixture")
     monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
     monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    monkeypatch.setattr(
+        "app.services.billing_notifications.BillingService.sync_subscription", AsyncMock()
+    )
     queue = AsyncMock()
     monkeypatch.setattr("app.services.billing_notifications.queue_notification", queue)
     monkeypatch.setattr(

@@ -113,3 +113,41 @@ def test_manager_directory_audit_and_last_admin(integration_client):
         ("manager", "user"),
     ]
     assert all(event.operator.startswith("cli:") for event in events)
+
+
+@pytest.mark.primary_data
+def test_config_renews_bootstrap_token_after_time_passes(integration_client, monkeypatch):
+    """Config recovery must mint a usable token instead of replaying an expired startup token."""
+    import importlib
+    from datetime import UTC, datetime, timedelta
+
+    from jose import jwt
+
+    main = importlib.import_module("app.main")
+    token_module = importlib.import_module("app.utils.token")
+    monkeypatch.setattr(SETTINGS, "APP_MODE", "development")
+    monkeypatch.setattr(SETTINGS, "LOGIN_ENABLED", False)
+    monkeypatch.setattr(SETTINGS, "BOOTSTRAP_USER_EMAIL", "renewal@example.com")
+    user = asyncio.run(BootstrapService().initialize())
+    monkeypatch.setattr(main, "BOOTSTRAP_USER", user)
+    now = datetime.now(UTC)
+
+    class EarlierClock:
+        @staticmethod
+        def now(tz):
+            return now - timedelta(minutes=SETTINGS.ACCESS_TOKEN_EXPIRE_MINUTES + 1)
+
+    monkeypatch.setattr(token_module, "datetime", EarlierClock)
+    old = integration_client.get("/config").json()["bootstrap_access_token"]
+    assert jwt.get_unverified_claims(old)["exp"] < now.timestamp()
+    monkeypatch.setattr(token_module, "datetime", datetime)
+    response = integration_client.get("/config")
+    new = response.json()["bootstrap_access_token"]
+    assert response.headers["cache-control"] == "no-store"
+    assert new != old
+    assert (
+        integration_client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {new}"}
+        ).status_code
+        == 200
+    )
