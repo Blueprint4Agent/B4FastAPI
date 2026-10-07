@@ -709,3 +709,11 @@ Runtime modes and the manager directory permission follow [runtime modes and rol
 
 
 Subscription-start, plan-change and account-deleted mail use migration 0011 encrypted outbox. Deletion notice commits with deletion. One Celery Beat scans every minute; existing auth/welcome mail policy remains unchanged. See [billing setup](../../notes/billing.md) for webhook activation, retention, key rotation and duplicate-delivery limitations.
+
+Uvicorn access logging excludes the exact `/metrics` path (including query strings). Metric collection and application/error diagnostics remain enabled.
+
+Development login-free `/config` responses mint fresh short-lived bootstrap tokens and use `Cache-Control: no-store`; startup tokens are never reused after expiry.
+
+Subscription persistence and webhook/Beat reconciliation: see the billing guide, migrations 0012–0013.
+
+Run `make db-current` from the repository root to inspect the configured database revision, and `make db-migrate` to upgrade it to head. Both run in src/backend and use its current environment; they do not start the API or initialize external integrations.

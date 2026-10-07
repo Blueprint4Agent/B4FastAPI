@@ -377,22 +377,53 @@ class BillingService:
             has_subscription=True,
         )
 
+    @staticmethod
+    def _save_subscription(
+        row, snapshot: BillingSubscriptionResponse, subscription_id: str | None = None
+    ) -> BillingSubscriptionResponse:
+        row.stripe_subscription_id = subscription_id
+        row.subscription_snapshot = snapshot.model_dump(mode="json")
+        row.subscription_synced_at = datetime.now(UTC)
+        return snapshot
+
+    async def sync_subscription(
+        self, user_id: int, *, only_missing: bool = False
+    ) -> BillingSubscriptionResponse:
+        if not SETTINGS.STRIPE_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_DISABLED)
+        async with BillingCustomers.locked(user_id, self.config().livemode) as row:
+            if row is None or row.stripe_customer_id is None:
+                return BillingSubscriptionResponse(plan="free", status="none")
+            if only_missing and row.subscription_snapshot is not None:
+                return BillingSubscriptionResponse.model_validate(row.subscription_snapshot)
+            async with self._provider() as client:
+                subscriptions = await self._subscriptions(client, row.stripe_customer_id)
+                if len(subscriptions) > 1:
+                    # Persist uncertainty rather than continuing to advertise an old tier.
+                    snapshot = BillingSubscriptionResponse(
+                        plan="unknown", status="reconciliation_required"
+                    )
+                else:
+                    snapshot = (
+                        await self._managed_response(client, subscriptions[0])
+                        if subscriptions
+                        else BillingSubscriptionResponse(plan="free", status="none")
+                    )
+                return self._save_subscription(
+                    row, snapshot, subscriptions[0].id if len(subscriptions) == 1 else None
+                )
+
     @observe_service("billing.subscription")
     async def subscription(self, user_id: int) -> BillingSubscriptionResponse:
         if not SETTINGS.STRIPE_ENABLED:
             raise BillingException(BillingErrorCode.BILLING_DISABLED)
-        async with self._provider() as client:
-            row = await BillingCustomers.get(user_id, self.config().livemode)
-            if row is None or row.stripe_customer_id is None:
-                return BillingSubscriptionResponse(plan="free", status="none")
-            subscriptions = await self._subscriptions(client, row.stripe_customer_id)
-            if len(subscriptions) > 1:
-                raise BillingException(BillingErrorCode.BILLING_RECONCILIATION_REQUIRED)
-            return (
-                await self._managed_response(client, subscriptions[0])
-                if subscriptions
-                else BillingSubscriptionResponse(plan="free", status="none")
-            )
+        row = await BillingCustomers.get(user_id, self.config().livemode)
+        if row is None or row.stripe_customer_id is None:
+            return BillingSubscriptionResponse(plan="free", status="none")
+        if row.subscription_snapshot is not None:
+            return BillingSubscriptionResponse.model_validate(row.subscription_snapshot)
+        # Existing installations backfill a customer's snapshot once, under a DB lock.
+        return await self.sync_subscription(user_id, only_missing=True)
 
     @observe_service("billing.create_checkout")
     async def create_checkout(
@@ -469,6 +500,8 @@ class BillingService:
                 and subscription.customer == row.stripe_customer_id
                 and subscription.status == "active"
             )
+            if session.status == "complete":
+                await self.sync_subscription(user_id)
             return BillingCheckoutStatusResponse(id=session.id, status=session.status, paid=paid)
 
     async def _managed_response(
@@ -573,6 +606,18 @@ class BillingService:
     async def change_subscription(
         self, user_id: int, form: BillingChangeForm
     ) -> BillingSubscriptionResponse:
+        try:
+            return await self._change_subscription(user_id, form)
+        except BillingException as exc:
+            if exc.code.error == "BILLING_CHANGE_CONFLICT":
+                # Refresh after the failed mutation releases its customer lock.
+                # The user can then explicitly reload the current version and retry.
+                await self.sync_subscription(user_id)
+            raise
+
+    async def _change_subscription(
+        self, user_id: int, form: BillingChangeForm
+    ) -> BillingSubscriptionResponse:
         if not SETTINGS.STRIPE_ENABLED:
             raise BillingException(BillingErrorCode.BILLING_DISABLED)
         async with (
@@ -674,7 +719,9 @@ class BillingService:
                         },
                         options={"idempotency_key": prefix + ":upgrade"},
                     )
-                    return await self._managed_response(client, updated)
+                    return self._save_subscription(
+                        row, await self._managed_response(client, updated)
+                    )
                 if subscription.cancel_at_period_end:
                     await client.v1.subscriptions.update_async(
                         subscription.id,
@@ -718,7 +765,9 @@ class BillingService:
                     options={"idempotency_key": prefix + ":update"},
                 )
             updated = await client.v1.subscriptions.retrieve_async(subscription.id)
-            return await self._managed_response(client, updated)
+            return self._save_subscription(
+                row, await self._managed_response(client, updated), updated.id
+            )
 
     @observe_service("billing.profile")
     async def profile(self, user_id: int) -> BillingProfileResponse:

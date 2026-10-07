@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -38,7 +38,6 @@ from app.utils.token import create_access_token
 
 logger = get_logger("app.main")
 BOOTSTRAP_USER: UserResponse | None = None
-BOOTSTRAP_ACCESS_TOKEN: str | None = None
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -87,7 +86,7 @@ class AppConfigResponse(BaseModel):
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global BOOTSTRAP_USER, BOOTSTRAP_ACCESS_TOKEN
+    global BOOTSTRAP_USER
     await INTEGRATION_HEALTH.reset()
     STARTUP_CHECKS.clear()
     SETTINGS.validate_runtime_mode()
@@ -122,14 +121,10 @@ async def lifespan(_app: FastAPI):
     await init_db()
     logger.info("Database initialization complete.")
     BOOTSTRAP_USER = None
-    BOOTSTRAP_ACCESS_TOKEN = None
     if not SETTINGS.LOGIN_ENABLED:
         from app.services.bootstrap import BootstrapService
 
         BOOTSTRAP_USER = await BootstrapService().initialize()
-        BOOTSTRAP_ACCESS_TOKEN = create_access_token(
-            subject=str(BOOTSTRAP_USER.id), email=BOOTSTRAP_USER.email
-        )
     logger.info("Application startup sequence complete.")
     try:
         yield
@@ -216,7 +211,14 @@ def create_app() -> FastAPI:
         return readiness
 
     @app.get("/config", response_model=AppConfigResponse)
-    async def config():
+    async def config(response: Response):
+        response.headers["Cache-Control"] = "no-store"
+        bootstrap_user = None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER
+        bootstrap_token = (
+            create_access_token(subject=str(bootstrap_user.id), email=bootstrap_user.email)
+            if bootstrap_user
+            else None
+        )
         return {
             "api_base_path": "/api/v1",
             "app_mode": SETTINGS.APP_MODE,
@@ -228,8 +230,8 @@ def create_app() -> FastAPI:
             "oauth_providers": SETTINGS.oauth_provider_list
             if SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED
             else [],
-            "bootstrap_user": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER,
-            "bootstrap_access_token": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_ACCESS_TOKEN,
+            "bootstrap_user": bootstrap_user,
+            "bootstrap_access_token": bootstrap_token,
         }
 
     setup_metrics(app)

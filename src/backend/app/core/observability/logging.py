@@ -83,6 +83,17 @@ class RequestContextFilter(logging.Filter):
         return True
 
 
+class MetricsAccessFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Uvicorn access args: client, method, full path, HTTP version, status.
+        args = record.args
+        if record.name == "uvicorn.access" and isinstance(args, tuple) and len(args) == 5:
+            path = args[2]
+            if isinstance(path, str) and path.partition("?")[0] == "/metrics":
+                return False
+        return True
+
+
 def get_logger(name: str | None = None) -> logging.Logger:
     if not name:
         return logging.getLogger(APP_LOGGER_NAME)
@@ -94,6 +105,10 @@ def configure_request_context_logging() -> None:
     if not _REQUEST_CONTEXT_RECORD_FACTORY_CONFIGURED:
         logging.setLogRecordFactory(_request_context_log_record_factory)
         _REQUEST_CONTEXT_RECORD_FACTORY_CONFIGURED = True
+
+    access_logger = logging.getLogger("uvicorn.access")
+    if not any(isinstance(item, MetricsAccessFilter) for item in access_logger.filters):
+        access_logger.addFilter(MetricsAccessFilter())
 
     context_filter = RequestContextFilter()
     format_string = LOG_FORMAT_VERBOSE if _REQUEST_CONTEXT_LOG_ENABLED else LOG_FORMAT_SIMPLE

@@ -62,3 +62,38 @@ def test_log_record_includes_request_context(caplog) -> None:
     assert matching_records
     assert matching_records[-1].request_id == request_id
     assert matching_records[-1].trace_id == trace_id
+
+
+def test_metrics_access_filter_preserves_other_requests_and_diagnostics():
+    from app.core.observability.logging import MetricsAccessFilter
+
+    access_filter = MetricsAccessFilter()
+    for path, expected in [
+        ("/metrics", False),
+        ("/metrics?format=text", False),
+        ("/api/v1/billing/subscription", True),
+        ("/metrics-extra", True),
+    ]:
+        record = logging.LogRecord(
+            "uvicorn.access",
+            logging.INFO,
+            "",
+            0,
+            "%s %s %s %s %s",
+            ("127.0.0.1", "GET", path, "1.1", 200),
+            None,
+        )
+        assert access_filter.filter(record) is expected
+    diagnostic = logging.LogRecord(
+        "uvicorn.error", logging.ERROR, "", 0, "metrics failed", (), None
+    )
+    assert access_filter.filter(diagnostic)
+
+
+def test_metrics_filter_registration_is_idempotent():
+    from app.core.observability.logging import MetricsAccessFilter
+
+    configure_request_context_logging()
+    configure_request_context_logging()
+    filters = logging.getLogger("uvicorn.access").filters
+    assert sum(isinstance(item, MetricsAccessFilter) for item in filters) == 1

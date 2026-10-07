@@ -301,18 +301,15 @@ Plus → Pro applies immediately only after Stripe accepts payment, using
 Changing the interval during an upgrade can start a new billing cycle. A pending
 payment retains the old plan, blocks further mutations and exposes an owner/mode-checked
 hosted invoice link for payment/authentication. This explicit recovery action opens
-Stripe; it is not the deferred in-app invoice-history modal. Focus/online recovery
-reads the provider again; no client-side entitlement is granted. Pro → Plus, same-tier
+Stripe; it is not the deferred in-app invoice-history modal. Explicit reload reads the server snapshot; no client-side entitlement is granted. Pro → Plus, same-tier
 interval changes and cancellation apply at period end, preserving paid time.
 See [Stripe pending updates](https://docs.stripe.com/billing/subscriptions/pending-updates).
 
 The route shell owns the sidebar subscription snapshot through the existing
 hook and passes its tier through layout props. It resets on account changes and never maps roles or URL selections to a paid tier.
-A successful mutation invalidates other mounted subscription consumers; each rereads
-the server. Unknown/error states do not display a misleading Free badge. The collapsed
+A successful mutation updates the shared subscription snapshot for every mounted consumer. Unknown/error states do not display a misleading Free badge. The collapsed
 avatar shows an accessible compact tier mark; the expanded profile menu shows the
-full name above email with stronger weight and tier text treatment. No new state store,
-webhook, feature quota or tier-specific application entitlement is introduced here.
+full name above email with stronger weight and tier text treatment. No feature quota or tier-specific application authorization is introduced by the profile badge.
 
 
 ## Native history and lifecycle mail
@@ -324,3 +321,13 @@ Only subscription starts (initial `invoice.paid`), applied plan changes (`custom
 Apply migration 0011 and run a Celery worker plus one Beat. Deletion notification is saved atomically with deletion; billing events use semantic deduplication keys. Recipient payloads are encrypted with a SECRET_KEY-derived key, erased on success and erased by scans after 72 hours if undelivered. Drain pending mail before rotating SECRET_KEY. Delivery uses five attempts and five-minute leases. SMTP acceptance followed by a process crash can duplicate delivery; this is not exactly-once delivery. Broker/SMTP failures do not undo committed deletion or subscription state.
 
 If schedule creation succeeds but its update fails, retry the same request ID. Recovery requires the same provider idempotent creation result, unchanged schedule and original version; external schedules are not adopted. Losing the request ID on page reload or provider idempotency expiry can require operator reconciliation.
+
+## Stored subscription state
+
+Migrations 0012–0013 adds Stripe subscription identity, a validated snapshot and synchronization time to each user/mode billing customer. GET /billing/subscription reads this snapshot; existing linked customers are backfilled once under the customer lock. Verified checkout completion and plan mutations save provider-confirmed state. A stale mutation version refreshes the snapshot before returning conflict, allowing explicit reload and retry.
+
+Subscribe the signed webhook to customer.subscription created/updated/deleted/paused/resumed, invoice.paid/payment_failed/payment_action_required, checkout.session completed/async_payment_succeeded/async_payment_failed, and subscription_schedule updated/released/canceled/completed/aborted. Subscription synchronization runs even when email is disabled. Handlers fetch current Stripe state under the same customer lock, so duplicate and out-of-order payloads do not restore obsolete plans. Sync failures return non-2xx for Stripe retry. Multiple active subscriptions store an unknown reconciliation state rather than granting a tier.
+
+Run a Celery worker plus one Beat: billing reconciliation runs every five minutes, refreshing at most 50 oldest linked-customer snapshots older than five minutes per batch. This repairs missed webhooks and backfills existing installations; large installations need appropriately sized batches/scheduling. Provider failures preserve the last snapshot and are retried by later batches. Database reads are eventually consistent; billing mutations still validate current provider state and expected versions. No tier-specific application authorization is added by this snapshot alone.
+
+Frontend SubscriptionSnapshotProvider shares one in-memory snapshot per signed-in account across sidebar and pages. Mounts use that snapshot; no focus, online-event or timer polling runs. Mutation responses replace it directly, verified checkout return and explicit reload fetch DB state, and account changes discard it. External/dashboard changes become visible on an explicit reload or new browser session after webhook synchronization. Keep webhook delivery and worker/Beat running; a stored snapshot does not synchronize itself.

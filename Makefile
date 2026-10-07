@@ -199,6 +199,13 @@ backend-architecture-check: ## Check router/DB and lower-layer import boundaries
 frontend-architecture-check: ## Check pinned frontend dependency boundaries
 	$(MAKE) -C $(FRONTEND_DIR) architecture-check
 
+.PHONY: db-current db-migrate
+db-current: ## Show the configured backend database migration revision
+	cd $(BACKEND_DIR) && $(UV) run alembic current
+
+db-migrate: ## Apply all pending migrations to the configured backend database
+	cd $(BACKEND_DIR) && $(UV) run alembic upgrade head
+
 export EMAIL ROLE
 .PHONY: user-role
 user-role: ## Set an existing account role: EMAIL=address ROLE=admin|manager|user
