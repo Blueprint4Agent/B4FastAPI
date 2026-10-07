@@ -26,7 +26,11 @@ def current_user_error_responses(
     *domain_responses: Mapping[int, dict[str, Any]],
 ) -> dict[int, dict[str, Any]]:
     return merge_error_responses(
-        auth_error_responses(AuthErrorCode.INVALID_TOKEN, AuthErrorCode.USER_NOT_FOUND),
+        auth_error_responses(
+            AuthErrorCode.INVALID_TOKEN,
+            AuthErrorCode.USER_NOT_FOUND,
+            AuthErrorCode.INSUFFICIENT_ROLE,
+        ),
         api_key_error_responses(
             APIKeyErrorCode.API_KEY_INVALID, APIKeyErrorCode.API_KEY_USER_MISMATCH
         ),

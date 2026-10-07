@@ -1,6 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,12 +13,12 @@ from app.core.cache.redis import RedisManager
 from app.core.config.settings import SETTINGS
 from app.core.db.migrations import run_startup_schema_migrations
 from app.core.db.session import dispose_db, init_db
-from app.core.error import AuthException, ServiceException, service_exception_to_http
+from app.core.error import ServiceException, service_exception_to_http
 from app.core.mail.service import MAIL_SERVICE
 from app.core.observability.error_logging import exception_log_level
 from app.core.observability.health import HealthCheckResult, ReadinessResponse, get_readiness
 from app.core.observability.log_export import setup_log_export
-from app.core.observability.logging import configure_request_context_logging, get_logger, mask_email
+from app.core.observability.logging import configure_request_context_logging, get_logger
 from app.core.observability.metrics import setup_metrics
 from app.core.observability.request_context import (
     add_request_context_headers,
@@ -28,7 +29,7 @@ from app.core.observability.request_context import (
 )
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
-from app.models.user import UserResponse, UserRole, Users
+from app.models.user import UserResponse
 from app.routers.v1 import api_key, auth, billing, events
 from app.services.billing import BillingService
 from app.utils.token import create_access_token
@@ -71,6 +72,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 
 class AppConfigResponse(BaseModel):
     api_base_path: str
+    app_mode: Literal["development", "production"]
     login_enabled: bool
     frontend_base_path: str
     email_enabled: bool
@@ -83,6 +85,7 @@ class AppConfigResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global BOOTSTRAP_USER, BOOTSTRAP_ACCESS_TOKEN
+    SETTINGS.validate_runtime_mode()
     if not SETTINGS.OAUTH_ENABLED:
         logger.info("OAuth integration is disabled.")
     else:
@@ -103,63 +106,15 @@ async def lifespan(_app: FastAPI):
     logger.info("Database schema migration check complete (target=head).")
     await init_db()
     logger.info("Database initialization complete.")
+    BOOTSTRAP_USER = None
+    BOOTSTRAP_ACCESS_TOKEN = None
     if not SETTINGS.LOGIN_ENABLED:
-        bootstrap_email = SETTINGS.BOOTSTRAP_USER_EMAIL.strip().lower()
-        bootstrap_name = SETTINGS.BOOTSTRAP_USER_NAME.strip()
+        from app.services.bootstrap import BootstrapService
 
-        if bootstrap_email and bootstrap_name:
-            bootstrap_user = await Users.get_user_response_by_email(bootstrap_email)
-            if bootstrap_user is None:
-                # Bootstrap user for login-disabled mode.
-                try:
-                    await Users.create_oauth_user(
-                        email=bootstrap_email,
-                        name=bootstrap_name,
-                        provider="bootstrap",
-                        identifier=bootstrap_email,
-                        is_verified=True,
-                        role=UserRole.ADMIN,
-                    )
-                except AuthException:
-                    # Another startup worker may create it concurrently.
-                    pass
-                bootstrap_user = await Users.get_user_response_by_email(bootstrap_email)
-                logger.info(
-                    "Bootstrap user created (email=%s).",
-                    mask_email(bootstrap_email),
-                )
-            else:
-                logger.info(
-                    "Bootstrap user found (email=%s).",
-                    mask_email(bootstrap_email),
-                )
-            if bootstrap_user is not None and bootstrap_user.role != UserRole.ADMIN:
-                bootstrap_user = await Users.update_user_role(
-                    user_id=bootstrap_user.id,
-                    role=UserRole.ADMIN,
-                )
-                logger.info(
-                    "Bootstrap user role promoted to admin (email=%s).",
-                    mask_email(bootstrap_email),
-                )
-            BOOTSTRAP_USER = bootstrap_user
-            if bootstrap_user is not None:
-                BOOTSTRAP_ACCESS_TOKEN = create_access_token(
-                    subject=str(bootstrap_user.id),
-                    email=bootstrap_user.email,
-                )
-                logger.info("Bootstrap access token issued (user_id=%s).", bootstrap_user.id)
-            else:
-                BOOTSTRAP_ACCESS_TOKEN = None
-        else:
-            BOOTSTRAP_USER = None
-            BOOTSTRAP_ACCESS_TOKEN = None
-            logger.warning(
-                "Login is disabled but bootstrap user email/name is missing; bootstrap mode unavailable."
-            )
-    else:
-        BOOTSTRAP_USER = None
-        BOOTSTRAP_ACCESS_TOKEN = None
+        BOOTSTRAP_USER = await BootstrapService().initialize()
+        BOOTSTRAP_ACCESS_TOKEN = create_access_token(
+            subject=str(BOOTSTRAP_USER.id), email=BOOTSTRAP_USER.email
+        )
     logger.info("Application startup sequence complete.")
     try:
         yield
@@ -248,6 +203,7 @@ def create_app() -> FastAPI:
     async def config():
         return {
             "api_base_path": "/api/v1",
+            "app_mode": SETTINGS.APP_MODE,
             "login_enabled": SETTINGS.LOGIN_ENABLED,
             "frontend_base_path": "",
             "email_enabled": SETTINGS.EMAIL_ENABLED,

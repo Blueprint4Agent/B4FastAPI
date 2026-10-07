@@ -8,7 +8,7 @@ from app.core.config.settings import SETTINGS
 from app.core.error import AuthErrorCode, AuthException, auth_error_responses
 from app.core.error.response_contracts import current_user_error_responses
 from app.core.observability.logging import get_logger
-from app.deps import get_current_admin_user, get_current_session_user, get_current_user
+from app.deps import get_current_directory_user, get_current_session_user, get_current_user
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
     AdminUserListResponse,
@@ -290,7 +290,7 @@ async def me(current_user: UserResponse = Depends(get_current_user)) -> UserResp
     ),
 )
 async def admin_user_role_stats(
-    _current_admin_user: UserResponse = Depends(get_current_admin_user),
+    _current_admin_user: UserResponse = Depends(get_current_directory_user),
     service: AuthService = Depends(AuthService),
 ) -> UserRoleStatsResponse:
     return await service.get_admin_user_role_stats()
@@ -307,7 +307,7 @@ async def admin_user_role_stats(
     ),
 )
 async def admin_users(
-    _current_admin_user: UserResponse = Depends(get_current_admin_user),
+    _current_admin_user: UserResponse = Depends(get_current_directory_user),
     service: AuthService = Depends(AuthService),
     page: PageQuery = 1,
     page_size: PageSizeQuery = DEFAULT_PAGE_SIZE,
@@ -345,6 +345,7 @@ async def update_me(
     responses=auth_error_responses(
         AuthErrorCode.INVALID_TOKEN,
         AuthErrorCode.USER_NOT_FOUND,
+        AuthErrorCode.INSUFFICIENT_ROLE,
         AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.EMAIL_DISABLED,
         AuthErrorCode.ACCOUNT_DELETE_CODE_THROTTLED,
@@ -368,6 +369,7 @@ async def request_deletion_code(
     responses=auth_error_responses(
         AuthErrorCode.INVALID_TOKEN,
         AuthErrorCode.USER_NOT_FOUND,
+        AuthErrorCode.INSUFFICIENT_ROLE,
         AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.ACCOUNT_DELETE_FAILED,
         AuthErrorCode.ACCOUNT_BILLING_REVIEW_REQUIRED,

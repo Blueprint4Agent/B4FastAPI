@@ -629,9 +629,9 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 ```
 
 Run only against the intended database after migrations. The command creates no accounts
-or tables, accepts `user`/`admin`, prints user ID and old/new roles, and rejects missing
+or tables, accepts `user`/`manager`/`admin`, prints user ID and old/new roles, and rejects missing
 or inactive users and demotion of the last active admin. Changes are serialized in
-SQLite/PostgreSQL transactions. Output is an operator receipt, not a durable audit store.
+SQLite/PostgreSQL transactions. Each role change stores a transactional `role_change_audit` record alongside the operator receipt.
 Authorization uses the new DB role on subsequent requests; reload account data for UI badges.
 `LOGIN_ENABLED=false` rejects this command because startup provisions a bootstrap admin.
 Profile account switching/add-account actions are hidden when login is disabled or unknown.
@@ -639,8 +639,8 @@ Same-email Google/GitHub/email recent accounts display once using the latest log
 
 ## Admin user directory
 
-`GET /api/v1/auth/admin/users` requires the current database role `admin`, including
-for bootstrap identities. Supports `page` (1+), `page_size` (1–100, default 20),
+`GET /api/v1/auth/admin/users` requires the current database role `admin` or `manager`.
+Development bootstrap identities follow the same role check; production rejects them. Supports `page` (1+), `page_size` (1–100, default 20),
 `search` (literal name/email substring, max 200), `role` and `is_active` filters.
 Returns newest user IDs first with filtered total and global account counts.
 Each user has identity, role, active/verified flags, signup time, login providers
@@ -705,3 +705,5 @@ probe aborts startup; disabled Stripe performs no external I/O. See the billing 
 for permission coverage and sanitized failure behavior.
 
 Subscription Checkout uses configured recurring Price IDs and durable per-customer reservations (migration 0009). Current subscription status is read directly from Stripe; no local entitlement or webhook projection exists. Follow the billing guide for request ownership, duplicate prevention, bounded retries and account-deletion reconciliation.
+
+Runtime modes and the manager directory permission follow [runtime modes and roles](../../notes/runtime-modes-rbac.md). This supersedes the two-role/bootstrap promotion descriptions above: dedicated bootstrap identities only, no normal-account promotion, production authentication required, and CLI changes include transactional audit records.

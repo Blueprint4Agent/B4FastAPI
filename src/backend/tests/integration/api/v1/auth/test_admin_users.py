@@ -57,7 +57,12 @@ def test_admin_directory_access_filters_and_login_metadata(integration_client):
     result = client.get(endpoint, headers=headers, params={"page_size": 1}).json()
     assert result["total"] == 2
     assert len(result["items"]) == 1
-    assert result["summary"] == {"total_users": 2, "active_users": 1, "admin_users": 1}
+    assert result["summary"] == {
+        "total_users": 2,
+        "active_users": 1,
+        "admin_users": 1,
+        "manager_users": 0,
+    }
     member = result["items"][0]
     assert member["email"] == "member@example.com"
     assert member["login_providers"] == ["email", "google"]

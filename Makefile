@@ -201,7 +201,7 @@ frontend-architecture-check: ## Check pinned frontend dependency boundaries
 
 export EMAIL ROLE
 .PHONY: user-role
-user-role: ## Set an existing account role: EMAIL=address ROLE=admin|user
+user-role: ## Set an existing account role: EMAIL=address ROLE=admin|manager|user
 	cd $(BACKEND_DIR) && $(UV) run python -m app.manage_user_role
 
 .PHONY: frontend-react-performance-check frontend-test-routes

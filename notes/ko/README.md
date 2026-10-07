@@ -533,3 +533,5 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 Stripe·Link 카드 등록 기본 구성: [한국어](billing.md) · [English](../billing.md).
 
 API 인증 정책 점검: [한국어](api-authentication.md) · [English](../api-authentication.md).
+
+실행 모드와 역할: [한국어](runtime-modes-rbac.md) · [English](../runtime-modes-rbac.md).

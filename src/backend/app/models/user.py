@@ -29,6 +29,21 @@ EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 class UserRole(StrEnum):
     USER = "user"
     ADMIN = "admin"
+    MANAGER = "manager"
+
+
+class RoleChangeAudit(Base):
+    """Operator receipt retained independently of account deletion; no email/token data."""
+
+    __tablename__ = "role_change_audit"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    target_user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    previous_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    new_role: Mapped[str] = mapped_column(String(20), nullable=False)
+    operator: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
 
 
 class User(Base):
@@ -203,6 +218,7 @@ class UserRoleStatsResponse(BaseModel):
     total_users: int
     active_users: int
     admin_users: int
+    manager_users: int = 0
 
 
 class AdminUserResponse(BaseModel):
@@ -396,6 +412,15 @@ class UserRepository:
             password_hash=user.credential.password_hash if user.credential else None,
         )
 
+    async def has_bootstrap_identity(self, user_id: int) -> bool:
+        async with get_db() as db:
+            identity_id = await db.scalar(
+                select(AuthIdentity.id)
+                .where(AuthIdentity.user_id == user_id, AuthIdentity.provider == "bootstrap")
+                .limit(1)
+            )
+            return identity_id is not None
+
     async def get_auth_user_by_email(self, email: str) -> AuthUserDTO | None:
         return await self.get_auth_user_by_identity(provider="email", identifier=email)
 
@@ -535,18 +560,10 @@ class UserRepository:
         return await self.get_user_response_by_id(user_id)
 
     async def update_user_role(self, user_id: int, role: UserRole) -> UserResponse | None:
-        async with get_db() as db:
-            result = await db.execute(
-                select(User).where(User.id == user_id, User.is_active.is_(True))
-            )
-            user = result.scalar_one_or_none()
-            if user is None:
-                return None
-
-            user.role = role.value
-            user.updated_at = datetime.now(UTC)
-            await db.commit()
-
+        user = await self.get_user_response_by_id(user_id)
+        if user is None:
+            return None
+        await self.set_operator_role(user.email, role, operator="internal")
         return await self.get_user_response_by_id(user_id)
 
     async def delete_account(self, user_id: int, email: str) -> None:
@@ -583,7 +600,9 @@ class UserRepository:
             await db.delete(user)
             await db.commit()
 
-    async def set_operator_role(self, email: str, role: UserRole) -> tuple[int, str, str]:
+    async def set_operator_role(
+        self, email: str, role: UserRole, *, operator: str = "operator"
+    ) -> tuple[int, str, str]:
         """Serialize operator changes and preserve at least one existing active admin."""
         async with get_db() as db:
             dialect = db.bind.dialect.name
@@ -599,7 +618,7 @@ class UserRepository:
                     "Active user not found; create the account before assigning a role."
                 )
             previous = user.role
-            if previous == UserRole.ADMIN.value and role == UserRole.USER:
+            if previous == UserRole.ADMIN.value and role != UserRole.ADMIN:
                 admins = await db.scalar(
                     select(func.count(User.id)).where(
                         User.role == UserRole.ADMIN.value, User.is_active.is_(True)
@@ -609,6 +628,15 @@ class UserRepository:
                     raise ValueError(
                         "Cannot demote the last active admin; promote another user first."
                     )
+            if previous != role.value:
+                db.add(
+                    RoleChangeAudit(
+                        target_user_id=user.id,
+                        previous_role=previous,
+                        new_role=role.value,
+                        operator=operator,
+                    )
+                )
             user.role = role.value
             user.updated_at = datetime.now(UTC)
             await db.commit()
@@ -687,6 +715,9 @@ class UserRepository:
             active_users = await db.scalar(
                 select(func.count(User.id)).where(User.is_active.is_(True))
             )
+            manager_users = await db.scalar(
+                select(func.count(User.id)).where(User.role == UserRole.MANAGER.value)
+            )
             admin_users = await db.scalar(
                 select(func.count(User.id)).where(User.role == UserRole.ADMIN.value)
             )
@@ -695,6 +726,7 @@ class UserRepository:
             "total_users": int(total_users or 0),
             "active_users": int(active_users or 0),
             "admin_users": int(admin_users or 0),
+            "manager_users": int(manager_users or 0),
         }
 
 
