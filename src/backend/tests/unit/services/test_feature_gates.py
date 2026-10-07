@@ -16,18 +16,12 @@ from app.services.auth import AuthService
 from app.services.billing import BillingService
 
 
-@pytest.mark.parametrize(
-    "billing,subscriptions", [(False, False), (False, True), (True, False), (True, True)]
-)
-def test_public_config_effective_billing_flags(monkeypatch, billing, subscriptions):
-    # Given: independently configured billing flags; no lifespan or provider is needed.
+@pytest.mark.parametrize("billing", [False, True])
+def test_public_config_single_billing_flag(monkeypatch, billing):
     monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", billing)
-    monkeypatch.setattr(SETTINGS, "STRIPE_SUBSCRIPTIONS_ENABLED", subscriptions)
-    # When: the public bootstrap configuration is requested.
     data = TestClient(create_app()).get("/config").json()
-    # Then: subscriptions cannot be effective without billing.
     assert data["billing_enabled"] is billing
-    assert data["subscriptions_enabled"] is (billing and subscriptions)
+    assert "subscriptions_enabled" not in data
 
 
 @pytest.mark.parametrize(
@@ -103,10 +97,9 @@ def test_oauth_disabled_preserves_state_and_skips_provider(monkeypatch):
 
 
 @pytest.mark.parametrize("operation", ["subscription", "checkout_status"])
-def test_subscriptions_disabled_skips_provider(monkeypatch, operation):
-    # Given: payments may be enabled independently of subscriptions.
-    monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", True)
-    monkeypatch.setattr(SETTINGS, "STRIPE_SUBSCRIPTIONS_ENABLED", False)
+def test_billing_disabled_skips_provider(monkeypatch, operation):
+    # Given: one switch disables all payment and subscription operations.
+    monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", False)
     service = BillingService()
     provider = Mock(side_effect=AssertionError("Provider must not be constructed"))
     monkeypatch.setattr(service, "_provider", provider)
@@ -117,5 +110,5 @@ def test_subscriptions_disabled_skips_provider(monkeypatch, operation):
             if operation == "subscription"
             else service.checkout_status(1, "cs_fixture")
         )
-    assert error.value.code.error == "BILLING_PLAN_UNAVAILABLE"
+    assert error.value.code.error == "BILLING_DISABLED"
     provider.assert_not_called()

@@ -21,9 +21,13 @@ from tests.fixtures.scenario_seed_data import (
 def stripe_disabled_by_default(monkeypatch):
     """Tests opt in with a mocked provider; never probe a developer's Stripe account."""
     monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", False)
-    monkeypatch.setattr(SETTINGS, "STRIPE_SUBSCRIPTIONS_ENABLED", False)
     monkeypatch.setattr(SETTINGS, "STRIPE_PORTAL_CONFIGURATION_ID", "")
     monkeypatch.setattr(SETTINGS, "STRIPE_PUBLISHABLE_KEY", "")
+    for interval in ("MONTHLY", "ANNUAL"):
+        for currency in ("KRW", "USD"):
+            monkeypatch.setattr(
+                SETTINGS, f"STRIPE_{interval}_{currency}_PRICE_ID", f"price_{interval}_{currency}"
+            )
     for tier in ("PLUS", "PRO"):
         for interval in ("MONTHLY", "ANNUAL"):
             for currency in ("KRW", "USD"):

@@ -381,10 +381,6 @@
           "redis_in_memory": {
             "title": "Redis In Memory",
             "type": "boolean"
-          },
-          "subscriptions_enabled": {
-            "title": "Subscriptions Enabled",
-            "type": "boolean"
           }
         },
         "required": [
@@ -396,7 +392,6 @@
           "billing_configured",
           "billing_enabled",
           "billing_mode",
-          "subscriptions_enabled",
           "developer_enabled",
           "redis_in_memory"
         ],
@@ -432,10 +427,6 @@
           "STRIPE_ENABLED": {
             "title": "Stripe Enabled",
             "type": "boolean"
-          },
-          "STRIPE_SUBSCRIPTIONS_ENABLED": {
-            "title": "Stripe Subscriptions Enabled",
-            "type": "boolean"
           }
         },
         "required": [
@@ -444,7 +435,6 @@
           "LOGIN_ENABLED",
           "OAUTH_ENABLED",
           "STRIPE_ENABLED",
-          "STRIPE_SUBSCRIPTIONS_ENABLED",
           "REDIS_IN_MEMORY"
         ],
         "title": "AdminEnvironmentValues",
@@ -711,10 +701,6 @@
             },
             "title": "Oauth Providers",
             "type": "array"
-          },
-          "subscriptions_enabled": {
-            "title": "Subscriptions Enabled",
-            "type": "boolean"
           }
         },
         "required": [
@@ -725,7 +711,6 @@
           "email_enabled",
           "oauth_enabled",
           "billing_enabled",
-          "subscriptions_enabled",
           "oauth_providers"
         ],
         "title": "AppConfigResponse",

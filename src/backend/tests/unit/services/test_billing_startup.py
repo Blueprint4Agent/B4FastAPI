@@ -14,8 +14,11 @@ from app.services.billing import BillingService
 
 @pytest.fixture
 def configured(monkeypatch):
+    monkeypatch.setattr(BillingService, "_price", AsyncMock())
     for key, value in {
         "STRIPE_ENABLED": True,
+        "STRIPE_CHECKOUT_SUCCESS_URL": "https://example.com/?checkout={CHECKOUT_SESSION_ID}",
+        "STRIPE_CHECKOUT_CANCEL_URL": "https://example.com/",
         "STRIPE_SECRET_KEY": "sk_test_privatefixture",
         "STRIPE_SETUP_SUCCESS_URL": "http://localhost:5173/settings?setup={CHECKOUT_SESSION_ID}",
         "STRIPE_SETUP_CANCEL_URL": "http://localhost:5173/settings",
@@ -104,6 +107,7 @@ def test_enabled_startup_uses_read_only_sdk_probe(configured, transport, monkeyp
     assert key not in caplog.text
     assert "Stripe startup verification succeeded" in caplog.text
     close.assert_awaited_once()
+    assert BillingService._price.await_count == 4
 
 
 @pytest.mark.parametrize(
@@ -197,3 +201,11 @@ def test_lifespan_waits_for_stripe_before_migrations(configured, transport, monk
             assert client.get("/ping").status_code == 200
         migrations.assert_awaited_once()
         transport.assert_awaited_once()
+
+
+def test_enabled_billing_requires_subscription_prices(configured, transport, monkeypatch):
+    """The single enabled switch validates plan prices before provider I/O."""
+    monkeypatch.setattr(SETTINGS, "STRIPE_MONTHLY_KRW_PRICE_ID", "")
+    with pytest.raises(RuntimeError, match="subscription Price IDs"):
+        asyncio.run(BillingService().initialize())
+    transport.assert_not_awaited()

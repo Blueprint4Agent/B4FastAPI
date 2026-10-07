@@ -61,7 +61,7 @@ class BillingService:
                     f"{name} must be an absolute HTTP(S) URL without credentials or a fragment; "
                     "live mode requires HTTPS."
                 )
-        if SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
+        if SETTINGS.STRIPE_ENABLED:
             for name in ("STRIPE_CHECKOUT_SUCCESS_URL", "STRIPE_CHECKOUT_CANCEL_URL"):
                 if not self._valid_url(getattr(SETTINGS, name), livemode):
                     errors.append(f"{name} must be a valid absolute return URL.")
@@ -108,7 +108,7 @@ class BillingService:
                     await client.v1.checkout.sessions.list_async(params={"limit": 1})
                     if SETTINGS.STRIPE_PORTAL_CONFIGURATION_ID:
                         await self._portal_configuration(client)
-                    if SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
+                    if SETTINGS.STRIPE_ENABLED:
                         for (plan, currency), price_id in self._price_ids().items():
                             await self._price(client, plan, currency, price_id)
                 except stripe.AuthenticationError:
@@ -330,7 +330,7 @@ class BillingService:
     @observe_service("billing.plans")
     async def plans(self) -> BillingPlansResponse:
         config = self.config()
-        if not config.enabled or not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
+        if not config.enabled:
             return BillingPlansResponse(enabled=False, livemode=config.livemode, prices=[])
         async with self._provider() as client:
             prices = [
@@ -377,8 +377,8 @@ class BillingService:
 
     @observe_service("billing.subscription")
     async def subscription(self, user_id: int) -> BillingSubscriptionResponse:
-        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
-            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        if not SETTINGS.STRIPE_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_DISABLED)
         async with self._provider() as client:
             row = await BillingCustomers.get(user_id, self.config().livemode)
             if row is None or row.stripe_customer_id is None:
@@ -396,8 +396,8 @@ class BillingService:
     async def create_checkout(
         self, user_id: int, form: BillingCheckoutForm
     ) -> BillingSetupResponse:
-        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
-            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        if not SETTINGS.STRIPE_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_DISABLED)
         async with self._provider() as client:
             price_id = self._price_ids().get((form.plan, form.currency))
             if not price_id:
@@ -437,8 +437,8 @@ class BillingService:
 
     @observe_service("billing.checkout_status")
     async def checkout_status(self, user_id: int, session_id: str) -> BillingCheckoutStatusResponse:
-        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
-            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        if not SETTINGS.STRIPE_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_DISABLED)
         async with self._provider() as client:
             row = await BillingCustomers.get(user_id, self.config().livemode)
             if row is None or row.stripe_customer_id is None:
@@ -507,7 +507,7 @@ class BillingService:
             and schedule.customer == subscription.customer
         )
         result.can_manage = bool(
-            SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED
+            SETTINGS.STRIPE_ENABLED
             and subscription.status == "active"
             and not pending_update
             and result.plan in ("monthly", "annual", "pro_monthly", "pro_annual")
@@ -571,8 +571,8 @@ class BillingService:
     async def change_subscription(
         self, user_id: int, form: BillingChangeForm
     ) -> BillingSubscriptionResponse:
-        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
-            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
+        if not SETTINGS.STRIPE_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_DISABLED)
         async with (
             self._provider() as client,
             BillingCustomers.locked(user_id, self.config().livemode) as row,

@@ -204,7 +204,7 @@ Invalid API key → **401**:
 
 ## 구독 Checkout
 
-`STRIPE_SUBSCRIPTIONS_ENABLED`를 켜기 전에 월간·연간/원화·달러의 4개 Price ID를 설정합니다.
+`STRIPE_ENABLED`를 켜기 전에 월간·연간/원화·달러의 4개 Price ID를 설정합니다.
 환경 변수는 `STRIPE_MONTHLY_KRW_PRICE_ID`, `STRIPE_MONTHLY_USD_PRICE_ID`,
 `STRIPE_ANNUAL_KRW_PRICE_ID`, `STRIPE_ANNUAL_USD_PRICE_ID`입니다. 활성·양수·per-unit·licensed
 정기 가격이어야 하며 통화, 월/년 주기와 키의 테스트/실서비스 모드가 일치해야 합니다.
