@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import platform
 import stat
+import shutil
 import subprocess
 import time
 
@@ -42,16 +43,38 @@ def snapshot(root):
     return digest.hexdigest()
 
 
+def normalized_path(value):
+    # Git prepends its helper directory in hooks. It is not a project toolchain override.
+    try:
+        helper = subprocess.check_output(["git", "--exec-path"], text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        helper = None
+    return os.pathsep.join(dict.fromkeys(
+        entry for entry in value.split(os.pathsep) if entry != helper
+    ))
+
+
 def context():
     result = {"python": platform.python_version(), "platform": platform.platform()}
-    for tool in ("node", "npm", "uv"):
+    # Record resolved tools as well as versions; genuinely different toolchains must rerun.
+    for tool in ("node", "npm", "uv", "git", "make"):
         try:
             result[tool] = subprocess.check_output([tool, "--version"], text=True, stderr=subprocess.DEVNULL).strip()
         except (OSError, subprocess.CalledProcessError):
             result[tool] = "unavailable"
-    # Hash environment overrides without retaining their values in the receipt.
-    selected = {key: value for key, value in os.environ.items() if key.startswith(("VITE_", "TAURI_", "B4F_", "PYTEST_")) or key in ("PATH", "CI", "NPM", "UV", "PROJECT_CONFIG", "FRONTEND_DIR", "BACKEND_DIR", "NODE_ENV")}
-    selected.setdefault("PROJECT_CONFIG", "project.json")
+    selected = {key: value for key, value in os.environ.items() if key.startswith(("VITE_", "TAURI_", "B4F_", "PYTEST_")) or key in ("PATH", "CI", "NPM", "UV", "PROJECT_CONFIG", "FRONTEND_DIR", "BACKEND_DIR", "NODE_ENV", "GIT_EXEC_PATH")}
+    # Git exports this default during hooks; absent and explicitly-default are equivalent.
+    try:
+        selected["GIT_EXEC_PATH"] = subprocess.check_output(["git", "--exec-path"], text=True).strip()
+    except (OSError, subprocess.CalledProcessError):
+        selected["GIT_EXEC_PATH"] = selected.get("GIT_EXEC_PATH", "unavailable")
+    selected["PATH"] = normalized_path(selected.get("PATH", ""))
+    selected["PROJECT_CONFIG"] = selected.get("PROJECT_CONFIG") or "project.json"
+    result["executables"] = {
+        tool: str(Path(found).resolve()) if found else "unavailable"
+        for tool in ("python3", "node", "npm", "uv", "git", "make")
+        for found in [shutil.which(tool, path=selected["PATH"])]
+    }
     result["environment"] = hashlib.sha256(json.dumps(selected, sort_keys=True).encode()).hexdigest()
     return result
 
@@ -83,9 +106,25 @@ class Receipt:
     def __init__(self, root, command):
         self.root, self.command = command_root(root, command)
         self.enabled = os.environ.get("VERIFY_FULL") != "1" and not os.environ.get("CI")
-        self.key = {"version": 1, "source": snapshot(self.root), "command": self.command, "context": context()}
+        self.key = {"version": 2, "source": snapshot(self.root), "command": self.command, "context": context()}
         directory = Path(git(self.root, "rev-parse", "--absolute-git-dir").decode().strip()) / "verification-receipts"
         self.path = directory / (hashlib.sha256(json.dumps(self.command).encode()).hexdigest() + ".json")
+
+    def miss_reason(self):
+        if not self.enabled:
+            return "forced/CI verification"
+        try:
+            value = json.loads(self.path.read_text())
+            differences = [name for name in self.key if value["key"].get(name) != self.key[name]]
+            if differences:
+                return "changed " + ", ".join(differences)
+            if not 0 <= time.time() - value["time"] < TTL_SECONDS:
+                return "expired receipt"
+            if value["artifacts"] is None or value["artifacts"] != artifacts(self.root, self.command):
+                return "missing or changed build output"
+            return "matching receipt"
+        except (OSError, ValueError, KeyError, TypeError):
+            return "no valid receipt"
 
     def reusable(self):
         if not self.enabled:

@@ -10,6 +10,7 @@ import sys
 import time
 
 from verification_cache import Receipt
+from verification_scope import frontend_impact
 
 LEVELS = {"none": 0, "docs": 1, "copy": 2, "behavior": 3, "ui": 4, "full": 5}
 
@@ -162,6 +163,14 @@ def plan(root, base="HEAD", head=None, force_full=False):
         result["backend"] = parent
         result["frontend"] = "full"
         result["reason"] = "Full verification requested or scope unavailable"
+    if result["frontend"] in ("behavior", "ui"):
+        if parent and "child" in result:
+            result["impact"] = result["child"].get("impact")
+        elif not parent:
+            result["impact"] = frontend_impact(root, base, head, result["files"], content)
+        result["reason"] += "; " + (
+            "affected suites selected" if result.get("impact") else "shared/unknown impact; broad suites retained"
+        )
     result["node"] = LEVELS[result["frontend"]] >= LEVELS["behavior"]
     result["browser"] = LEVELS[result["frontend"]] >= LEVELS["ui"]
     return result
@@ -206,23 +215,32 @@ def targets(scope, parent, domain):
     level = scope["frontend"]
     if domain == "backend" or LEVELS[level] < LEVELS["behavior"]:
         return commands
+    if parent:
+        commands.append(["make", "project-brand"])
     prefix = ["make", "-C", "src/frontend"] if parent else ["make"]
-    commands.append(prefix + ["check", "test"])
-    if level in ("ui", "full"):
-        commands.append(prefix + ["test-ui"])
+    impact = scope.get("impact")
+    if impact and impact.get("checks"):
+        commands.append(prefix + ["check-affected", "CHECK_FILES=" + " ".join(impact["checks"])])
+    else:
+        commands.append(prefix + ["check"])
+    if impact:
+        if impact["unit"]:
+            commands.append(prefix + ["test-selected", "TEST_FILES=" + " ".join(impact["unit"])])
+        if impact["browser"]:
+            commands.append(prefix + ["test-ui-selected", "TEST_FILES=" + " ".join(impact["browser"])])
+    else:
+        commands.append(prefix + ["test"])
+        if level in ("ui", "full"):
+            commands.append(prefix + ["test-ui"])
     if level == "full":
         commands.append(
-            (["make", "frontend-test-routes"] if parent else prefix + ["test-routes"])
+            prefix + ["test-routes"]
         )
         commands.append(prefix + ["test-style-studio"])
     if parent:
-        commands.append(
-            [
-                "make",
-                "frontend-contract-check",
-                "frontend-package-verified" if level == "full" else "frontend-package",
-            ]
-        )
+        if level != "full":
+            commands.append(prefix + ["build"])
+        commands.append(["make", "frontend-contract-check", "frontend-package-verified"])
         if level == "full":
             commands.append(["make", "project-build-test"])
     elif level != "full":
@@ -236,7 +254,7 @@ def main():
     parser.add_argument("--base", default=(os.environ.get("VERIFY_BASE") or "HEAD"))
     parser.add_argument("--head", default=os.environ.get("VERIFY_HEAD") or None)
     parser.add_argument(
-        "--full", action="store_true", default=os.environ.get("VERIFY_FULL") == "1"
+        "--full", action="store_true", default=os.environ.get("VERIFY_FULL") == "1" or bool(os.environ.get("CI"))
     )
     parser.add_argument(
         "--domain", choices=("all", "backend", "frontend"), default="all"
@@ -287,6 +305,7 @@ def main():
                 if not args.full and receipt.reusable():
                     print("Reused matching local verification: " + " ".join(command), flush=True)
                     continue
+                print("Receipt: " + receipt.miss_reason(), flush=True)
                 receipt.invalidate()
                 print("Running: " + " ".join(command), flush=True)
                 logs = (
