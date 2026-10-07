@@ -23,8 +23,7 @@ make celery-probe
 ```
 
 The probe command prints a publication ID, not an execution receipt. Look for
-`Celery probe completed` with that task ID in worker logs. Beat has an empty
-schedule until a domain deliberately registers periodic work. Run exactly one
+`Celery probe completed` with that task ID in worker logs. Beat scans the lifecycle mail outbox every minute. Run exactly one
 Beat per deployment. Local `solo` pool supports macOS development; use prefork on
 Linux production (`CELERY_POOL=prefork CELERY_CONCURRENCY=2 make celery-worker`).
 Solo cannot enforce process-based time limits and is not the production default.
@@ -149,7 +148,10 @@ while assuming the new worker will consume their list envelopes.
 | SSE heartbeat / Redis subscriptions | FastAPI request lifecycle | Retained; connection-bound streaming and cancellation are not queue tasks. |
 | DB migrations, API SMTP validation, readiness | API startup / deployment | Retained; service readiness depends on completion. |
 
-There is no existing billing/cleanup schedule to migrate. Beat remains empty.
+Lifecycle notifications use a one-minute durable outbox scan; the earlier auth-mail task remains independently queued.
 
 References: [Celery Redis delivery caveats](https://docs.celeryq.dev/en/stable/getting-started/backends-and-brokers/redis.html),
 [periodic tasks](https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html).
+
+
+Subscription-start, plan-change and account-deleted mail use migration 0011 encrypted outbox. Deletion notice commits with deletion. One Celery Beat scans every minute; existing auth/welcome mail policy remains unchanged. See [billing setup](../../notes/billing.md) for webhook activation, retention, key rotation and duplicate-delivery limitations.

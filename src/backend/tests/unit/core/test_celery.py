@@ -18,11 +18,13 @@ def test_celery_broker_is_independent_of_api_fakeredis() -> None:
     settings = Settings(REDIS_IN_MEMORY=True, CELERY_BROKER_URL="redis://localhost:6380/2")
     app = create_celery_app(settings)
     # When: configuring a standalone worker.
-    # Then: it uses the real broker and safe serialization, without business schedules.
+    # Then: it uses the real broker and safe serialization, with a bounded lifecycle outbox recovery schedule.
     assert app.conf.broker_url == "redis://localhost:6380/2"
     assert app.conf.accept_content == ["json"]
     assert app.conf.result_backend is None
-    assert app.conf.beat_schedule == {}
+    assert app.conf.beat_schedule == {
+        "lifecycle-mail-outbox": {"task": "b4fastapi.notifications.drain", "schedule": 60.0}
+    }
     assert app.conf.task_acks_late
     assert app.conf.task_time_limit < app.conf.broker_transport_options["visibility_timeout"]
     app.close()

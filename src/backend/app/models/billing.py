@@ -48,6 +48,22 @@ class BillingCustomers:
             return await db.get(BillingCustomer, (user_id, livemode))
 
     @staticmethod
+    async def owner(customer_id: str, livemode: bool):
+        from app.models.user import User, UserResponse
+
+        async with get_db() as db:
+            user = await db.scalar(
+                select(User)
+                .join(BillingCustomer, BillingCustomer.user_id == User.id)
+                .where(
+                    BillingCustomer.stripe_customer_id == customer_id,
+                    BillingCustomer.livemode == livemode,
+                    User.is_active.is_(True),
+                )
+            )
+            return UserResponse.model_validate(user) if user else None
+
+    @staticmethod
     async def reserve(user_id: int, livemode: bool) -> BillingCustomer:
         existing = await BillingCustomers.get(user_id, livemode)
         if existing is not None:
@@ -271,9 +287,26 @@ class BillingInvoiceResponse(BaseModel):
     url: str | None = None
 
 
+class BillingInvoiceLine(BaseModel):
+    description: str
+    amount: int
+    quantity: int | None = None
+
+
+class BillingInvoiceDetail(BillingInvoiceResponse):
+    subtotal: int
+    total: int
+    amount_paid: int
+    amount_due: int
+    pdf_url: str | None = None
+    lines: list[BillingInvoiceLine]
+    lines_has_more: bool = False
+
+
 class BillingInvoicesResponse(BaseModel):
     items: list[BillingInvoiceResponse]
     has_more: bool
+    next_cursor: str | None = None
 
 
 class BillingPortalForm(BillingSetupForm):

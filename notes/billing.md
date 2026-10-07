@@ -313,3 +313,14 @@ the server. Unknown/error states do not display a misleading Free badge. The col
 avatar shows an accessible compact tier mark; the expanded profile menu shows the
 full name above email with stronger weight and tier text treatment. No new state store,
 webhook, feature quota or tier-specific application entitlement is introduced here.
+
+
+## Native history and lifecycle mail
+
+Invoice history uses an in-app paginated modal with detail views; only the explicit receipt action opens Stripe in a new tab. Cursor/detail IDs require customer and mode ownership. Card, Link, profile and invoice reads have independent retry states.
+
+Only subscription starts (initial `invoice.paid`), applied plan changes (`customer.subscription.updated`), requested cancellation completion (`customer.subscription.deleted`, Free transition), and account-deletion completion send lifecycle email. Renewal/failure events do not. Configure these events at `/api/v1/billing/webhook` and set server-only `STRIPE_WEBHOOK_SECRET`; empty disables the webhook. Signatures, mode and current provider state are checked before enqueueing. Verify delivery in a separate Stripe test environment before production.
+
+Apply migration 0011 and run a Celery worker plus one Beat. Deletion notification is saved atomically with deletion; billing events use semantic deduplication keys. Recipient payloads are encrypted with a SECRET_KEY-derived key, erased on success and erased by scans after 72 hours if undelivered. Drain pending mail before rotating SECRET_KEY. Delivery uses five attempts and five-minute leases. SMTP acceptance followed by a process crash can duplicate delivery; this is not exactly-once delivery. Broker/SMTP failures do not undo committed deletion or subscription state.
+
+If schedule creation succeeds but its update fails, retry the same request ID. Recovery requires the same provider idempotent creation result, unchanged schedule and original version; external schedules are not adopted. Losing the request ID on page reload or provider idempotency expiry can require operator reconciliation.

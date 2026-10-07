@@ -282,7 +282,9 @@ class AuthService:
         except Exception as error:
             raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CODE_SEND_FAILED) from error
 
-    async def delete_account(self, user_id: int, email: str, code: str) -> None:
+    async def delete_account(
+        self, user_id: int, email: str, code: str, preferred_language: str | None = None
+    ) -> None:
         self._ensure_login_enabled()
         if not SETTINGS.EMAIL_ENABLED:
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
@@ -294,7 +296,16 @@ class AuthService:
                 raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CONFIRMATION_REQUIRED)
             if not await consume_deletion_code(user_id, code, attempt_limit=5, window=600):
                 raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_CODE_INVALID)
-            await Users.delete_account(user_id, email)
+            from app.services.notifications import notification_row
+
+            notice = notification_row(
+                f"account-deleted:{user_id}",
+                "account_deleted",
+                email=user.email,
+                name=user.name,
+                language=self._resolve_email_language(preferred_language),
+            )
+            await Users.delete_account(user_id, email, notification=notice)
         except AuthException:
             raise
         except Exception as error:
@@ -305,6 +316,9 @@ class AuthService:
             # The deleted DB principal rejects access/refresh/one-time tokens even
             # while Redis is unavailable; orphaned entries retain their normal TTL.
             logger.exception("Deleted account token cleanup failed (user_id=%s).", user_id)
+        from app.services.notifications import wake_notifications
+
+        await wake_notifications()
         logger.info("Account deleted (user_id=%s).", user_id)
 
     async def signup(self, form: SignupForm, preferred_language: str | None = None) -> UserResponse:

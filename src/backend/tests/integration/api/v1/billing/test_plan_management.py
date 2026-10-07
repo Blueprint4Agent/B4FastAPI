@@ -381,3 +381,46 @@ def test_pro_downgrade_keeps_paid_tier_until_period_end(integration_client, mana
     assert response.json()["plan"] == "pro_monthly"
     assert response.json()["pending_plan"] == "monthly"
     provider.v1.subscriptions.update_async.assert_not_called()
+
+
+def test_same_request_recovers_schedule_creation_after_update_failure(integration_client, managed):
+    import stripe
+
+    provider, state = managed
+    headers = ready(integration_client)
+    before = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+    form = {
+        "plan": "annual",
+        "expected_version": before["change_version"],
+        "request_id": str(uuid4()),
+    }
+    create = provider.v1.subscription_schedules.create_async.side_effect
+    update = provider.v1.subscription_schedules.update_async.side_effect
+    accepted = {}
+
+    async def idempotent_create(params, options):
+        key = options["idempotency_key"]
+        if key in accepted:
+            return accepted[key]
+        if state["subscription"].schedule:
+            raise stripe.InvalidRequestError("already scheduled", "from_subscription")
+        accepted[key] = await create(params, options)
+        return accepted[key]
+
+    provider.v1.subscription_schedules.create_async.side_effect = idempotent_create
+    provider.v1.subscription_schedules.update_async.side_effect = stripe.APIConnectionError(
+        "offline"
+    )
+    assert (
+        integration_client.post(
+            "/api/v1/billing/subscription/change", headers=headers, json=form
+        ).status_code
+        == 502
+    )
+    provider.v1.subscription_schedules.update_async.side_effect = update
+    result = integration_client.post(
+        "/api/v1/billing/subscription/change", headers=headers, json=form
+    )
+    assert result.status_code == 200
+    assert result.json()["pending_plan"] == "annual"
+    assert len(accepted) == 1

@@ -393,3 +393,45 @@ def build_account_deletion_email(
         code=code,
     )
     return EmailContent(subject=subject, text=f"{intro}\n\n{code}\n\n{warning}", html=html)
+
+
+def build_lifecycle_email(
+    *, kind: str, name: str, plan: str, link: str, app_name: str, language: str = "en"
+) -> EmailContent:
+    locale = resolve_locale(language)
+    headings = {
+        "subscription_started": ("구독을 시작했습니다", "Your subscription has started"),
+        "plan_changed": ("요금제를 변경했습니다", "Your plan has changed"),
+        "account_deleted": ("계정을 삭제했습니다", "Your account has been deleted"),
+    }
+    heading = headings[kind][0 if locale == "ko" else 1]
+    if locale == "ko":
+        intro = f"{_display_name(name)}님, {heading}."
+        outro = (
+            f"현재 요금제: {plan}"
+            if kind != "account_deleted"
+            else "계정 삭제가 완료되었습니다. 이용해 주셔서 감사합니다."
+        )
+        cta, manual = "서비스 열기", "아래 주소에서도 확인할 수 있습니다."
+    else:
+        intro = f"Hi {_display_name(name)}, {heading.lower()}."
+        outro = (
+            f"Current plan: {plan}"
+            if kind != "account_deleted"
+            else "Account deletion is complete. Thank you for using our service."
+        )
+        cta, manual = "Open service", "You can also use this address."
+    html = _build_email_html(
+        app_name=app_name,
+        preheader=heading,
+        heading=heading,
+        intro=intro,
+        cta_label=cta,
+        link=link,
+        outro=outro,
+        footer="",
+        manual_link_label=manual,
+        theme=FRONTEND_LIGHT_THEME,
+        locale=locale,
+    )
+    return EmailContent(subject=heading, text=f"{intro}\n\n{outro}\n\n{link}", html=html)

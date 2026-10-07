@@ -383,11 +383,14 @@ async def request_deletion_code(
 )
 async def delete_me(
     form: DeleteAccountForm,
+    request: Request,
     response: Response,
     current_user: UserResponse = Depends(get_current_session_user),
     service: AuthService = Depends(AuthService),
 ) -> None:
-    await service.delete_account(current_user.id, form.email, form.code)
+    await service.delete_account(
+        current_user.id, form.email, form.code, request.headers.get("accept-language")
+    )
     clear_refresh_cookies(response)
 
 

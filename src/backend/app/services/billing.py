@@ -25,6 +25,8 @@ from app.models.billing import (
     BillingCheckoutStatusResponse,
     BillingConfigResponse,
     BillingCustomers,
+    BillingInvoiceDetail,
+    BillingInvoiceLine,
     BillingInvoiceResponse,
     BillingInvoicesResponse,
     BillingMethodForm,
@@ -584,6 +586,41 @@ class BillingService:
                 raise BillingException(BillingErrorCode.BILLING_CHANGE_CONFLICT)
             subscription = subscriptions[0]
             current = await self._managed_response(client, subscription)
+            prefix = f"billing-change:{subscription.id}:{form.request_id}"
+            schedule_id = getattr(subscription, "schedule", None)
+            if (
+                schedule_id
+                and not current.can_manage
+                and form.plan in ("monthly", "annual", "pro_monthly", "pro_annual")
+            ):
+                schedule = await client.v1.subscription_schedules.retrieve_async(schedule_id)
+                # Recover only the exact creation request Stripe has already accepted.
+                # An unrelated request key cannot create a second schedule on this subscription.
+                snapshot = subscription.to_dict()
+                snapshot["schedule"] = None
+                original = stripe.Subscription.construct_from(snapshot, SETTINGS.STRIPE_SECRET_KEY)
+                original_state = await self._managed_response(client, original)
+                phases = list(schedule.phases)
+                unchanged = len(phases) <= 1 and not schedule.to_dict().get("metadata", {})
+                if phases:
+                    phase_items = phases[0]["items"]
+                    unchanged = (
+                        unchanged
+                        and len(phase_items) == 1
+                        and phase_items[0].price == subscription["items"].data[0].price.id
+                        and getattr(phase_items[0], "quantity", 1) == 1
+                    )
+                if (
+                    unchanged
+                    and original_state.can_manage
+                    and original_state.change_version == form.expected_version
+                ):
+                    created = await client.v1.subscription_schedules.create_async(
+                        params={"from_subscription": subscription.id},
+                        options={"idempotency_key": prefix + ":create"},
+                    )
+                    if created.id == schedule_id and created.customer == subscription.customer:
+                        current = original_state
             if (
                 not current.can_manage
                 or current.change_version != form.expected_version
@@ -827,29 +864,67 @@ class BillingService:
                 registered=intent.status == "succeeded" and bool(intent.payment_method)
             )
 
+    @staticmethod
+    def _invoice_summary(item) -> BillingInvoiceResponse:
+        return BillingInvoiceResponse(
+            id=item.id,
+            number=item.number,
+            created=item.created,
+            status=item.status or "draft",
+            amount=item.amount_paid if item.status == "paid" else item.amount_due,
+            currency=item.currency,
+            url=item.hosted_invoice_url,
+        )
+
     @observe_service("billing.invoices")
-    async def invoices(self, user_id: int) -> BillingInvoicesResponse:
+    async def invoices(
+        self, user_id: int, limit: int = 4, starting_after: str | None = None
+    ) -> BillingInvoicesResponse:
         async with self._provider() as client:
             row = await BillingCustomers.get(user_id, self.config().livemode)
             if not row or not row.stripe_customer_id:
                 return BillingInvoicesResponse(items=[], has_more=False)
-            invoices = await client.v1.invoices.list_async(
-                params={"customer": row.stripe_customer_id, "limit": 4}
-            )
+            params = {"customer": row.stripe_customer_id, "limit": limit}
+            if starting_after:
+                cursor = await client.v1.invoices.retrieve_async(starting_after)
+                if (
+                    cursor.customer != row.stripe_customer_id
+                    or cursor.livemode != self.config().livemode
+                ):
+                    raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+                params["starting_after"] = starting_after
+            invoices = await client.v1.invoices.list_async(params=params)
             return BillingInvoicesResponse(
-                items=[
-                    BillingInvoiceResponse(
-                        id=item.id,
-                        number=item.number,
-                        created=item.created,
-                        status=item.status or "draft",
-                        amount=item.amount_paid if item.status == "paid" else item.amount_due,
-                        currency=item.currency,
-                        url=item.hosted_invoice_url,
-                    )
-                    for item in invoices.data
-                ],
+                items=[self._invoice_summary(item) for item in invoices.data],
                 has_more=invoices.has_more,
+                next_cursor=invoices.data[-1].id if invoices.has_more and invoices.data else None,
+            )
+
+    @observe_service("billing.invoice_detail")
+    async def invoice_detail(self, user_id: int, invoice_id: str) -> BillingInvoiceDetail:
+        async with self._provider() as client:
+            row = await BillingCustomers.get(user_id, self.config().livemode)
+            if not row or not row.stripe_customer_id:
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            item = await client.v1.invoices.retrieve_async(invoice_id)
+            if item.customer != row.stripe_customer_id or item.livemode != self.config().livemode:
+                raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+            return BillingInvoiceDetail(
+                **self._invoice_summary(item).model_dump(),
+                subtotal=item.subtotal,
+                total=item.total,
+                amount_paid=item.amount_paid,
+                amount_due=item.amount_due,
+                pdf_url=item.invoice_pdf,
+                lines=[
+                    BillingInvoiceLine(
+                        description=line.description or "",
+                        amount=line.amount,
+                        quantity=line.quantity,
+                    )
+                    for line in item.lines.data
+                ],
+                lines_has_more=item.lines.has_more,
             )
 
     @observe_service("billing.portal")

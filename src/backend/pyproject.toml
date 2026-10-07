@@ -28,6 +28,7 @@ dependencies = [
     "opentelemetry-instrumentation-logging>=0.62b1",
     "celery[redis]>=5.6,<6",
     "stripe[async]>=15,<16",
+    "cryptography>=46.0.5",
 ]
 
 [dependency-groups]
