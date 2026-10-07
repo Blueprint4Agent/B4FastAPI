@@ -63,3 +63,49 @@ the migration demotes managers to users and drops the audit table. It preserves
 existing administrators and users. Back up and review the target database first.
 
 Environment examples use section dividers and a `Values` comment directly above each managed variable. `make env-sync docker-env-sync` synchronizes layout/comments with backups while preserving existing values and extra keys. Local `.env` files and backups are not committed.
+
+## Administrator server status
+
+`GET /api/v1/admin/status` requires the current database-backed admin role (managers
+cannot read it). The read-only screen at `/admin/server` follows the settings/home
+page shell. It probes the actual database dialect and Redis, with concurrent
+2-second dependency timeouts shared with `/health/ready`. In-memory Redis is
+identified explicitly. A successful API request establishes server reachability;
+worker health and historical observability are outside this snapshot.
+
+The response allowlists effective email, login, OAuth, payment/subscription,
+development UI and runtime modes. Administrator access is a role policy, not an
+`ADMIN_ENABLED` environment flag. It never returns connection URLs, credentials,
+keys, or arbitrary environment values. Feature flags describe configuration,
+not delivery or third-party connectivity tests. Settings are captured from the
+running process; changing an environment file requires the normal server restart.
+
+The page refreshes every 30 seconds while visible and on focus/reconnection.
+Requests are canceled on leaving or changing the account. Failed refreshes and
+snapshots older than 60 seconds show stale results; requests time out after 8
+seconds. A database outage can also prevent authentication, so the page retains
+only clearly marked stale information; it never bypasses the admin dependency.
+
+Completed startup verification is exposed separately with its original timestamp:
+Stripe API authentication/resources and optional SMTP handshake/authentication may
+show healthy at startup; OAuth validates configuration only and never claims a
+completed user login. Disabled or skipped checks never become healthy merely from
+an enabled flag. Refreshing this screen separately checks current email/Stripe connectivity without sending email. These startup results are historical evidence, not live health.
+
+While administrators view the page, SMTP connection/authentication and a Stripe
+Checkout list read run at most once per 60 seconds per process. Concurrent requests
+share a probe. The API waits at most five seconds for provider results and reports
+a timeout while an existing operation finishes; SMTP sockets use two-second waits
+and Stripe retains its provider timeout. No email or billing resource is created.
+No new checks are scheduled after leaving the page. Multi-process deployments have
+one cache per process. OAuth has no health badge because configuration or endpoint
+reachability cannot establish a successful user-authorized sign-in.
+
+Database and external Redis cards expose only their configured hostname and effective port to
+administrators. Credentials, database name, query options and local filesystem
+paths remain excluded. SQLite is labeled as a local file; socket connections have
+no fabricated network hostname.
+
+The environment screen pairs localized effective meaning with allowlisted actual
+boolean/runtime-mode values. `environment_values` is an explicit typed projection,
+not a settings/environment dump. CodeBadge is shared with the frontend showcase.

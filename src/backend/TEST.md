@@ -372,3 +372,11 @@ Celery worker tests use an isolated memory transport; deployment fixtures execut
 the real startup script with fake Docker commands to verify worker-before-API
 ordering and fail-closed rollout. For release smoke, use isolated real Redis and a
 local SMTP capture server, never customer email addresses or the production broker.
+
+## Admin status checks
+
+Admin status contract tests cover the role boundary, safe environment projection,
+probe failure and timeout. Integration exercises actual SQLite/Redis probes and
+immediate access loss after demotion with an existing token. The endpoint accepts
+no parameters/body, so request validation (422) is not applicable. There are no
+record-dependent aggregates or cross-domain mutations requiring seeded scenarios.
