@@ -151,3 +151,28 @@ def test_config_renews_bootstrap_token_after_time_passes(integration_client, mon
         ).status_code
         == 200
     )
+
+
+@pytest.mark.primary_data
+def test_config_reads_updated_bootstrap_shortcuts(integration_client, monkeypatch):
+    """Scenario: login-free reload reads current DB shortcuts rather than the startup snapshot."""
+    import importlib
+
+    # Given: the dedicated development bootstrap account.
+    main = importlib.import_module("app.main")
+    monkeypatch.setattr(SETTINGS, "APP_MODE", "development")
+    monkeypatch.setattr(SETTINGS, "LOGIN_ENABLED", False)
+    monkeypatch.setattr(SETTINGS, "BOOTSTRAP_USER_EMAIL", "shortcuts@example.com")
+    user = asyncio.run(BootstrapService().initialize())
+    monkeypatch.setattr(main, "BOOTSTRAP_USER", user)
+    config = integration_client.get("/config").json()
+    keys = {"toggleSidebar": ["b"], "openSettings": ["mod", ","]}
+    # When: saving after startup.
+    response = integration_client.patch(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {config['bootstrap_access_token']}"},
+        json={"keyboard_shortcuts": keys},
+    )
+    # Then: config recovery returns the persisted settings.
+    assert response.status_code == 200
+    assert integration_client.get("/config").json()["bootstrap_user"]["keyboard_shortcuts"] == keys

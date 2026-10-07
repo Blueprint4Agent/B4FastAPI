@@ -31,7 +31,7 @@ from app.core.observability.request_context import (
 from app.core.observability.startup_checks import STARTUP_CHECKS, record_startup_check
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
-from app.models.user import UserResponse
+from app.models.user import UserResponse, Users
 from app.routers.v1 import admin, api_key, auth, billing, billing_webhook, events
 from app.services.billing import BillingService
 from app.utils.token import create_access_token
@@ -213,7 +213,11 @@ def create_app() -> FastAPI:
     @app.get("/config", response_model=AppConfigResponse)
     async def config(response: Response):
         response.headers["Cache-Control"] = "no-store"
-        bootstrap_user = None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER
+        bootstrap_user = (
+            await Users.get_user_response_by_id(BOOTSTRAP_USER.id)
+            if not SETTINGS.LOGIN_ENABLED and BOOTSTRAP_USER
+            else None
+        )
         bootstrap_token = (
             create_access_token(subject=str(bootstrap_user.id), email=bootstrap_user.email)
             if bootstrap_user

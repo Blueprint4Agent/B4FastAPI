@@ -806,6 +806,8 @@ class AuthService:
             profile_image_url=form.profile_image_url,
             update_name="name" in form.model_fields_set,
             update_profile_image_url="profile_image_url" in form.model_fields_set,
+            keyboard_shortcuts=form.keyboard_shortcuts,
+            update_keyboard_shortcuts="keyboard_shortcuts" in form.model_fields_set,
         )
         if user is None:
             logger.debug("Profile update failed (user_id=%s).", user_id)
