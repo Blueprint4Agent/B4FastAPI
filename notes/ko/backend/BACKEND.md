@@ -660,3 +660,27 @@ Uvicorn 액세스 로그는 `/metrics` 경로(쿼리 문자열 포함)를 제외
 구독 상태 저장과 웹훅·Beat 정합성 복구는 결제 가이드 및 0012–0013 마이그레이션을 참고합니다.
 
 저장소 루트에서 `make db-current`로 현재 DB 버전을 확인하고 `make db-migrate`로 최신 마이그레이션을 적용합니다. 두 명령은 src/backend의 현재 환경 설정을 사용하며 API나 외부 연동 초기화를 실행하지 않습니다.
+
+## 계정별 키보드 단축키
+
+기존 인증 프로필 API `GET /api/v1/auth/me`와 `PATCH /api/v1/auth/me`에서
+`keyboard_shortcuts`를 조회·저장합니다. B4React의 키보드 설정 화면은
+`useKeyboardShortcuts → AuthProvider.updateProfile → useAuthApi → authApi.updateMe`
+경로로 호출하며, 서버 저장에 성공한 응답을 전체 앱의 단축키와 표시 값에 반영합니다.
+
+마이그레이션 `0014_keyboard_shortcuts`는 `users.keyboard_shortcuts` JSON 컬럼을
+추가합니다. 배포 전에 `make db-migrate`를 실행합니다. 기존 사용자의 값은 null이며
+기본 단축키를 사용합니다. 수정 요청에서 필드를 생략하면 기존 값이 유지되고,
+null을 보내면 두 기능 모두 기본값으로 복원됩니다. 사용자 식별은 기존 인증에서
+가져오므로 다른 사용자의 설정을 지정해 수정할 수 없습니다.
+
+키 조합은 `toggleSidebar`, `openSettings` 두 기능만 허용합니다. 서버에서 키 개수와
+길이, 중복 조합키 및 macOS·Windows 양쪽에서 충돌하는 조합을 검증합니다.
+저장 실패 시 프론트는 기존 값을 유지하고 오류를 표시합니다. 로그인 전에는 기본값을
+사용하고 편집을 비활성화합니다. 공유 브라우저의 설정을 잘못된 계정에 옮기지 않도록
+기존 localStorage 값은 자동으로 가져오지 않습니다.
+
+로그인·새로고침·데스크톱 인증 복구 시 DB 값을 다시 읽습니다. 로그인 없는 개발 모드의
+`/config` 역시 시작 시점의 사용자 스냅샷 대신 현재 DB 프로필을 읽습니다.
+기존 요청 → 서비스 → 저장소 경로를 사용하며, 별도 백그라운드 작업이나 실시간 이벤트는
+추가하지 않습니다. 이미 열린 다른 탭에는 변경을 즉시 전송하지 않습니다.

@@ -717,3 +717,8 @@ Development login-free `/config` responses mint fresh short-lived bootstrap toke
 Subscription persistence and webhook/Beat reconciliation: see the billing guide, migrations 0012–0013.
 
 Run `make db-current` from the repository root to inspect the configured database revision, and `make db-migrate` to upgrade it to head. Both run in src/backend and use its current environment; they do not start the API or initialize external integrations.
+
+
+Keyboard shortcuts are stored in the account profile via GET/PATCH /auth/me, using the existing auth snapshot and mutation path. Guests use defaults with editing disabled. Only successful writes replace active keys; failures keep the last confirmed bindings. Null resets both actions, omission preserves them. Legacy browser preferences are ignored and never automatically imported into an account. Reload/login and desktop auth recovery refresh settings; changes are not pushed to already-open clients. No new store, poller or background task is introduced.
+
+Migration 0014 adds nullable users.keyboard_shortcuts JSON. Validation bounds key lengths/action names and rejects conflicts across Mac/Windows modifier mappings. /config reads the current bootstrap profile so login-free reloads do not restore stale startup preferences. Run make db-migrate before rollout.

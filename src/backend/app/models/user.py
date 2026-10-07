@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Annotated
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     ForeignKey,
@@ -55,6 +57,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     role: Mapped[str] = mapped_column(String(20), default=UserRole.USER.value, nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    keyboard_shortcuts: Mapped[dict[str, list[str]] | None] = mapped_column(JSON, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -148,7 +151,42 @@ class LoginForm(BaseModel):
     remember_me: bool = False
 
 
+ShortcutKey = Annotated[str, Field(min_length=1, max_length=32)]
+ShortcutKeys = Annotated[list[ShortcutKey], Field(min_length=1, max_length=5)]
+
+
+class KeyboardShortcuts(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    toggleSidebar: ShortcutKeys
+    openSettings: ShortcutKeys
+
+    @model_validator(mode="after")
+    def validate_bindings(self):
+        modifiers = {"mod", "ctrl", "meta", "alt", "shift"}
+        bindings = [self.toggleSidebar, self.openSettings]
+        for keys in bindings:
+            primary = [key for key in keys if key not in modifiers]
+            if (
+                len(primary) != 1
+                or primary[0] in {"dead", "unidentified", "control"}
+                or any(key != key.lower() or not key.isprintable() or key.isspace() for key in keys)
+                or len(set(keys)) != len(keys)
+            ):
+                raise ValueError("Invalid shortcut keys.")
+        for platform_modifier in ("meta", "ctrl"):
+            resolved = [
+                [platform_modifier if key == "mod" else key for key in keys] for keys in bindings
+            ]
+            if any(len(set(keys)) != len(keys) for keys in resolved):
+                raise ValueError("Duplicate shortcut modifier.")
+            if set(resolved[0]) == set(resolved[1]):
+                raise ValueError("Shortcut bindings must be distinct on every platform.")
+        return self
+
+
 class UpdateProfileForm(BaseModel):
+    keyboard_shortcuts: KeyboardShortcuts | None = None
     name: str | None = Field(default=None, min_length=2, max_length=50)
     profile_image_url: str | None = Field(default=None, max_length=12_000_000)
 
@@ -180,7 +218,11 @@ class UpdateProfileForm(BaseModel):
     def validate_fields(self):
         has_name = "name" in self.model_fields_set
         has_profile_image_url = "profile_image_url" in self.model_fields_set
-        if not has_name and not has_profile_image_url:
+        if (
+            not has_name
+            and not has_profile_image_url
+            and "keyboard_shortcuts" not in self.model_fields_set
+        ):
             raise ValueError("At least one field must be provided.")
         if has_name and self.name is None:
             raise ValueError("name cannot be null.")
@@ -193,6 +235,7 @@ class UserResponse(BaseModel):
     name: str
     role: UserRole
     profile_image_url: str | None = None
+    keyboard_shortcuts: KeyboardShortcuts | None = None
     oauth_providers: list[str] = Field(default_factory=list)
     is_verified: bool
     created_at: datetime
@@ -296,6 +339,7 @@ class AuthUserDTO(BaseModel):
     name: str
     role: UserRole
     profile_image_url: str | None = None
+    keyboard_shortcuts: KeyboardShortcuts | None = None
     oauth_providers: list[str] = Field(default_factory=list)
     is_active: bool
     is_verified: bool
@@ -309,6 +353,7 @@ class AuthUserDTO(BaseModel):
             name=self.name,
             role=self.role,
             profile_image_url=self.profile_image_url,
+            keyboard_shortcuts=self.keyboard_shortcuts,
             oauth_providers=self.oauth_providers,
             is_verified=self.is_verified,
             created_at=self.created_at,
@@ -405,6 +450,7 @@ class UserRepository:
             name=user.name,
             role=UserRole(user.role),
             profile_image_url=user.profile_image_url,
+            keyboard_shortcuts=user.keyboard_shortcuts,
             oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -452,6 +498,7 @@ class UserRepository:
             name=user.name,
             role=UserRole(user.role),
             profile_image_url=user.profile_image_url,
+            keyboard_shortcuts=user.keyboard_shortcuts,
             oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -542,6 +589,8 @@ class UserRepository:
         profile_image_url: str | None,
         update_name: bool,
         update_profile_image_url: bool,
+        keyboard_shortcuts: KeyboardShortcuts | None = None,
+        update_keyboard_shortcuts: bool = False,
     ) -> UserResponse | None:
         async with get_db() as db:
             result = await db.execute(
@@ -555,6 +604,10 @@ class UserRepository:
                 user.name = name
             if update_profile_image_url:
                 user.profile_image_url = profile_image_url
+            if update_keyboard_shortcuts:
+                user.keyboard_shortcuts = (
+                    keyboard_shortcuts.model_dump() if keyboard_shortcuts else None
+                )
             user.updated_at = datetime.now(UTC)
             await db.commit()
         return await self.get_user_response_by_id(user_id)

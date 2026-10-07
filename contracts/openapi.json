@@ -2026,6 +2026,39 @@
         "title": "InternalErrorResponse",
         "type": "object"
       },
+      "KeyboardShortcuts": {
+        "additionalProperties": false,
+        "properties": {
+          "openSettings": {
+            "items": {
+              "maxLength": 32,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Opensettings",
+            "type": "array"
+          },
+          "toggleSidebar": {
+            "items": {
+              "maxLength": 32,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Togglesidebar",
+            "type": "array"
+          }
+        },
+        "required": [
+          "toggleSidebar",
+          "openSettings"
+        ],
+        "title": "KeyboardShortcuts",
+        "type": "object"
+      },
       "LoginForm": {
         "properties": {
           "email": {
@@ -2392,6 +2425,16 @@
       },
       "UpdateProfileForm": {
         "properties": {
+          "keyboard_shortcuts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KeyboardShortcuts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "name": {
             "anyOf": [
               {
@@ -2439,6 +2482,16 @@
           "is_verified": {
             "title": "Is Verified",
             "type": "boolean"
+          },
+          "keyboard_shortcuts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KeyboardShortcuts"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "name": {
             "title": "Name",
