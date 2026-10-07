@@ -186,6 +186,7 @@ class AuthService:
         request: Request,
         refresh_session_id: str,
     ) -> LoginResponse:
+        provider_config = self._get_oauth_provider_config(provider)
         consumed_provider = await self.consume_oauth_state(state)
         if consumed_provider is None or consumed_provider != provider:
             logger.debug(
@@ -196,7 +197,6 @@ class AuthService:
                 message="Invalid OAuth state.",
             )
 
-        provider_config = self._get_oauth_provider_config(provider)
         access_token = await self._exchange_oauth_code(
             provider=provider,
             provider_config=provider_config,
@@ -308,6 +308,7 @@ class AuthService:
         logger.info("Account deleted (user_id=%s).", user_id)
 
     async def signup(self, form: SignupForm, preferred_language: str | None = None) -> UserResponse:
+        self._ensure_login_enabled()
         logger.info("Signup attempt (email=%s).", mask_email(form.email))
         try:
             user = await Users.create_signup_user(
@@ -402,6 +403,7 @@ class AuthService:
         refresh_token: str,
         remember_me: bool = False,
     ) -> RefreshResponse:
+        self._ensure_login_enabled()
         is_valid = await verify_refresh_token(user_id, refresh_session_id, refresh_token)
         if not is_valid:
             logger.debug("Refresh rejected: invalid token (user_id=%s).", user_id)
@@ -439,6 +441,7 @@ class AuthService:
         user_id: int | None,
         session_id: str | None,
     ) -> tuple[RefreshResponse, str, bool]:
+        self._ensure_login_enabled()
         cookie_token, cookie_session_id = get_refresh_cookie_value(request)
         refresh_token_value = refresh_token or cookie_token
         session_id_value = session_id or cookie_session_id
@@ -724,6 +727,9 @@ class AuthService:
         return client_ip
 
     async def verify_email(self, token: str, preferred_language: str | None = None) -> UserResponse:
+        self._ensure_login_enabled()
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
         user_id = await consume_email_verification_token(token)
         if user_id is None:
             logger.debug("Email verification failed: token invalid or expired.")
@@ -742,6 +748,7 @@ class AuthService:
     async def resend_verification_email(
         self, email: str, preferred_language: str | None = None
     ) -> None:
+        self._ensure_login_enabled()
         if not SETTINGS.EMAIL_ENABLED:
             logger.debug("Resend verification skipped because email integration is disabled.")
             return
@@ -761,6 +768,7 @@ class AuthService:
     async def request_password_reset(
         self, email: str, preferred_language: str | None = None
     ) -> None:
+        self._ensure_login_enabled()
         if not SETTINGS.EMAIL_ENABLED:
             logger.debug("Password reset rejected because email integration is disabled.")
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
@@ -792,6 +800,7 @@ class AuthService:
         return user
 
     async def reset_password(self, token: str, password: str) -> None:
+        self._ensure_login_enabled()
         if not SETTINGS.EMAIL_ENABLED:
             logger.debug("Password reset rejected because email integration is disabled.")
             raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)

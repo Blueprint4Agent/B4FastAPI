@@ -79,6 +79,8 @@ class AppConfigResponse(BaseModel):
     frontend_base_path: str
     email_enabled: bool
     oauth_enabled: bool
+    billing_enabled: bool
+    subscriptions_enabled: bool
     oauth_providers: list[str]
     bootstrap_user: UserResponse | None = None
     bootstrap_access_token: str | None = None
@@ -222,8 +224,13 @@ def create_app() -> FastAPI:
             "login_enabled": SETTINGS.LOGIN_ENABLED,
             "frontend_base_path": "",
             "email_enabled": SETTINGS.EMAIL_ENABLED,
-            "oauth_enabled": SETTINGS.OAUTH_ENABLED,
-            "oauth_providers": SETTINGS.oauth_provider_list if SETTINGS.OAUTH_ENABLED else [],
+            "oauth_enabled": SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED,
+            "billing_enabled": SETTINGS.STRIPE_ENABLED,
+            "subscriptions_enabled": SETTINGS.STRIPE_ENABLED
+            and SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED,
+            "oauth_providers": SETTINGS.oauth_provider_list
+            if SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED
+            else [],
             "bootstrap_user": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_USER,
             "bootstrap_access_token": None if SETTINGS.LOGIN_ENABLED else BOOTSTRAP_ACCESS_TOKEN,
         }

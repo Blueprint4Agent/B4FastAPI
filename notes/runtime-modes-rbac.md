@@ -109,3 +109,26 @@ no fabricated network hostname.
 The environment screen pairs localized effective meaning with allowlisted actual
 boolean/runtime-mode values. `environment_values` is an explicit typed projection,
 not a settings/environment dump. CodeBadge is shared with the frontend showcase.
+
+## Disabled feature boundaries
+
+Public `/config` exposes effective `billing_enabled` and `subscriptions_enabled` flags.
+`STRIPE_ENABLED=false` removes billing shortcuts, settings navigation/content, plan routes
+and profile tier/upgrade UI. Billing hooks remain idle until configuration explicitly
+allows the feature, including focus/online/desktop recovery. Direct disabled URLs fall
+back to Home (plans) or General settings (billing). With Stripe enabled but subscriptions
+disabled, payment methods, billing profile and invoice history remain available; plan
+selection, subscription reads and checkout-return requests do not run.
+
+Enabled Stripe performs a read-only API authentication check during FastAPI lifespan.
+Authentication rejection, permission errors, invalid configuration and connection failures
+abort startup before migrations/serving. Disabled Stripe performs no provider request.
+
+Login-disabled mode rejects signup, refresh and email/OAuth entry mutations before I/O.
+Email-disabled mode rejects direct email verification without consuming the token; password
+reset and account deletion retain their existing guards. Verification resend remains an
+account-neutral no-op when email is disabled. Email-only routes and OAuth entry UI are
+hidden according to public config. OAuth callbacks check the current feature/provider
+configuration before consuming state or exchanging a code. Password login/signup continue
+working with email and OAuth disabled; new email accounts are already verified in that mode.
+Feature settings are process configuration, so changing environment values requires restart.
