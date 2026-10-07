@@ -24,6 +24,10 @@ def stripe_disabled_by_default(monkeypatch):
     monkeypatch.setattr(SETTINGS, "STRIPE_SUBSCRIPTIONS_ENABLED", False)
     monkeypatch.setattr(SETTINGS, "STRIPE_PORTAL_CONFIGURATION_ID", "")
     monkeypatch.setattr(SETTINGS, "STRIPE_PUBLISHABLE_KEY", "")
+    for tier in ("PLUS", "PRO"):
+        for interval in ("MONTHLY", "ANNUAL"):
+            for currency in ("KRW", "USD"):
+                monkeypatch.setattr(SETTINGS, f"STRIPE_{tier}_{interval}_{currency}_PRICE_ID", "")
 
 
 @pytest.fixture

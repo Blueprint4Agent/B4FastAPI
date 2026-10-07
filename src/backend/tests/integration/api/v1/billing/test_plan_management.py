@@ -1,6 +1,7 @@
 """Owner-scoped period-end changes preserve paid time and provider truth."""
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -36,6 +37,7 @@ def managed(provider, monkeypatch):
         items={
             "data": [
                 {
+                    "id": "si_fixture",
                     "price": {"id": "price_monthly_krw"},
                     "quantity": 1,
                     "current_period_end": now + 86400,
@@ -257,3 +259,125 @@ def test_cancellation_is_available_near_renewal(integration_client, managed):
     response = change(client, headers, "free")
     assert response.status_code == 200
     assert response.json()["pending_plan"] == "free"
+
+
+def test_tier_catalog_preserves_legacy_plus_and_upgrades_pro(
+    integration_client, managed, monkeypatch
+):
+    """Existing Plus prices remain recognized while new tiers use provider-owned prices."""
+    from tests.integration.api.v1.billing.test_subscription_integration import recurring_price
+
+    provider, state = managed
+    for interval in ("monthly", "annual"):
+        for currency in ("krw", "usd"):
+            monkeypatch.setattr(
+                SETTINGS,
+                f"STRIPE_PRO_{interval.upper()}_{currency.upper()}_PRICE_ID",
+                f"price_pro_{interval}_{currency}",
+            )
+    monkeypatch.setattr(SETTINGS, "STRIPE_PLUS_ANNUAL_KRW_PRICE_ID", "price_plus_annual_krw")
+
+    def price(price_id):
+        interval, currency = price_id.split("_")[-2:]
+        result = recurring_price(f"price_{interval}_{currency}")
+        result.id = price_id
+        result.unit_amount = (
+            (129276 if currency == "krw" else 12928)
+            if interval == "annual"
+            else (11970 if currency == "krw" else 1197)
+        )
+        return result
+
+    provider.v1.prices.retrieve_async.side_effect = price
+    headers = ready(integration_client)
+    catalog = integration_client.get("/api/v1/billing/plans", headers=headers).json()
+    assert len(catalog["prices"]) == 8
+    assert any(
+        item["plan"] == "pro_annual" and item["amount"] == 129276 for item in catalog["prices"]
+    )
+    state["subscription"]["items"].data[0].price.id = "price_annual_krw"
+    old = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+    assert old["plan"] == "annual" and old["can_manage"]
+
+    async def upgrade(_id, params, options):
+        state["subscription"]["items"].data[0].price.id = params["items"][0]["price"]
+        return state["subscription"]
+
+    provider.v1.subscriptions.update_async.side_effect = upgrade
+    changed = change(integration_client, headers, "pro_monthly")
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["plan"] == "pro_monthly"
+    assert changed.json()["pending_plan"] is None
+    params = provider.v1.subscriptions.update_async.call_args.kwargs["params"]
+    assert params["items"][0] == {
+        "id": "si_fixture",
+        "price": "price_pro_monthly_krw",
+        "quantity": 1,
+    }
+    assert params["payment_behavior"] == "pending_if_incomplete"
+    assert params["proration_behavior"] == "always_invoice"
+    provider.v1.subscription_schedules.create_async.assert_not_called()
+
+
+def test_unconfigured_pro_cannot_be_purchased(integration_client, managed):
+    headers = ready(integration_client)
+    managed[0].v1.checkout.sessions.create_async.reset_mock()
+    response = integration_client.post(
+        "/api/v1/billing/checkout-sessions",
+        headers=headers,
+        json={"plan": "pro_annual", "currency": "usd", "request_id": str(uuid4())},
+    )
+    assert response.status_code >= 400
+    assert response.json()["detail"]["error"] == "BILLING_PLAN_UNAVAILABLE"
+    managed[0].v1.checkout.sessions.create_async.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "invoice_url", ["https://invoice.stripe.com/i/fixture", "https://evil.example/invoice"]
+)
+def test_upgrade_waits_for_payment_and_keeps_current_tier(
+    integration_client, managed, monkeypatch, invoice_url
+):
+    from tests.integration.api.v1.billing.test_subscription_integration import recurring_price
+
+    provider, state = managed
+    monkeypatch.setattr(SETTINGS, "STRIPE_PRO_MONTHLY_KRW_PRICE_ID", "price_pro_monthly_krw")
+    provider.v1.prices.retrieve_async.side_effect = lambda price_id: recurring_price(
+        "price_monthly_krw"
+    )
+    headers = ready(integration_client)
+
+    async def pending(_id, params, options):
+        state["subscription"].pending_update = stripe_object(
+            expires_at=1900000000,
+            subscription_items=[{"price": {"unit_amount_decimal": Decimal("11970")}}],
+        )
+        state["subscription"].latest_invoice = "in_upgrade"
+        return state["subscription"]
+
+    provider.v1.subscriptions.update_async.side_effect = pending
+    provider.v1.invoices.retrieve_async = AsyncMock(
+        return_value=stripe_object(
+            customer="cus_fixture", livemode=False, hosted_invoice_url=invoice_url
+        )
+    )
+    response = change(integration_client, headers, "pro_monthly")
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["plan"] == "monthly"
+    assert body["payment_required"] and not body["can_manage"]
+    assert body["payment_url"] == (invoice_url if "invoice.stripe.com" in invoice_url else None)
+    assert change(integration_client, headers, "pro_monthly").status_code == 409
+    provider.v1.subscriptions.update_async.assert_awaited_once()
+
+
+def test_pro_downgrade_keeps_paid_tier_until_period_end(integration_client, managed, monkeypatch):
+    provider, state = managed
+    monkeypatch.setattr(SETTINGS, "STRIPE_PRO_MONTHLY_KRW_PRICE_ID", "price_pro_monthly_krw")
+    headers = ready(integration_client)
+    state["subscription"]["items"].data[0].price.id = "price_pro_monthly_krw"
+    response = change(integration_client, headers, "monthly")
+    assert response.status_code == 200, response.text
+    assert response.json()["plan"] == "pro_monthly"
+    assert response.json()["pending_plan"] == "monthly"
+    provider.v1.subscriptions.update_async.assert_not_called()

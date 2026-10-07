@@ -573,6 +573,8 @@
               "free",
               "monthly",
               "annual",
+              "pro_monthly",
+              "pro_annual",
               "keep"
             ],
             "title": "Plan",
@@ -607,7 +609,9 @@
           "plan": {
             "enum": [
               "monthly",
-              "annual"
+              "annual",
+              "pro_monthly",
+              "pro_annual"
             ],
             "title": "Plan",
             "type": "string"
@@ -1007,7 +1011,9 @@
           "plan": {
             "enum": [
               "monthly",
-              "annual"
+              "annual",
+              "pro_monthly",
+              "pro_annual"
             ],
             "title": "Plan",
             "type": "string"
@@ -1221,6 +1227,22 @@
             "title": "Has Subscription",
             "type": "boolean"
           },
+          "payment_required": {
+            "default": false,
+            "title": "Payment Required",
+            "type": "boolean"
+          },
+          "payment_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payment Url"
+          },
           "pending_effective_at": {
             "anyOf": [
               {
@@ -1238,7 +1260,9 @@
                 "enum": [
                   "free",
                   "monthly",
-                  "annual"
+                  "annual",
+                  "pro_monthly",
+                  "pro_annual"
                 ],
                 "type": "string"
               },
@@ -1253,6 +1277,8 @@
               "free",
               "monthly",
               "annual",
+              "pro_monthly",
+              "pro_annual",
               "unknown"
             ],
             "title": "Plan",

@@ -28,9 +28,9 @@
    이후 결제 설정을 조회합니다.
    `POST /api/v1/billing/setup-sessions`에 다음과 같이 UUID를 전달합니다.
 
-   ```json
-   {"request_id":"9a3f996f-7e30-4be4-8d74-86f4d8366b29"}
-   ```
+    ```json
+    { "request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29" }
+    ```
 
 6. 응답 `url`을 열어 Stripe 테스트 카드 `4242 4242 4242 4242`, 미래 만료일,
    임의의 세 자리 CVC로 등록하거나 가상 사용자 정보로 Link를 테스트합니다.
@@ -45,7 +45,7 @@
 
 기본 복귀 URL은 설정의 결제 화면을 열고 상태 API로 등록 완료를 검증합니다.
 프로필 메뉴에서 사이드바 없는 독립 전체 화면으로 Free·월간·연간 플랜을 선택하고 우측 상단에서 닫을 수 있습니다. 월간 ₩3,990 / US$3.99,
-연간 ₩39,900 / US$39.99는 샌드박스 예시이며 서버에 설정한 Stripe Price에서 조회합니다. 환율 환산이 아닙니다.
+연간 ₩43,092 / US$43.09 (Plus)는 샌드박스 예시이며 서버에 설정한 Stripe Price에서 조회합니다. 환율 환산이 아닙니다.
 카드·Link 등록, 구독 Checkout, 거래 내역과 기간 종료 시 변경·취소 UI를 제공합니다.
 [프론트 결제 가이드](../../src/frontend/notes/ko/billing.md)를 참고하세요.
 Stripe 제공 화면을 사용하므로 프론트엔드 공개 키나 Stripe.js는 필요하지 않습니다.
@@ -123,34 +123,45 @@ X-API-Key: <APPLICATION_API_KEY>
 1. `GET /api/v1/billing/config` → **200**
 
 ```json
-{"enabled": true, "livemode": false}
+{ "enabled": true, "livemode": false }
 ```
 
 2. `POST /api/v1/billing/setup-sessions` → **201**
 
 Request:
+
 ```json
-{"request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29"}
+{ "request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29" }
 ```
 
 Response:
+
 ```json
-{"id": "cs_test_example", "url": "https://checkout.stripe.com/c/pay/example"}
+{ "id": "cs_test_example", "url": "https://checkout.stripe.com/c/pay/example" }
 ```
 
 3. `GET /api/v1/billing/setup-sessions/cs_test_example` → **200**
 
 ```json
-{"id": "cs_test_example", "status": "complete", "registered": true}
+{ "id": "cs_test_example", "status": "complete", "registered": true }
 ```
 
 4. `GET /api/v1/billing/payment-methods?method_type=card&limit=20` → **200**
 
 ```json
 {
-  "items": [{"id": "pm_example", "type": "card", "brand": "visa", "last4": "4242", "exp_month": 12, "exp_year": 2030}],
-  "has_more": false,
-  "next_cursor": null
+    "items": [
+        {
+            "id": "pm_example",
+            "type": "card",
+            "brand": "visa",
+            "last4": "4242",
+            "exp_month": 12,
+            "exp_year": 2030
+        }
+    ],
+    "has_more": false,
+    "next_cursor": null
 }
 ```
 
@@ -158,20 +169,31 @@ Response:
 
 ```json
 {
-  "items": [{"id": "pm_linkexample", "type": "link", "brand": null, "last4": null, "exp_month": null, "exp_year": null}],
-  "has_more": false,
-  "next_cursor": null
+    "items": [
+        {
+            "id": "pm_linkexample",
+            "type": "link",
+            "brand": null,
+            "last4": null,
+            "exp_month": null,
+            "exp_year": null
+        }
+    ],
+    "has_more": false,
+    "next_cursor": null
 }
 ```
 
 Empty:
+
 ```json
-{"items": [], "has_more": false, "next_cursor": null}
+{ "items": [], "has_more": false, "next_cursor": null }
 ```
 
 Invalid API key → **401**:
+
 ```json
-{"detail": {"error": "API_KEY_INVALID", "message": "Invalid API key."}}
+{ "detail": { "error": "API_KEY_INVALID", "message": "Invalid API key." } }
 ```
 
 반환된 URL을 브라우저에서 열어 등록을 완료합니다. 같은 작업의 재시도에만 request_id를 재사용합니다. 미완료/만료 상태는 status가 open/expired이고 registered=false입니다. status만 보지 말고 registered를 확인하세요. has_more=true이면 next_cursor를 starting_after로 전달합니다. 비활성화 시 config는 enabled=false이며 나머지는 503 BILLING_DISABLED입니다. 기타 오류는 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 입력 검증, 502 BILLING_UNAVAILABLE입니다.
@@ -195,10 +217,10 @@ Invalid API key → **401**:
 - `GET /api/v1/billing/plans`: `{enabled, livemode, prices: [{plan, currency, amount}]}`를 반환합니다.
   금액은 최소 통화 단위이며 비활성 구독은 빈 가격 목록입니다.
 - `GET /api/v1/billing/subscription`: Stripe의 현재 `{plan, status, currency,
-  current_period_end, cancel_at_period_end, has_subscription}`을 반환합니다. 구독이 없으면
+current_period_end, cancel_at_period_end, has_subscription}`을 반환합니다. 구독이 없으면
   free/none, 모르는 가격은 unknown이며 복수 구독이나 불완전한 목록은 운영자 확인 오류입니다.
 - `POST /api/v1/billing/checkout-sessions`: `{request_id, plan: monthly|annual,
-  currency: krw|usd}`를 받아 `{id,url}`을 반환합니다. 고객·가격·금액·복귀 주소는 서버 소유입니다.
+currency: krw|usd}`를 받아 `{id,url}`을 반환합니다. 고객·가격·금액·복귀 주소는 서버 소유입니다.
 - `GET /api/v1/billing/checkout-sessions/{session_id}`: `{id,status,paid}`를 반환합니다.
   같은 고객·사용자·모드의 complete/paid 세션과 active 구독을 확인해야 `paid=true`입니다.
 
@@ -220,7 +242,7 @@ Checkout 예약 이력이 있는 계정 삭제는 운영자 확인 오류 `ACCOU
 
 ## 기간 종료 시 변경과 결제 상세
 
-`POST /billing/subscription/change`는 `{plan: free|monthly|annual|keep, expected_version, request_id}`를 받습니다. 확인창에 사용할 구독의 change_version을 보내며, 계정·모드별 DB 잠금으로 요청을 직렬화합니다. 오래된 확인이나 지원하지 않는 구독은 BILLING_CHANGE_CONFLICT(409)입니다. 결제 통화는 유지하고 pending_plan/pending_effective_at으로 예약을 표시하며 현재 plan은 적용 전까지 유지합니다.
+`POST /billing/subscription/change`는 `{plan: free|monthly|annual|pro_monthly|pro_annual|keep, expected_version, request_id}`를 받습니다. 확인창에 사용할 구독의 change_version을 보내며, 계정·모드별 DB 잠금으로 요청을 직렬화합니다. 오래된 확인이나 지원하지 않는 구독은 BILLING_CHANGE_CONFLICT(409)입니다. 결제 통화는 유지하고 pending_plan/pending_effective_at으로 예약을 표시하며 현재 plan은 적용 전까지 유지합니다.
 
 Free는 기간 종료 시 해지, keep은 해지·변경 예약 철회입니다. 월간·연간은 Stripe의 두 단계 일정으로 다음 갱신일부터 적용하고 중간 청구·환불은 하지 않습니다. 할인·체험·세율 재정의·이체·일시정지·외부 일정이 없는 단일 항목의 활성 구독만 셀프서비스를 지원합니다. 일정 생성 후 소유 표시 전 통신 실패는 운영자 확인이 필요할 수 있으므로 상태를 새로고침하여 확인합니다. Stripe 대시보드 직접 변경과 앱 변경은 동시에 수행하지 않습니다.
 
@@ -240,3 +262,40 @@ STRIPE_PORTAL_CONFIGURATION_ID가 설정되면 시작 시 활성 여부·모드�
 - `GET /billing/card-setups/{intent_id}`: `{registered}`를 반환합니다. 성공 상태·연결된 결제수단·고객/사용자/모드가 일치해야 true입니다. 복귀 URL 자체는 등록 성공 증거가 아닙니다.
 
 Stripe의 SetupIntent·기본 지정·결제수단 분리 권한이 필요합니다. 카드 번호와 CVC는 입력창에서 Stripe로 직접 전달합니다. Link API 객체는 지갑 내부의 카드 브랜드·끝 4자리·만료일을 제공하지 않으며 실제 card 객체만 해당 값을 표시합니다. 전체 청구서 조회는 제한된 포털을 사용합니다. 웹훅 기반 이용 권한 반영은 이번 범위에 포함하지 않습니다.
+
+## 등급과 결제 주기
+
+요금제는 Free / Plus / Pro이며, Plus와 Pro 카드마다 독립적인 월간·연간 선택을
+배치합니다. 통화 선택은 공통입니다. 기존 `monthly`/`annual` 구매 키는 Plus,
+`pro_monthly`/`pro_annual`은 Pro로 해석하여 기존 구독과 호환합니다.
+
+| 등급 | 월간 KRW / USD | 연간 KRW / USD   |
+| ---- | -------------- | ---------------- |
+| Plus | 3,990 / 3.99   | 43,092 / 43.09   |
+| Pro  | 11,970 / 11.97 | 129,276 / 129.28 |
+
+위 금액은 구성한 샌드박스 예시이며 화면에 하드코딩하지 않습니다. 연간은 월간
+12회보다 약 10% 저렴하며 달러는 센트 단위로 반올림합니다. 카드에 월 환산액,
+실제 연 청구액과 서버 가격으로 계산한 할인율을 표시합니다.
+`STRIPE_PLUS_{MONTHLY|ANNUAL}_{KRW|USD}_PRICE_ID`는 새 Plus 구매 가격을 선택합니다.
+기존 `STRIPE_{MONTHLY|ANNUAL}_{KRW|USD}_PRICE_ID`는 유지하여 이전 가입자의 가격과
+등급을 계속 인식합니다. Pro는 `STRIPE_PRO_{MONTHLY|ANNUAL}_{KRW|USD}_PRICE_ID`를
+사용하며 미설정 옵션은 구매할 수 없습니다. 각 가격의 모드·통화·주기를 검증합니다.
+카탈로그 변경만으로 기존 구독을 새 가격으로 옮기지 않습니다.
+
+Plus → Pro는 `pending_if_incomplete`와 `always_invoice`로 차액 결제가 성공한 뒤
+즉시 적용합니다. 동시에 결제 주기를 바꾸면 새 주기가 시작될 수 있습니다.
+결제 또는 추가 인증이 남아 있으면 기존 등급을 유지하고 추가 변경을 막습니다.
+본인·모드 확인을 거친 Stripe 청구서 링크로 결제를 완료할 수 있습니다. 이 복구
+링크는 Stripe를 열며, 이번 작업에서 보류한 앱 내 전체 거래 내역 모달과 다릅니다.
+포커스·연결 복구 시 서버를 재조회하며 브라우저가 유료 권한을 임의 부여하지 않습니다.
+Pro → Plus, 같은 등급의 주기 변경, Free 전환은 이미 결제한 기간 종료 후 적용합니다.
+참고: [Stripe pending updates](https://docs.stripe.com/billing/subscriptions/pending-updates).
+
+라우트 셸이 기존 훅으로 본인의 서버 구독을 조회하고 등급을 레이아웃 props로 전달합니다.
+계정 전환 시 초기화하며 사이드바 컴포넌트는 API 훅을 직접 호출하지 않습니다.
+역할이나 URL 선택값을 유료 등급으로 해석하지 않습니다. 변경 성공 시 다른 구독
+훅에 무효화를 알려 서버를 다시 읽습니다. 미확인·오류를 Free로 표시하지 않습니다.
+축소된 프로필에는 접근성 이름이 있는 작은 등급 표시, 메뉴에는 이메일 위의 굵기와
+색상을 강조한 전체 구독명을 표시합니다. 별도 상태 저장소·웹훅·사용량 제한 또는
+앱 기능별 유료 권한을 이 작업에서 새로 만들지는 않습니다.
