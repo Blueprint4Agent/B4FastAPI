@@ -1,6 +1,7 @@
 import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -15,6 +16,14 @@ from tests.fixtures.scenario_seed_data import (
     DEFAULT_SEED_PROFILE,
     SeedProfileSchema,
 )
+
+
+@pytest.fixture(autouse=True)
+def isolate_lifecycle_notification_publication(monkeypatch):
+    """Lifecycle tests must not wake a developer's external worker/database."""
+    monkeypatch.setattr(
+        "app.services.notifications.publish_task", AsyncMock(return_value="test-notification-task")
+    )
 
 
 @pytest.fixture(autouse=True)

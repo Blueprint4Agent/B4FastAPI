@@ -180,3 +180,43 @@ def test_optional_public_key_and_mode_validation(monkeypatch):
     monkeypatch.setattr(SETTINGS, "STRIPE_SECRET_KEY", "sk_test_fixture")
     monkeypatch.setattr(SETTINGS, "STRIPE_PUBLISHABLE_KEY", "pk_live_wrongmode")
     assert not BillingService().config().enabled
+
+
+def test_invoice_history_paging_and_detail_are_customer_scoped(integration_client, native):
+    headers = mapped(integration_client)
+    invoice = stripe_object(
+        id="in_detail",
+        customer="cus_fixture",
+        livemode=False,
+        number="INV-2",
+        created=1,
+        status="paid",
+        currency="krw",
+        subtotal=3990,
+        total=3990,
+        amount_paid=3990,
+        amount_due=0,
+        hosted_invoice_url="https://invoice.stripe.com/i/example",
+        invoice_pdf=None,
+        lines={"data": [{"description": "Plus", "amount": 3990, "quantity": 1}], "has_more": False},
+    )
+    native.v1.invoices.retrieve_async = AsyncMock(return_value=invoice)
+    response = integration_client.get("/api/v1/billing/invoices/in_detail", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["lines"][0]["description"] == "Plus"
+    response = integration_client.get(
+        "/api/v1/billing/invoices?limit=20&starting_after=in_detail", headers=headers
+    )
+    assert response.status_code == 200
+    assert native.v1.invoices.list_async.call_args.kwargs["params"]["customer"] == "cus_fixture"
+    invoice.customer = "cus_other"
+    assert (
+        integration_client.get("/api/v1/billing/invoices/in_detail", headers=headers).status_code
+        == 404
+    )
+    assert (
+        integration_client.get(
+            "/api/v1/billing/invoices?starting_after=in_detail", headers=headers
+        ).status_code
+        == 404
+    )

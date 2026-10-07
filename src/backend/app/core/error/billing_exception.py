@@ -9,6 +9,12 @@ from .error import (
 
 
 class BillingErrorCode(Enum):
+    BILLING_WEBHOOK_INVALID = ServiceErrorCode(
+        "BILLING_WEBHOOK_INVALID", "Invalid billing webhook.", 400
+    )
+    BILLING_WEBHOOK_UNAVAILABLE = ServiceErrorCode(
+        "BILLING_WEBHOOK_UNAVAILABLE", "Billing webhook is not configured.", 503
+    )
     BILLING_DISABLED = ServiceErrorCode("BILLING_DISABLED", "Billing is not configured.", 503)
     BILLING_UNAVAILABLE = ServiceErrorCode(
         "BILLING_UNAVAILABLE", "Payment provider is temporarily unavailable.", 502

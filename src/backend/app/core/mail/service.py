@@ -278,6 +278,31 @@ class MailService:
                 raise
             logger.exception("Failed to deliver account deletion code to %s.", mask_email(to_email))
 
+    async def send_lifecycle_email(
+        self, *, kind: str, email: str, name: str, language: str, plan: str
+    ) -> None:
+        from app.core.mail.templates import build_lifecycle_email
+
+        if not self._settings.EMAIL_ENABLED:
+            return
+        content = build_lifecycle_email(
+            kind=kind,
+            name=name,
+            plan=plan,
+            language=language,
+            app_name=self._settings.EMAIL_BRAND_NAME,
+            link=self._settings.APP_BASE_URL.rstrip("/")
+            + ("/home" if kind == "account_deleted" else "/settings?section=billing"),
+        )
+        await self._provider.send(
+            MailMessage(
+                to_email=email,
+                subject=content.subject,
+                text_body=content.text,
+                html_body=content.html,
+            )
+        )
+
     def _resolve_link(self, *, path: str, link: str) -> str:
         explicit_link = link.strip()
         if explicit_link:

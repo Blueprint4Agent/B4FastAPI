@@ -566,7 +566,7 @@ class UserRepository:
         await self.set_operator_role(user.email, role, operator="internal")
         return await self.get_user_response_by_id(user_id)
 
-    async def delete_account(self, user_id: int, email: str) -> None:
+    async def delete_account(self, user_id: int, email: str, notification=None) -> None:
         """Delete credentials and owned keys atomically; serialize with role changes."""
         from app.models.billing import BillingCheckout
 
@@ -597,6 +597,8 @@ class UserRepository:
                 is not None
             ):
                 raise AuthException(code=AuthErrorCode.ACCOUNT_BILLING_REVIEW_REQUIRED)
+            if notification is not None:
+                db.add(notification)
             await db.delete(user)
             await db.commit()
 

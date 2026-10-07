@@ -12,6 +12,7 @@ from app.models.billing import (
     BillingCheckoutForm,
     BillingCheckoutStatusResponse,
     BillingConfigResponse,
+    BillingInvoiceDetail,
     BillingInvoicesResponse,
     BillingMethodForm,
     BillingPaymentMethodsResponse,
@@ -136,10 +137,23 @@ async def billing_profile(
 
 @router.get("/invoices", response_model=BillingInvoicesResponse)
 async def billing_invoices(
+    limit: Annotated[int, Query(ge=1, le=100)] = 4,
+    starting_after: Annotated[
+        str | None, Query(pattern=r"^in_[A-Za-z0-9]+$", max_length=255)
+    ] = None,
     current_user: UserResponse = Depends(get_current_user),
     service: BillingService = Depends(BillingService),
 ) -> BillingInvoicesResponse:
-    return await service.invoices(current_user.id)
+    return await service.invoices(current_user.id, limit, starting_after)
+
+
+@router.get("/invoices/{invoice_id}", response_model=BillingInvoiceDetail)
+async def invoice_detail(
+    invoice_id: Annotated[str, Path(pattern=r"^in_[A-Za-z0-9]+$", max_length=255)],
+    current_user: UserResponse = Depends(get_current_user),
+    service: BillingService = Depends(BillingService),
+) -> BillingInvoiceDetail:
+    return await service.invoice_detail(current_user.id, invoice_id)
 
 
 @router.post(

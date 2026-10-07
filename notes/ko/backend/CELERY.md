@@ -22,7 +22,7 @@ make celery-probe
 ```
 
 probe 출력 ID는 발행 확인입니다. worker 로그의 `Celery probe completed`와
-동일한 task ID로 실행 완료를 확인합니다. Beat의 업무 스케줄은 비어 있습니다.
+동일한 task ID로 실행 완료를 확인합니다. Beat는 생명주기 메일 outbox를 1분마다 확인합니다.
 배포당 Beat 하나만 실행합니다. 로컬 기본 풀은 macOS용 solo이고 프로세스 기반
 시간 제한을 보장하지 않습니다. Linux 운영은 prefork를 사용합니다.
 `CELERY_POOL=prefork CELERY_CONCURRENCY=2 make celery-worker`로 실행할 수 있습니다.
@@ -135,5 +135,8 @@ HLEN으로 건수, 필요할 때만 개별 기록을 확인합니다. 실패한 
 | SSE heartbeat·Redis 구독 | FastAPI HTTP 연결 | 유지 |
 | DB migration·API SMTP 검증·readiness | API/배포 수명주기 | 유지 |
 
-기존 정기 결제·정리 스케줄러는 없으며 Beat 스케줄은 여전히 비어 있습니다.
+구독·계정 생명주기 메일에는 1분 간격 outbox 스캔을 사용하며 기존 인증 메일 큐는 별도로 유지합니다.
 [영문 가이드](../../../src/backend/CELERY.md)에 공식 Celery 참고 링크가 있습니다.
+
+
+구독 시작·플랜 변경·계정 삭제 완료 메일은 migration 0011의 암호화 outbox를 사용합니다. 삭제 완료 메일은 사용자 삭제와 같은 트랜잭션에 기록하며 단일 Celery Beat가 1분마다 복구 작업을 발행합니다. 기존 인증·환영 메일의 큐 정책은 그대로 유지합니다. 운영 설정·보존 기간·중복 전달 한계는 [결제 문서](../billing.md)를 참조하세요.

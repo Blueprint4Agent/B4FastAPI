@@ -656,8 +656,7 @@ Use the shared query annotations and `PageResponse` for new offset list endpoint
 ## Standalone Celery
 
 Follow [Celery setup and mail queue migration](CELERY.md). Mail execution now runs
-outside the API and a worker is required when email is enabled. Beat remains
-optional with no business schedules. SQL schema and billing behavior are unchanged.
+outside the API and a worker is required when email is enabled. Beat is required for lifecycle notification recovery. Migration 0011 adds the encrypted mail outbox.
 
 ## Account activation and deletion
 
@@ -707,3 +706,6 @@ for permission coverage and sanitized failure behavior.
 Subscription Checkout uses configured recurring Price IDs and durable per-customer reservations (migration 0009). Current subscription status is read directly from Stripe; no local entitlement or webhook projection exists. Follow the billing guide for request ownership, duplicate prevention, bounded retries and account-deletion reconciliation.
 
 Runtime modes and the manager directory permission follow [runtime modes and roles](../../notes/runtime-modes-rbac.md). This supersedes the two-role/bootstrap promotion descriptions above: dedicated bootstrap identities only, no normal-account promotion, production authentication required, and CLI changes include transactional audit records.
+
+
+Subscription-start, plan-change and account-deleted mail use migration 0011 encrypted outbox. Deletion notice commits with deletion. One Celery Beat scans every minute; existing auth/welcome mail policy remains unchanged. See [billing setup](../../notes/billing.md) for webhook activation, retention, key rotation and duplicate-delivery limitations.

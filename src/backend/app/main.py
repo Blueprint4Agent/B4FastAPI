@@ -32,7 +32,7 @@ from app.core.observability.startup_checks import STARTUP_CHECKS, record_startup
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
 from app.models.user import UserResponse
-from app.routers.v1 import admin, api_key, auth, billing, events
+from app.routers.v1 import admin, api_key, auth, billing, billing_webhook, events
 from app.services.billing import BillingService
 from app.utils.token import create_access_token
 
@@ -238,6 +238,7 @@ def create_app() -> FastAPI:
     app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
     app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])
+    app.include_router(billing_webhook.router, prefix="/api/v1/billing", tags=["Billing"])
     app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
     app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
 

@@ -14,6 +14,7 @@ from app.core.db.session import Base
 from app.models import (
     api_key,  # noqa: F401
     billing,  # noqa: F401
+    notification,  # noqa: F401
     user,  # noqa: F401
 )
 
