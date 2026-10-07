@@ -1,3 +1,6 @@
+import asyncio
+from collections.abc import Awaitable, Callable
+from time import perf_counter
 from typing import Literal
 
 from pydantic import BaseModel
@@ -35,10 +38,34 @@ async def check_redis() -> str:
     return "ok"
 
 
+PROBE_TIMEOUT_SECONDS = 2.0
+
+
+class DependencyCheck(BaseModel):
+    status: Literal["ok", "failed", "timeout"]
+    latency_ms: float
+
+
+async def check_dependencies() -> dict[str, DependencyCheck]:
+    async def measure(probe: Callable[[], Awaitable[str]]) -> DependencyCheck:
+        started = perf_counter()
+        try:
+            result = await asyncio.wait_for(probe(), timeout=PROBE_TIMEOUT_SECONDS)
+            status = "ok" if result == "ok" else "failed"
+        except TimeoutError:
+            status = "timeout"
+        except Exception:
+            status = "failed"
+        return DependencyCheck(
+            status=status, latency_ms=round((perf_counter() - started) * 1000, 1)
+        )
+
+    database, redis = await asyncio.gather(measure(check_database), measure(check_redis))
+    return {"database": database, "redis": redis}
+
+
 async def get_readiness() -> ReadinessResponse:
-    checks = {
-        "database": await check_database(),
-        "redis": await check_redis(),
-    }
+    results = await check_dependencies()
+    checks = {name: result.status for name, result in results.items()}
     status = "ok" if all(result == "ok" for result in checks.values()) else "degraded"
     return ReadinessResponse(status=status, checks=checks)

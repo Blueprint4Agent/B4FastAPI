@@ -246,6 +246,311 @@
         "title": "APIKeysResponse",
         "type": "object"
       },
+      "AdminConnection": {
+        "properties": {
+          "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "id": {
+            "enum": [
+              "server",
+              "database",
+              "cache"
+            ],
+            "title": "Id",
+            "type": "string"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "failed",
+              "timeout"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "technology": {
+            "enum": [
+              "fastapi",
+              "sqlite",
+              "postgresql",
+              "mysql",
+              "mariadb",
+              "database",
+              "redis",
+              "memory"
+            ],
+            "title": "Technology",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "technology",
+          "status"
+        ],
+        "title": "AdminConnection",
+        "type": "object"
+      },
+      "AdminEnvironment": {
+        "properties": {
+          "admin_access": {
+            "const": "admin_only",
+            "default": "admin_only",
+            "title": "Admin Access",
+            "type": "string"
+          },
+          "app_mode": {
+            "enum": [
+              "development",
+              "production"
+            ],
+            "title": "App Mode",
+            "type": "string"
+          },
+          "billing_configured": {
+            "title": "Billing Configured",
+            "type": "boolean"
+          },
+          "billing_enabled": {
+            "title": "Billing Enabled",
+            "type": "boolean"
+          },
+          "billing_mode": {
+            "enum": [
+              "disabled",
+              "test",
+              "live"
+            ],
+            "title": "Billing Mode",
+            "type": "string"
+          },
+          "developer_enabled": {
+            "title": "Developer Enabled",
+            "type": "boolean"
+          },
+          "email_enabled": {
+            "title": "Email Enabled",
+            "type": "boolean"
+          },
+          "login_enabled": {
+            "title": "Login Enabled",
+            "type": "boolean"
+          },
+          "oauth_enabled": {
+            "title": "Oauth Enabled",
+            "type": "boolean"
+          },
+          "oauth_providers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Oauth Providers",
+            "type": "array"
+          },
+          "redis_in_memory": {
+            "title": "Redis In Memory",
+            "type": "boolean"
+          },
+          "subscriptions_enabled": {
+            "title": "Subscriptions Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "app_mode",
+          "email_enabled",
+          "login_enabled",
+          "oauth_enabled",
+          "oauth_providers",
+          "billing_configured",
+          "billing_enabled",
+          "billing_mode",
+          "subscriptions_enabled",
+          "developer_enabled",
+          "redis_in_memory"
+        ],
+        "title": "AdminEnvironment",
+        "type": "object"
+      },
+      "AdminEnvironmentValues": {
+        "properties": {
+          "APP_MODE": {
+            "enum": [
+              "development",
+              "production"
+            ],
+            "title": "App Mode",
+            "type": "string"
+          },
+          "EMAIL_ENABLED": {
+            "title": "Email Enabled",
+            "type": "boolean"
+          },
+          "LOGIN_ENABLED": {
+            "title": "Login Enabled",
+            "type": "boolean"
+          },
+          "OAUTH_ENABLED": {
+            "title": "Oauth Enabled",
+            "type": "boolean"
+          },
+          "REDIS_IN_MEMORY": {
+            "title": "Redis In Memory",
+            "type": "boolean"
+          },
+          "STRIPE_ENABLED": {
+            "title": "Stripe Enabled",
+            "type": "boolean"
+          },
+          "STRIPE_SUBSCRIPTIONS_ENABLED": {
+            "title": "Stripe Subscriptions Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "APP_MODE",
+          "EMAIL_ENABLED",
+          "LOGIN_ENABLED",
+          "OAUTH_ENABLED",
+          "STRIPE_ENABLED",
+          "STRIPE_SUBSCRIPTIONS_ENABLED",
+          "REDIS_IN_MEMORY"
+        ],
+        "title": "AdminEnvironmentValues",
+        "type": "object"
+      },
+      "AdminErrorDetail": {
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "error": {
+            "enum": [
+              "ADMIN_STATUS_FAILED"
+            ],
+            "example": "ADMIN_STATUS_FAILED",
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "AdminErrorDetail",
+        "type": "object"
+      },
+      "AdminErrorResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/AdminErrorDetail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "AdminErrorResponse",
+        "type": "object"
+      },
+      "AdminStatusResponse": {
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "connections": {
+            "items": {
+              "$ref": "#/components/schemas/AdminConnection"
+            },
+            "title": "Connections",
+            "type": "array"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/AdminEnvironment"
+          },
+          "environment_values": {
+            "$ref": "#/components/schemas/AdminEnvironmentValues"
+          },
+          "integration_checks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/IntegrationCheck"
+            },
+            "title": "Integration Checks",
+            "type": "object"
+          },
+          "startup_checks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StartupCheck"
+            },
+            "title": "Startup Checks",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "degraded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checked_at",
+          "connections",
+          "environment",
+          "environment_values",
+          "startup_checks",
+          "integration_checks"
+        ],
+        "title": "AdminStatusResponse",
+        "type": "object"
+      },
       "AdminUserListResponse": {
         "properties": {
           "items": {
@@ -1541,6 +1846,31 @@
         "title": "HealthCheckResult",
         "type": "object"
       },
+      "IntegrationCheck": {
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "failed",
+              "timeout",
+              "disabled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checked_at"
+        ],
+        "title": "IntegrationCheck",
+        "type": "object"
+      },
       "InternalErrorResponse": {
         "properties": {
           "error": {
@@ -1893,6 +2223,37 @@
         "title": "SignupForm",
         "type": "object"
       },
+      "StartupCheck": {
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "configured",
+              "disabled",
+              "unverified"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "StartupCheck",
+        "type": "object"
+      },
       "UpdateProfileForm": {
         "properties": {
           "name": {
@@ -2113,6 +2474,113 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/status": {
+      "get": {
+        "operationId": "status_api_v1_admin_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Status Api V1 Admin Status Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 Status Api V1 Admin Status Get"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "USER_NOT_FOUND",
+                    "message": "User not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ADMIN_STATUS_FAILED",
+                    "message": "Unable to inspect server status."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Status",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/v1/api-keys": {
       "get": {
         "operationId": "list_api_keys_api_v1_api_keys_get",

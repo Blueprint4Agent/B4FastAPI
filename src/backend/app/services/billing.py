@@ -86,6 +86,11 @@ class BillingService:
             publishable_key=SETTINGS.STRIPE_PUBLISHABLE_KEY.strip() or None,
         )
 
+    async def check_connection(self) -> None:
+        """Check API authentication without creating a billing resource."""
+        async with self._provider() as client:
+            await client.v1.checkout.sessions.list_async(params={"limit": 1})
+
     async def initialize(self) -> None:
         if not SETTINGS.STRIPE_ENABLED:
             logger.info("Stripe integration is disabled.")

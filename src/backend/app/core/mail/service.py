@@ -83,13 +83,17 @@ class SMTPMailProvider(MailProvider):
             port=self._settings.SMTP_PORT,
             timeout=self._settings.SMTP_TIMEOUT_SECONDS,
         )
-        smtp.ehlo()
-        if self._settings.SMTP_USE_STARTTLS and not self._settings.SMTP_USE_SSL:
-            smtp.starttls()
+        try:
             smtp.ehlo()
+            if self._settings.SMTP_USE_STARTTLS and not self._settings.SMTP_USE_SSL:
+                smtp.starttls()
+                smtp.ehlo()
 
-        if self._settings.SMTP_USERNAME and self._settings.SMTP_PASSWORD:
-            smtp.login(self._settings.SMTP_USERNAME, self._settings.SMTP_PASSWORD)
+            if self._settings.SMTP_USERNAME and self._settings.SMTP_PASSWORD:
+                smtp.login(self._settings.SMTP_USERNAME, self._settings.SMTP_PASSWORD)
+        except BaseException:
+            smtp.close()
+            raise
         return smtp
 
 
@@ -124,6 +128,15 @@ class MailService:
             logger.info("SMTP startup verification succeeded.")
         else:
             logger.info("SMTP startup verification skipped by configuration.")
+
+    async def check_connection(self) -> None:
+        """Authenticate without sending mail; keep probe socket waits short."""
+        if not self._settings.EMAIL_ENABLED:
+            return
+        settings = self._settings.model_copy(update={"SMTP_TIMEOUT_SECONDS": 2})
+        provider = SMTPMailProvider(settings)
+        provider.validate_configuration()
+        await asyncio.to_thread(provider.verify_startup)
 
     async def send_signup_verification_email(
         self,

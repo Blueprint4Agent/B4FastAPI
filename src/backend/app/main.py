@@ -17,6 +17,7 @@ from app.core.error import ServiceException, service_exception_to_http
 from app.core.mail.service import MAIL_SERVICE
 from app.core.observability.error_logging import exception_log_level
 from app.core.observability.health import HealthCheckResult, ReadinessResponse, get_readiness
+from app.core.observability.integration_health import INTEGRATION_HEALTH
 from app.core.observability.log_export import setup_log_export
 from app.core.observability.logging import configure_request_context_logging, get_logger
 from app.core.observability.metrics import setup_metrics
@@ -27,10 +28,11 @@ from app.core.observability.request_context import (
     resolve_trace_id,
     set_request_context,
 )
+from app.core.observability.startup_checks import STARTUP_CHECKS, record_startup_check
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
 from app.models.user import UserResponse
-from app.routers.v1 import api_key, auth, billing, events
+from app.routers.v1 import admin, api_key, auth, billing, events
 from app.services.billing import BillingService
 from app.utils.token import create_access_token
 
@@ -85,6 +87,8 @@ class AppConfigResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     global BOOTSTRAP_USER, BOOTSTRAP_ACCESS_TOKEN
+    await INTEGRATION_HEALTH.reset()
+    STARTUP_CHECKS.clear()
     SETTINGS.validate_runtime_mode()
     if not SETTINGS.OAUTH_ENABLED:
         logger.info("OAuth integration is disabled.")
@@ -100,8 +104,18 @@ async def lifespan(_app: FastAPI):
     if SETTINGS.OAUTH_ENABLED:
         logger.info("OAuth configuration validation succeeded.")
 
+    record_startup_check("oauth", "configured" if SETTINGS.OAUTH_ENABLED else "disabled")
     await MAIL_SERVICE.initialize()
+    record_startup_check(
+        "email",
+        "disabled"
+        if not SETTINGS.EMAIL_ENABLED
+        else "ok"
+        if SETTINGS.SMTP_VALIDATE_ON_STARTUP
+        else "configured",
+    )
     await BillingService().initialize()
+    record_startup_check("billing", "ok" if SETTINGS.STRIPE_ENABLED else "disabled")
     await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
     logger.info("Database schema migration check complete (target=head).")
     await init_db()
@@ -119,6 +133,7 @@ async def lifespan(_app: FastAPI):
     try:
         yield
     finally:
+        await INTEGRATION_HEALTH.reset()
         await dispose_db()
         await RedisManager.close()
 
@@ -216,6 +231,7 @@ def create_app() -> FastAPI:
     setup_metrics(app)
     setup_tracing(app)
 
+    app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
     app.include_router(api_key.router, prefix="/api/v1/api-keys", tags=["API Keys"])
     app.include_router(billing.router, prefix="/api/v1/billing", tags=["Billing"])
