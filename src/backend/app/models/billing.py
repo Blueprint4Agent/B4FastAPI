@@ -180,7 +180,7 @@ class BillingCheckouts:
 
 
 class BillingPriceResponse(BaseModel):
-    plan: Literal["monthly", "annual"]
+    plan: Literal["monthly", "annual", "pro_monthly", "pro_annual"]
     currency: Literal["krw", "usd"]
     amount: int = Field(ge=0, description="Minor currency units; KRW has no decimal places.")
 
@@ -192,20 +192,22 @@ class BillingPlansResponse(BaseModel):
 
 
 class BillingCheckoutForm(BillingSetupForm):
-    plan: Literal["monthly", "annual"]
+    plan: Literal["monthly", "annual", "pro_monthly", "pro_annual"]
     currency: Literal["krw", "usd"]
 
 
 class BillingSubscriptionResponse(BaseModel):
-    plan: Literal["free", "monthly", "annual", "unknown"]
+    plan: Literal["free", "monthly", "annual", "pro_monthly", "pro_annual", "unknown"]
     status: str
     currency: str | None = None
     current_period_end: int | None = None
     cancel_at_period_end: bool = False
     has_subscription: bool = False
     can_manage: bool = False
+    payment_required: bool = False
+    payment_url: str | None = None
     change_version: str | None = None
-    pending_plan: Literal["free", "monthly", "annual"] | None = None
+    pending_plan: Literal["free", "monthly", "annual", "pro_monthly", "pro_annual"] | None = None
     pending_effective_at: int | None = None
 
 
@@ -216,7 +218,7 @@ class BillingCheckoutStatusResponse(BaseModel):
 
 
 class BillingChangeForm(BillingSetupForm):
-    plan: Literal["free", "monthly", "annual", "keep"]
+    plan: Literal["free", "monthly", "annual", "pro_monthly", "pro_annual", "keep"]
     expected_version: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 

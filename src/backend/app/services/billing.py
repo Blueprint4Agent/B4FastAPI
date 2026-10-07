@@ -270,13 +270,37 @@ class BillingService:
 
     @staticmethod
     def _price_ids() -> dict[tuple[str, str], str]:
-        return {
-            (plan, currency): getattr(
-                SETTINGS, f"STRIPE_{plan.upper()}_{currency.upper()}_PRICE_ID"
-            ).strip()
-            for plan in ("monthly", "annual")
+        prices = {}
+        for tier in ("plus", "pro"):
+            for interval in ("monthly", "annual"):
+                plan = interval if tier == "plus" else f"pro_{interval}"
+                for currency in ("krw", "usd"):
+                    price = getattr(
+                        SETTINGS,
+                        f"STRIPE_{tier.upper()}_{interval.upper()}_{currency.upper()}_PRICE_ID",
+                    ).strip()
+                    if tier == "plus" and not price:
+                        price = getattr(
+                            SETTINGS, f"STRIPE_{interval.upper()}_{currency.upper()}_PRICE_ID"
+                        ).strip()
+                    if price or tier == "plus":
+                        prices[(plan, currency)] = price
+        return prices
+
+    @classmethod
+    def _known_prices(cls) -> dict[str, tuple[str, str]]:
+        # Preserve existing subscriptions when new purchase prices change.
+        legacy = {
+            getattr(SETTINGS, f"STRIPE_{interval.upper()}_{currency.upper()}_PRICE_ID").strip(): (
+                interval,
+                currency,
+            )
+            for interval in ("monthly", "annual")
             for currency in ("krw", "usd")
         }
+        legacy.update({value: key for key, value in cls._price_ids().items() if value})
+        legacy.pop("", None)
+        return legacy
 
     async def _price(
         self, client: stripe.StripeClient, plan: str, currency: str, price_id: str
@@ -291,7 +315,7 @@ class BillingService:
             or price.unit_amount <= 0
             or price.billing_scheme != "per_unit"
             or not recurring
-            or recurring.interval != ("month" if plan == "monthly" else "year")
+            or recurring.interval != ("month" if plan.endswith("monthly") else "year")
             or recurring.interval_count != 1
             or recurring.usage_type != "licensed"
         ):
@@ -333,7 +357,7 @@ class BillingService:
         self, subscription: stripe.Subscription
     ) -> BillingSubscriptionResponse:
         items = subscription["items"].data
-        mapped = {value: key for key, value in self._price_ids().items()}
+        mapped = self._known_prices()
         match = mapped.get(items[0].price.id) if len(items) == 1 else None
         return BillingSubscriptionResponse(
             plan=match[0] if match else "unknown",
@@ -368,7 +392,9 @@ class BillingService:
         if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
             raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
         async with self._provider() as client:
-            price_id = self._price_ids()[(form.plan, form.currency)]
+            price_id = self._price_ids().get((form.plan, form.currency))
+            if not price_id:
+                raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
             await self._price(client, form.plan, form.currency, price_id)
             customer_id = await self._customer(client, user_id)
             reservation = await BillingCheckouts.reserve(user_id, self.config().livemode, price_id)
@@ -438,6 +464,28 @@ class BillingService:
         self, client: stripe.StripeClient, subscription: stripe.Subscription
     ) -> BillingSubscriptionResponse:
         result = self._subscription_response(subscription)
+        pending_update = getattr(subscription, "pending_update", None)
+        result.payment_required = bool(pending_update)
+        if pending_update:
+            invoice_id = getattr(subscription, "latest_invoice", None)
+            if invoice_id:
+                invoice = await client.v1.invoices.retrieve_async(invoice_id)
+                if (
+                    invoice.customer != subscription.customer
+                    or invoice.livemode != self.config().livemode
+                ):
+                    raise BillingException(BillingErrorCode.BILLING_NOT_FOUND)
+                url = getattr(invoice, "hosted_invoice_url", None)
+                parsed = urlsplit(url) if url else None
+                if (
+                    parsed
+                    and parsed.scheme == "https"
+                    and parsed.hostname in ("invoice.stripe.com", "pay.stripe.com")
+                    and not parsed.username
+                    and not parsed.password
+                    and not parsed.port
+                ):
+                    result.payment_url = url
         item = subscription["items"].data[0] if len(subscription["items"].data) == 1 else None
         schedule_id = getattr(subscription, "schedule", None)
         schedule = (
@@ -452,7 +500,8 @@ class BillingService:
         result.can_manage = bool(
             SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED
             and subscription.status == "active"
-            and result.plan in ("monthly", "annual")
+            and not pending_update
+            and result.plan in ("monthly", "annual", "pro_monthly", "pro_annual")
             and result.current_period_end
             and item
             and getattr(item, "quantity", 1) == 1
@@ -484,7 +533,7 @@ class BillingService:
             if owned and future:
                 phase = future[0]
                 price = phase["items"][0].price if len(phase["items"]) == 1 else None
-                mapped = {value: key for key, value in self._price_ids().items()}
+                mapped = self._known_prices()
                 match = mapped.get(price if isinstance(price, str) else getattr(price, "id", None))
                 if match:
                     result.pending_plan = match[0]
@@ -502,6 +551,7 @@ class BillingService:
                     "cancel": subscription.cancel_at_period_end,
                     "schedule": schedule_id,
                     "future": [phase.to_dict() for phase in future],
+                    "pending_update_expires_at": getattr(pending_update, "expires_at", None),
                 },
                 sort_keys=True,
             ).encode()
@@ -529,7 +579,7 @@ class BillingService:
                 not current.can_manage
                 or current.change_version != form.expected_version
                 or (
-                    form.plan in ("monthly", "annual")
+                    form.plan in ("monthly", "annual", "pro_monthly", "pro_annual")
                     and current.current_period_end <= int(datetime.now(UTC).timestamp()) + 60
                 )
             ):
@@ -558,6 +608,27 @@ class BillingService:
                 if not price_id:
                     raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
                 await self._price(client, target, current.currency, price_id)
+                # A higher tier is available only after Stripe collects the prorated charge.
+                upgrading = target.startswith("pro_") and current.plan in ("monthly", "annual")
+                if upgrading:
+                    if schedule_id:
+                        await client.v1.subscription_schedules.release_async(
+                            schedule_id,
+                            params={"preserve_cancel_date": True},
+                            options={"idempotency_key": prefix + ":release-upgrade"},
+                        )
+                    item = subscription["items"].data[0]
+                    updated = await client.v1.subscriptions.update_async(
+                        subscription.id,
+                        params={
+                            "items": [{"id": item.id, "price": price_id, "quantity": 1}],
+                            "payment_behavior": "pending_if_incomplete",
+                            "proration_behavior": "always_invoice",
+                            "cancel_at_period_end": False,
+                        },
+                        options={"idempotency_key": prefix + ":upgrade"},
+                    )
+                    return await self._managed_response(client, updated)
                 if subscription.cancel_at_period_end:
                     await client.v1.subscriptions.update_async(
                         subscription.id,
@@ -589,7 +660,7 @@ class BillingService:
                             {
                                 "start_date": current.current_period_end,
                                 "duration": {
-                                    "interval": "month" if target == "monthly" else "year",
+                                    "interval": "month" if target.endswith("monthly") else "year",
                                     "interval_count": 1,
                                 },
                                 "items": [{"price": price_id, "quantity": 1}],

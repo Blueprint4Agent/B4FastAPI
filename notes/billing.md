@@ -20,8 +20,7 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    Stripe availability depends on account eligibility and configuration. Use one Stripe
    account per application database; switching accounts requires mapping reconciliation.
    Test/live mappings are isolated; do not repoint existing mappings to a different account.
-4. Start the API normally; startup Alembic applies `0008_billing_customers` after migration
-   0007. Back up production databases before normal rollout. Downgrade drops the local
+4. Start the API normally; startup Alembic applies `0008_billing_customers` after migration 0007. Back up production databases before normal rollout. Downgrade drops the local
    mapping table only; it cannot undo remote Stripe objects. The app still boots with billing disabled.
 5. In Swagger `/docs`, open Authorize and use OAuth2PasswordBearer with your app
    email as username and your app password. This obtains a bearer token through
@@ -29,9 +28,9 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    The Stripe secret key is server-only and does not authenticate these routes. Read billing config,
    then `POST /api/v1/billing/setup-sessions` with a UUID body:
 
-   ```json
-   {"request_id":"9a3f996f-7e30-4be4-8d74-86f4d8366b29"}
-   ```
+    ```json
+    { "request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29" }
+    ```
 
 6. Open the returned `url`. In Stripe test mode, register test card `4242 4242 4242 4242`
    with a future expiry and any three-digit CVC, or test Link using synthetic account data.
@@ -44,9 +43,9 @@ is accepted by the app. Link is a Stripe wallet, not a separate card vault opera
    Card summaries include brand/last4/expiry; Link summaries may have no card fields.
 
 The default return URLs open the Billing section in Settings and verify registration
-through the status API. The profile menu opens standalone Free/Monthly/Annual selection.
+through the status API. The profile menu opens standalone Free/Plus/Pro selection.
 Subscription prices now come from configured Stripe Price IDs; sandbox examples are monthly
-₩3,990 / US$3.99 and annual ₩39,900 / US$39.99. They are not FX conversions. Card/Link
+₩3,990 / US$3.99 and annual ₩43,092 / US$43.09 for Plus. They are not FX conversions. Card/Link
 registration, subscription Checkout, invoices and period-end plan management are connected. See the [frontend billing guide](../src/frontend/notes/billing.md). Hosted Checkout
 needs no frontend publishable key or Stripe.js dependency.
 
@@ -126,34 +125,45 @@ X-API-Key: <APPLICATION_API_KEY>
 1. `GET /api/v1/billing/config` → **200**
 
 ```json
-{"enabled": true, "livemode": false}
+{ "enabled": true, "livemode": false }
 ```
 
 2. `POST /api/v1/billing/setup-sessions` → **201**
 
 Request:
+
 ```json
-{"request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29"}
+{ "request_id": "9a3f996f-7e30-4be4-8d74-86f4d8366b29" }
 ```
 
 Response:
+
 ```json
-{"id": "cs_test_example", "url": "https://checkout.stripe.com/c/pay/example"}
+{ "id": "cs_test_example", "url": "https://checkout.stripe.com/c/pay/example" }
 ```
 
 3. `GET /api/v1/billing/setup-sessions/cs_test_example` → **200**
 
 ```json
-{"id": "cs_test_example", "status": "complete", "registered": true}
+{ "id": "cs_test_example", "status": "complete", "registered": true }
 ```
 
 4. `GET /api/v1/billing/payment-methods?method_type=card&limit=20` → **200**
 
 ```json
 {
-  "items": [{"id": "pm_example", "type": "card", "brand": "visa", "last4": "4242", "exp_month": 12, "exp_year": 2030}],
-  "has_more": false,
-  "next_cursor": null
+    "items": [
+        {
+            "id": "pm_example",
+            "type": "card",
+            "brand": "visa",
+            "last4": "4242",
+            "exp_month": 12,
+            "exp_year": 2030
+        }
+    ],
+    "has_more": false,
+    "next_cursor": null
 }
 ```
 
@@ -161,20 +171,31 @@ Response:
 
 ```json
 {
-  "items": [{"id": "pm_linkexample", "type": "link", "brand": null, "last4": null, "exp_month": null, "exp_year": null}],
-  "has_more": false,
-  "next_cursor": null
+    "items": [
+        {
+            "id": "pm_linkexample",
+            "type": "link",
+            "brand": null,
+            "last4": null,
+            "exp_month": null,
+            "exp_year": null
+        }
+    ],
+    "has_more": false,
+    "next_cursor": null
 }
 ```
 
 Empty:
+
 ```json
-{"items": [], "has_more": false, "next_cursor": null}
+{ "items": [], "has_more": false, "next_cursor": null }
 ```
 
 Invalid API key → **401**:
+
 ```json
-{"detail": {"error": "API_KEY_INVALID", "message": "Invalid API key."}}
+{ "detail": { "error": "API_KEY_INVALID", "message": "Invalid API key." } }
 ```
 
 Open the returned URL to finish hosted registration. Reuse request_id only for retries of the same action. Status may also be open or expired, with registered=false; trust registered, not status alone. With has_more=true, pass next_cursor as starting_after. Disabled billing returns config enabled=false, while provider calls return 503 BILLING_DISABLED. Other failures: 403 API_KEY_USER_MISMATCH, 404 BILLING_NOT_FOUND, 409 BILLING_RECONCILIATION_REQUIRED, 422 validation, 502 BILLING_UNAVAILABLE.
@@ -200,11 +221,11 @@ after environment changes. Docker has its own environment; local settings do not
 - `GET /api/v1/billing/plans`: `{enabled, livemode, prices: [{plan, currency, amount}]}`;
   amount is minor currency units. Disabled subscriptions return an empty catalog.
 - `GET /api/v1/billing/subscription`: current Stripe `{plan, status, currency,
-  current_period_end, cancel_at_period_end, has_subscription}`. No subscription means
+current_period_end, cancel_at_period_end, has_subscription}`. No subscription means
   `plan=free,status=none`; unfamiliar prices mean `plan=unknown`, never Free. Multiple
   subscriptions or an incomplete list require operator reconciliation.
 - `POST /api/v1/billing/checkout-sessions`: `{request_id, plan: monthly|annual,
-  currency: krw|usd}` → `{id,url}`. Customer, price, amount and return URL are server-owned.
+currency: krw|usd}` → `{id,url}`. Customer, price, amount and return URL are server-owned.
 - `GET /api/v1/billing/checkout-sessions/{session_id}`: `{id,status,paid}`. `paid=true`
   requires a complete, paid Checkout and active subscription belonging to the same
   customer/user/mode. A URL parameter or complete/unpaid session does not prove payment.
@@ -251,3 +272,44 @@ Set optional `STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`) for embed
 - `GET /billing/card-setups/{intent_id}`: `{registered}`; true requires succeeded SetupIntent, attached payment method and matching customer/user/mode. Return URLs alone never prove registration.
 
 Setup/default/detach writes require corresponding Stripe permissions. Raw card numbers and CVC go directly from Elements to Stripe. Link methods identify a wallet; their API object does not expose underlying card brand/last four/expiry. Only real card methods provide these fields. Invoice overview remains in the restricted portal. No webhook entitlement projection is added.
+
+## Tiers and billing intervals
+
+Free, Plus and Pro are product tiers. Each paid pricing card owns an independent
+monthly/annual SegmentedControl; currency remains a shared preview control.
+The server-owned purchase keys `monthly`/`annual` represent Plus and
+`pro_monthly`/`pro_annual` represent Pro. These preserve existing clients and
+subscriptions while separating tier labels from billing intervals in the UI.
+
+| Tier | Monthly KRW / USD | Annual KRW / USD |
+| ---- | ----------------- | ---------------- |
+| Plus | 3,990 / 3.99      | 43,092 / 43.09   |
+| Pro  | 11,970 / 11.97    | 129,276 / 129.28 |
+
+These are the configured sandbox examples, not hardcoded checkout amounts. Annual
+billing is approximately 10% less than twelve monthly payments (USD rounds to cents).
+The cards show a monthly equivalent, annual total and provider-derived discount.
+`STRIPE_PLUS_{MONTHLY|ANNUAL}_{KRW|USD}_PRICE_ID` optionally overrides the legacy Plus
+purchase prices. Keep legacy `STRIPE_{MONTHLY|ANNUAL}_{KRW|USD}_PRICE_ID` values so
+existing subscriptions remain recognized and retain their price. Pro uses optional
+`STRIPE_PRO_{MONTHLY|ANNUAL}_{KRW|USD}_PRICE_ID` values; unavailable options cannot be
+purchased. Every configured price is checked for mode, currency and recurring interval.
+No existing subscription is migrated by changing the catalog.
+
+Plus → Pro applies immediately only after Stripe accepts payment, using
+`payment_behavior=pending_if_incomplete` and `proration_behavior=always_invoice`.
+Changing the interval during an upgrade can start a new billing cycle. A pending
+payment retains the old plan, blocks further mutations and exposes an owner/mode-checked
+hosted invoice link for payment/authentication. This explicit recovery action opens
+Stripe; it is not the deferred in-app invoice-history modal. Focus/online recovery
+reads the provider again; no client-side entitlement is granted. Pro → Plus, same-tier
+interval changes and cancellation apply at period end, preserving paid time.
+See [Stripe pending updates](https://docs.stripe.com/billing/subscriptions/pending-updates).
+
+The route shell owns the sidebar subscription snapshot through the existing
+hook and passes its tier through layout props. It resets on account changes and never maps roles or URL selections to a paid tier.
+A successful mutation invalidates other mounted subscription consumers; each rereads
+the server. Unknown/error states do not display a misleading Free badge. The collapsed
+avatar shows an accessible compact tier mark; the expanded profile menu shows the
+full name above email with stronger weight and tier text treatment. No new state store,
+webhook, feature quota or tier-specific application entitlement is introduced here.
