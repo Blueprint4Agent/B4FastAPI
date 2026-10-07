@@ -45,6 +45,7 @@ async def get_current_token_user(
     token_user = await Users.get_user_response_by_id(user_id)
     if token_user is None:
         raise AuthException(code=AuthErrorCode.USER_NOT_FOUND)
+    await reject_production_bootstrap(token_user)
     return token_user
 
 
@@ -112,7 +113,15 @@ async def get_current_user(
     if token_user is not None and api_key_user is not None and token_user.id != api_key_user.id:
         raise APIKeyException(code=APIKeyErrorCode.API_KEY_USER_MISMATCH)
 
-    return token_user or api_key_user
+    user = token_user or api_key_user
+    if api_key_user is not None:
+        await reject_production_bootstrap(api_key_user)
+    return user
+
+
+async def reject_production_bootstrap(user: UserResponse) -> None:
+    if SETTINGS.APP_MODE == "production" and await Users.has_bootstrap_identity(user.id):
+        raise AuthException(code=AuthErrorCode.INSUFFICIENT_ROLE)
 
 
 def require_roles(*roles: UserRole):
@@ -137,4 +146,11 @@ def require_roles(*roles: UserRole):
 async def get_current_admin_user(
     current_user: Annotated[UserResponse, Depends(require_roles(UserRole.ADMIN))],
 ) -> UserResponse:
+    return current_user
+
+
+async def get_current_directory_user(
+    current_user: Annotated[UserResponse, Depends(require_roles(UserRole.ADMIN, UserRole.MANAGER))],
+) -> UserResponse:
+    """Read-only directory permission; does not grant other administrator privileges."""
     return current_user

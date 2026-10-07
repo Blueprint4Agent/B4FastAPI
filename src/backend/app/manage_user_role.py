@@ -2,6 +2,7 @@
 
 import argparse
 import asyncio
+import getpass
 import os
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,7 +17,9 @@ async def change_role(email: str, role: UserRole) -> tuple[int, str, str]:
         raise ValueError(
             "Role management requires LOGIN_ENABLED=true; disabled login uses a bootstrap admin."
         )
-    return await Users.set_operator_role(email.strip().lower(), role)
+    return await Users.set_operator_role(
+        email.strip().lower(), role, operator=f"cli:{getpass.getuser()}"
+    )
 
 
 async def _run(email: str, role: UserRole) -> tuple[int, str, str]:
@@ -34,7 +37,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     if not args.email or not args.email.strip() or args.role not in {r.value for r in UserRole}:
-        parser.error("Provide EMAIL and ROLE=user|admin, or --email and --role.")
+        parser.error("Provide EMAIL and ROLE=user|manager|admin, or --email and --role.")
     try:
         user_id, previous, current = asyncio.run(_run(args.email, UserRole(args.role)))
     except ValueError as error:

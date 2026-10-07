@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.deps import get_current_admin_user, get_current_user
+from app.deps import get_current_directory_user, get_current_user
 from app.main import register_exception_handlers
 from app.models.oauth import OAuthProvider, OAuthProviderPublicConfig
 from app.models.user import (
@@ -123,7 +123,7 @@ def create_auth_admin_test_client(admin_user: UserResponse) -> TestClient:
     register_exception_handlers(app)
     app.include_router(auth.router, prefix="/api/v1/auth")
     app.dependency_overrides[AuthService] = lambda: FakeAuthService(admin_user)
-    app.dependency_overrides[get_current_admin_user] = lambda: admin_user
+    app.dependency_overrides[get_current_directory_user] = lambda: admin_user
     return TestClient(app)
 
 

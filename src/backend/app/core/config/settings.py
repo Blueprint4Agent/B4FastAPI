@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Literal
 from urllib.parse import quote
 
 from dotenv import load_dotenv
@@ -14,6 +15,7 @@ class Settings(BaseModel):
     ROOT_DIR: Path = Path(__file__).resolve().parents[2]
 
     APP_NAME: str = os.getenv("APP_NAME", "Blueprint4FastAPI API")
+    APP_MODE: Literal["development", "production"] = os.getenv("APP_MODE", "development")
     APP_ENV: str = os.getenv("APP_ENV", "local")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
     APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
@@ -139,6 +141,8 @@ class Settings(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        self.validate_runtime_mode()
+
         # When login is globally disabled, auth entry integrations must also stay off.
         if not self.LOGIN_ENABLED:
             object.__setattr__(self, "EMAIL_ENABLED", False)
@@ -166,6 +170,10 @@ class Settings(BaseModel):
         else:
             redis_url = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         object.__setattr__(self, "REDIS_URL", redis_url)
+
+    def validate_runtime_mode(self) -> None:
+        if self.APP_MODE == "production" and not self.LOGIN_ENABLED:
+            raise ValueError("APP_MODE=production requires LOGIN_ENABLED=true.")
 
     @property
     def celery_broker_url(self) -> str:

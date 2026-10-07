@@ -548,3 +548,5 @@ Korean guide: [한국어](notes/ko/backend/CELERY.md).
 Stripe / Link registration foundation: [English](notes/billing.md) · [한국어](notes/ko/billing.md).
 
 API authentication policy audit: [English](notes/api-authentication.md) · [한국어](notes/ko/api-authentication.md).
+
+Runtime modes and roles: [English](notes/runtime-modes-rbac.md) · [한국어](notes/ko/runtime-modes-rbac.md).

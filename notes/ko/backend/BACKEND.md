@@ -575,9 +575,9 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 ```
 
 마이그레이션이 적용된 대상 DB를 확인한 뒤 실행합니다. 계정이나 테이블을 생성하지
-않으며 `user`/`admin`만 허용합니다. 사용자 ID와 변경 전후 역할을 출력합니다.
+않으며 `user`/`manager`/`admin`만 허용합니다. 사용자 ID와 변경 전후 역할을 출력합니다.
 없는 계정·비활성 계정과 마지막 활성 관리자의 강등을 거부하고 SQLite/PostgreSQL
-트랜잭션으로 동시 변경을 직렬화합니다. 출력은 실행 결과이며 영구 감사 저장소는 아닙니다.
+트랜잭션으로 동시 변경을 직렬화합니다. 실제 역할 변경은 `role_change_audit`에 같은 트랜잭션으로 기록합니다.
 다음 요청부터 서버 권한 검사에 반영되고 배지는 사용자 정보 재조회 시 갱신됩니다.
 `LOGIN_ENABLED=false`는 시작 시 bootstrap 관리자를 구성하므로 명령 실행을 거부합니다.
 로그인 비활성화 또는 설정 미확인 시 프로필의 계정 전환·추가 메뉴는 숨깁니다.
@@ -585,8 +585,8 @@ docker compose exec app .venv/bin/python -m app.manage_user_role --email person@
 
 ## 관리자 사용자 목록
 
-`GET /api/v1/auth/admin/users`는 DB 역할이 `admin`인 사용자만 접근합니다.
-bootstrap 관리자도 같은 권한 검사를 적용합니다. `page`(1 이상), `page_size`(1~100,
+`GET /api/v1/auth/admin/users`는 DB 역할이 `admin` 또는 `manager`인 사용자만 접근합니다.
+개발용 bootstrap 관리자도 같은 역할 검사를 적용하며 운영 모드에서는 인증을 차단합니다. `page`(1 이상), `page_size`(1~100,
 기본 20), `search`(이름/이메일의 문자 그대로 검색, 최대 200자), `role`, `is_active`
 필터를 지원합니다. 사용자 ID 내림차순 목록, 필터 결과 수와 전체 계정 통계를 반환합니다.
 사용자 정보·역할·계정 활성/이메일 인증 여부·가입일·로그인 방식과 연결된 인증 수단 중
@@ -648,3 +648,5 @@ Stripe 활성화 시 lifespan은 마이그레이션과 요청 수신 전에 Bill
 결제 설정 안내를 참고하세요.
 
 구독 Checkout은 설정된 정기 Price ID와 고객별 영속 예약(0009)을 사용합니다. 현재 구독은 Stripe에서 직접 조회하며 로컬 이용권이나 웹훅 투영은 없습니다. 요청 소유권·중복 방지·제한된 재시도·계정 삭제 정리는 결제 가이드를 따릅니다.
+
+실행 모드와 매니저 조회 권한은 [실행 모드와 역할](../runtime-modes-rbac.md)을 따릅니다. 기존 2개 역할/부트스트랩 승격 설명보다 이 정책이 우선합니다. 전용 부트스트랩만 허용하며 일반 계정 자동 승격 금지, 운영 인증 필수, CLI 변경 시 트랜잭션 감사 기록을 적용합니다.
