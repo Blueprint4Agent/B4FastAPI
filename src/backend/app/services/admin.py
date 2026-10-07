@@ -84,7 +84,6 @@ class AdminService:
                     LOGIN_ENABLED=SETTINGS.LOGIN_ENABLED,
                     OAUTH_ENABLED=SETTINGS.OAUTH_ENABLED,
                     STRIPE_ENABLED=SETTINGS.STRIPE_ENABLED,
-                    STRIPE_SUBSCRIPTIONS_ENABLED=SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED,
                     REDIS_IN_MEMORY=SETTINGS.REDIS_IN_MEMORY,
                 ),
                 environment=AdminEnvironment(
@@ -100,7 +99,6 @@ class AdminService:
                     billing_mode=("live" if billing.livemode else "test")
                     if billing.enabled
                     else "disabled",
-                    subscriptions_enabled=billing.enabled and SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED,
                     developer_enabled=SETTINGS.APP_MODE == "development",
                     redis_in_memory=SETTINGS.REDIS_IN_MEMORY,
                 ),

@@ -112,13 +112,14 @@ not a settings/environment dump. CodeBadge is shared with the frontend showcase.
 
 ## Disabled feature boundaries
 
-Public `/config` exposes effective `billing_enabled` and `subscriptions_enabled` flags.
+Public `/config` exposes one effective `billing_enabled` flag from `STRIPE_ENABLED`.
 `STRIPE_ENABLED=false` removes billing shortcuts, settings navigation/content, plan routes
 and profile tier/upgrade UI. Billing hooks remain idle until configuration explicitly
 allows the feature, including focus/online/desktop recovery. Direct disabled URLs fall
-back to Home (plans) or General settings (billing). With Stripe enabled but subscriptions
-disabled, payment methods, billing profile and invoice history remain available; plan
-selection, subscription reads and checkout-return requests do not run.
+back to Home (plans) or General settings (billing). There is no separate subscription switch: payment methods, billing profiles, invoices and
+plans are enabled or disabled together. Enabling Stripe requires valid subscription prices.
+The obsolete subscription environment variable is ignored and should be removed from deployments.
+Turning Stripe off does not cancel existing provider subscriptions.
 
 Enabled Stripe performs a read-only API authentication check during FastAPI lifespan.
 Authentication rejection, permission errors, invalid configuration and connection failures

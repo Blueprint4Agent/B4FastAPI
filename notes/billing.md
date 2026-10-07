@@ -206,7 +206,7 @@ Billing reuses the existing settings header/content spacing and row surfaces; fr
 
 ## Subscription Checkout
 
-Enable `STRIPE_SUBSCRIPTIONS_ENABLED` only after setting all four recurring Price IDs:
+Enable `STRIPE_ENABLED` only after setting all four recurring Price IDs:
 `STRIPE_MONTHLY_KRW_PRICE_ID`, `STRIPE_MONTHLY_USD_PRICE_ID`,
 `STRIPE_ANNUAL_KRW_PRICE_ID`, `STRIPE_ANNUAL_USD_PRICE_ID`. Prices must be active,
 positive per-unit licensed recurring prices, matching the configured month/year and

@@ -80,7 +80,6 @@ class AppConfigResponse(BaseModel):
     email_enabled: bool
     oauth_enabled: bool
     billing_enabled: bool
-    subscriptions_enabled: bool
     oauth_providers: list[str]
     bootstrap_user: UserResponse | None = None
     bootstrap_access_token: str | None = None
@@ -226,8 +225,6 @@ def create_app() -> FastAPI:
             "email_enabled": SETTINGS.EMAIL_ENABLED,
             "oauth_enabled": SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED,
             "billing_enabled": SETTINGS.STRIPE_ENABLED,
-            "subscriptions_enabled": SETTINGS.STRIPE_ENABLED
-            and SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED,
             "oauth_providers": SETTINGS.oauth_provider_list
             if SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED
             else [],

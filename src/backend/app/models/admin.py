@@ -24,7 +24,6 @@ class AdminEnvironmentValues(BaseModel):
     LOGIN_ENABLED: bool
     OAUTH_ENABLED: bool
     STRIPE_ENABLED: bool
-    STRIPE_SUBSCRIPTIONS_ENABLED: bool
     REDIS_IN_MEMORY: bool
 
 
@@ -37,7 +36,6 @@ class AdminEnvironment(BaseModel):
     billing_configured: bool
     billing_enabled: bool
     billing_mode: Literal["disabled", "test", "live"]
-    subscriptions_enabled: bool
     admin_access: Literal["admin_only"] = "admin_only"
     developer_enabled: bool
     redis_in_memory: bool

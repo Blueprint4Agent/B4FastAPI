@@ -43,9 +43,6 @@ class Settings(BaseModel):
     STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "")
     STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "")
     STRIPE_PORTAL_CONFIGURATION_ID: str = os.getenv("STRIPE_PORTAL_CONFIGURATION_ID", "")
-    STRIPE_SUBSCRIPTIONS_ENABLED: bool = (
-        os.getenv("STRIPE_SUBSCRIPTIONS_ENABLED", "false").lower() == "true"
-    )
     STRIPE_MONTHLY_KRW_PRICE_ID: str = os.getenv("STRIPE_MONTHLY_KRW_PRICE_ID", "")
     STRIPE_MONTHLY_USD_PRICE_ID: str = os.getenv("STRIPE_MONTHLY_USD_PRICE_ID", "")
     STRIPE_ANNUAL_KRW_PRICE_ID: str = os.getenv("STRIPE_ANNUAL_KRW_PRICE_ID", "")

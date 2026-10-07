@@ -53,7 +53,6 @@ def provider(monkeypatch):
     for key, value in {
         "STRIPE_ENABLED": True,
         "STRIPE_SECRET_KEY": "sk_test_fixture",
-        "STRIPE_SUBSCRIPTIONS_ENABLED": True,
         "STRIPE_SETUP_SUCCESS_URL": "http://localhost/settings?billing_setup={CHECKOUT_SESSION_ID}",
         "STRIPE_SETUP_CANCEL_URL": "http://localhost/settings?billing_setup=cancelled",
         "STRIPE_CHECKOUT_SUCCESS_URL": "http://localhost/settings?billing_checkout={CHECKOUT_SESSION_ID}",

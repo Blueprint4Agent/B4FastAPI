@@ -112,7 +112,6 @@ def test_environment_effective_flags(monkeypatch):
     assert result.environment.billing_mode == "disabled"
     assert result.environment_values.STRIPE_ENABLED is False
     assert result.environment_values.APP_MODE == "development"
-    assert not result.environment.subscriptions_enabled
     assert "private-value" not in result.model_dump_json()
 
 
