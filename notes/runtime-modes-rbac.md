@@ -44,6 +44,7 @@ make user-role EMAIL=manager@example.com ROLE=user
 ```
 
 The CLI requires login enabled and access to the intended backend environment.
+The standalone command registers its related ORM models independently of server startup.
 No role-change HTTP API is introduced. Current DB roles authorize subsequent
 requests without reissuing tokens; reload account data to refresh navigation.
 The last active administrator cannot be deleted or demoted to either user or

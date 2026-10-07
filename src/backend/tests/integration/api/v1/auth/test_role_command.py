@@ -1,7 +1,12 @@
 import asyncio
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.engine import make_url
 
 from app.core.config.settings import SETTINGS
 from app.core.db.session import get_db
@@ -80,3 +85,62 @@ def test_command_rejects_invalid_roles(monkeypatch, role):
     with pytest.raises(SystemExit) as error:
         main()
     assert error.value.code == 2
+
+
+@pytest.mark.primary_data
+@pytest.mark.parametrize("role", ["admin", "manager"])
+def test_role_module_runs_in_fresh_process(integration_client, role):
+    """A real CLI process must register related models without server imports."""
+    # Given: an existing account in the isolated migrated SQLite database.
+    email = "standalone@example.com"
+    assert (
+        integration_client.post(
+            "/api/v1/auth/signup", json=build_signup_payload(email=email)
+        ).status_code
+        == 200
+    )
+    env = {
+        **os.environ,
+        "DB_DRIVER": "sqlite+aiosqlite",
+        "DB_NAME": make_url(SETTINGS.DATABASE_URL).database,
+        "APP_MODE": "development",
+        "LOGIN_ENABLED": "true",
+        "EMAIL_ENABLED": "false",
+        "OAUTH_ENABLED": "false",
+        "TRACING_ENABLED": "false",
+        "LOGS_ENABLED": "false",
+        "EMAIL": email,
+        "ROLE": role,
+    }
+    backend = Path(__file__).resolve().parents[5]
+    # When: invoking the same standalone module used by Make, without app.main imports.
+    result = subprocess.run(
+        [sys.executable, "-m", "app.manage_user_role"],
+        cwd=backend,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    # Then: role and audit persist, and the real command retains last-admin protection.
+    assert result.returncode == 0, result.stderr
+    assert f"user -> {role}" in result.stdout
+    import sqlite3
+
+    with sqlite3.connect(env["DB_NAME"]) as db:
+        assert db.execute("SELECT role FROM users WHERE email=?", (email,)).fetchone() == (role,)
+        assert db.execute("SELECT previous_role,new_role FROM role_change_audit").fetchall() == [
+            ("user", role)
+        ]
+    if role == "admin":
+        env["ROLE"] = "manager"
+        denied = subprocess.run(
+            [sys.executable, "-m", "app.manage_user_role"],
+            cwd=backend,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert denied.returncode == 1
+        assert "last active admin" in denied.stderr
