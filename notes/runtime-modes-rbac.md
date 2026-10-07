@@ -9,9 +9,10 @@ Production requires `LOGIN_ENABLED=true`; unknown modes or login-free production
 fail configuration/startup validation. Set the mode explicitly for deployments
 and deploy the coordinated backend `/config` contract and B4React together.
 
-Development exposes GitHub, User guide and the component showcase. Production
-omits these links, redirects direct showcase/preview URLs to account settings or
-login, and never renders a showcase behind authentication dialogs. Normal user
+Both modes open the template home (`/home`) by default, including for guests. Account
+actions still require authentication. Development exposes GitHub, User guide and a
+separate component showcase menu. Production
+omits these links, redirects direct showcase/preview URLs to the template home (`/home`), and never renders a showcase behind authentication dialogs. Normal user
 API-key management remains a product feature. Runtime gating does not remove
 showcase JavaScript from the shared build. The separate Style Studio remains an
 explicitly enabled loopback-only development tool, not a production API.
