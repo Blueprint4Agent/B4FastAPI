@@ -40,6 +40,7 @@ make user-role EMAIL=manager@example.com ROLE=manager
 make user-role EMAIL=manager@example.com ROLE=user
 ```
 
+CLI는 서버 시작과 독립적으로 관련 ORM 모델을 등록합니다.
 CLI는 로그인 활성화 및 대상 백엔드 환경 접근이 필요합니다. 역할 변경 HTTP API는
 추가하지 않습니다. 다음 요청부터 DB의 현재 역할로 검사하며 메뉴는 계정 데이터를
 새로 불러오면 갱신됩니다. 마지막 활성 관리자는 삭제하거나 사용자/매니저로 강등할 수

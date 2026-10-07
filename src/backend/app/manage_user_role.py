@@ -9,6 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config.settings import SETTINGS
 from app.core.db.session import dispose_db
+from app.models import api_key  # noqa: F401 - register User.api_keys in standalone CLI processes
 from app.models.user import UserRole, Users
 
 
