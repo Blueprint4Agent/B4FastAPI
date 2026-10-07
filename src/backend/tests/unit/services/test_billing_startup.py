@@ -162,7 +162,7 @@ def test_live_configuration_requires_https(configured, transport, monkeypatch):
     transport.assert_not_awaited()
 
 
-@pytest.mark.parametrize("reject", [False, True])
+@pytest.mark.parametrize("reject", [False, True, "authentication"])
 def test_lifespan_waits_for_stripe_before_migrations(configured, transport, monkeypatch, reject):
     """Scenario: FastAPI startup only proceeds after the actual Stripe initializer succeeds."""
     import app.main as main
@@ -176,7 +176,15 @@ def test_lifespan_waits_for_stripe_before_migrations(configured, transport, monk
     monkeypatch.setattr(main, "init_db", AsyncMock())
     monkeypatch.setattr(main, "dispose_db", AsyncMock())
     monkeypatch.setattr(main.RedisManager, "close", AsyncMock())
-    if reject:
+    if reject == "authentication":
+        transport.return_value = (
+            json.dumps(
+                {"error": {"type": "invalid_request_error", "message": "Rejected"}}
+            ).encode(),
+            401,
+            {},
+        )
+    elif reject:
         transport.side_effect = TimeoutError()
     # When/Then: a failure prevents both serving requests and migrations.
     if reject:

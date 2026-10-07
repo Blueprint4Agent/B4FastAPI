@@ -377,6 +377,8 @@ class BillingService:
 
     @observe_service("billing.subscription")
     async def subscription(self, user_id: int) -> BillingSubscriptionResponse:
+        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
         async with self._provider() as client:
             row = await BillingCustomers.get(user_id, self.config().livemode)
             if row is None or row.stripe_customer_id is None:
@@ -435,6 +437,8 @@ class BillingService:
 
     @observe_service("billing.checkout_status")
     async def checkout_status(self, user_id: int, session_id: str) -> BillingCheckoutStatusResponse:
+        if not SETTINGS.STRIPE_SUBSCRIPTIONS_ENABLED:
+            raise BillingException(BillingErrorCode.BILLING_PLAN_UNAVAILABLE)
         async with self._provider() as client:
             row = await BillingCustomers.get(user_id, self.config().livemode)
             if row is None or row.stripe_customer_id is None:

@@ -63,6 +63,7 @@ def _resolve_preferred_language(request: Request) -> str | None:
     "/signup",
     response_model=UserResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.EMAIL_ALREADY_EXISTS,
         AuthErrorCode.SIGNUP_FAILED,
     ),
@@ -442,6 +443,7 @@ async def logout(
     responses={
         status.HTTP_200_OK: {"headers": REFRESH_COOKIE_HEADERS},
         **auth_error_responses(
+            AuthErrorCode.LOGIN_DISABLED,
             AuthErrorCode.INVALID_TOKEN,
             AuthErrorCode.USER_NOT_FOUND,
         ),
@@ -480,6 +482,8 @@ async def refresh_token(
     "/verify-email",
     response_model=VerifyEmailResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
+        AuthErrorCode.EMAIL_DISABLED,
         AuthErrorCode.INVALID_TOKEN,
         AuthErrorCode.USER_NOT_FOUND,
     ),
@@ -498,6 +502,7 @@ async def verify_email(
 @router.post(
     "/resend-verification",
     response_model=ResendVerificationResponse,
+    responses=auth_error_responses(AuthErrorCode.LOGIN_DISABLED),
 )
 async def resend_verification_email(
     request: Request,
@@ -517,6 +522,7 @@ async def resend_verification_email(
     "/forgot-password",
     response_model=ForgotPasswordResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.EMAIL_DISABLED,
     ),
 )
@@ -538,6 +544,7 @@ async def forgot_password(
     "/reset-password",
     response_model=ResetPasswordResponse,
     responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED,
         AuthErrorCode.INVALID_TOKEN,
         AuthErrorCode.EMAIL_DISABLED,
         AuthErrorCode.USER_NOT_FOUND,
