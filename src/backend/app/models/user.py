@@ -24,6 +24,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 from app.core.db.session import Base, get_db
 from app.core.error import AuthErrorCode, AuthException
 from app.models.pagination import PageResponse
+from app.models.profile_location import LOCATION_CODES
 
 EMAIL_PATTERN = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
 
@@ -57,6 +58,8 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     role: Mapped[str] = mapped_column(String(20), default=UserRole.USER.value, nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    bio: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(100), nullable=True)
     profile_photo: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     keyboard_shortcuts: Mapped[dict[str, list[str]] | None] = mapped_column(JSON, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -161,11 +164,14 @@ class KeyboardShortcuts(BaseModel):
 
     toggleSidebar: ShortcutKeys
     openSettings: ShortcutKeys
+    openProfile: ShortcutKeys | None = None
 
     @model_validator(mode="after")
     def validate_bindings(self):
         modifiers = {"mod", "ctrl", "meta", "alt", "shift"}
         bindings = [self.toggleSidebar, self.openSettings]
+        if self.openProfile is not None:
+            bindings.append(self.openProfile)
         for keys in bindings:
             primary = [key for key in keys if key not in modifiers]
             if (
@@ -181,12 +187,24 @@ class KeyboardShortcuts(BaseModel):
             ]
             if any(len(set(keys)) != len(keys) for keys in resolved):
                 raise ValueError("Duplicate shortcut modifier.")
-            if set(resolved[0]) == set(resolved[1]):
+            if len({frozenset(keys) for keys in resolved}) != len(resolved):
                 raise ValueError("Shortcut bindings must be distinct on every platform.")
         return self
 
 
 class UpdateProfileForm(BaseModel):
+    bio: str | None = Field(default=None, max_length=100)
+    location: str | None = Field(
+        default=None,
+        max_length=100,
+        description="Pinned country:region ID selected from the location catalog, or null.",
+    )
+
+    @field_validator("bio")
+    @classmethod
+    def normalize_profile_text(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
     keyboard_shortcuts: KeyboardShortcuts | None = None
     name: str | None = Field(default=None, min_length=2, max_length=50)
     profile_image_url: str | None = Field(
@@ -194,6 +212,15 @@ class UpdateProfileForm(BaseModel):
         deprecated=True,
         description="Use PUT/DELETE /auth/me/photo; legacy PATCH photo writes are rejected.",
     )
+
+    @field_validator("location")
+    @classmethod
+    def validate_location(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        if value not in LOCATION_CODES:
+            raise ValueError("Select a supported country and region.")
+        return value
 
     @field_validator("profile_image_url")
     @classmethod
@@ -208,6 +235,8 @@ class UpdateProfileForm(BaseModel):
             not has_name
             and not has_profile_image_url
             and "keyboard_shortcuts" not in self.model_fields_set
+            and "bio" not in self.model_fields_set
+            and "location" not in self.model_fields_set
         ):
             raise ValueError("At least one field must be provided.")
         if has_name and self.name is None:
@@ -216,6 +245,9 @@ class UpdateProfileForm(BaseModel):
 
 
 class UserResponse(BaseModel):
+    bio: str | None = None
+    location: str | None = None
+    has_password: bool = False
     id: int
     email: str
     name: str
@@ -309,6 +341,20 @@ class ResetPasswordForm(BaseModel):
         return value
 
 
+class VerifyAccountCodeForm(BaseModel):
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
+class ChangePasswordForm(BaseModel):
+    code: str = Field(pattern=r"^[0-9]{6}$")
+    password: str = Field(min_length=8, max_length=24)
+
+    @field_validator("password")
+    @classmethod
+    def validate_password_strength(cls, value: str) -> str:
+        return ResetPasswordForm.validate_password_strength(value)
+
+
 class ResetPasswordResponse(BaseModel):
     message: str
 
@@ -320,6 +366,8 @@ class APIError(BaseModel):
 
 
 class AuthUserDTO(BaseModel):
+    bio: str | None = None
+    location: str | None = None
     id: int
     email: str
     name: str
@@ -340,6 +388,9 @@ class AuthUserDTO(BaseModel):
             role=self.role,
             profile_image_url=self.profile_image_url,
             keyboard_shortcuts=self.keyboard_shortcuts,
+            bio=self.bio,
+            location=self.location,
+            has_password=bool(self.password_hash),
             oauth_providers=self.oauth_providers,
             is_verified=self.is_verified,
             created_at=self.created_at,
@@ -437,6 +488,8 @@ class UserRepository:
             role=UserRole(user.role),
             profile_image_url=user.profile_image_url,
             keyboard_shortcuts=user.keyboard_shortcuts,
+            bio=user.bio,
+            location=user.location,
             oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -485,6 +538,8 @@ class UserRepository:
             role=UserRole(user.role),
             profile_image_url=user.profile_image_url,
             keyboard_shortcuts=user.keyboard_shortcuts,
+            bio=user.bio,
+            location=user.location,
             oauth_providers=_extract_connected_oauth_providers(user.auth_identities),
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -567,6 +622,22 @@ class UserRepository:
             await db.commit()
             return True
 
+    async def change_password_hash(
+        self, user_id: int, previous_hash: str, password_hash: str
+    ) -> bool:
+        async with get_db() as db:
+            result = await db.execute(
+                update(Credential)
+                .where(
+                    Credential.user_id == user_id,
+                    Credential.password_hash == previous_hash,
+                    Credential.user_id.in_(select(User.id).where(User.is_active.is_(True))),
+                )
+                .values(password_hash=password_hash, updated_at=datetime.now(UTC))
+            )
+            await db.commit()
+            return result.rowcount == 1
+
     async def update_user_profile(
         self,
         user_id: int,
@@ -577,6 +648,10 @@ class UserRepository:
         update_profile_image_url: bool,
         keyboard_shortcuts: KeyboardShortcuts | None = None,
         update_keyboard_shortcuts: bool = False,
+        bio: str | None = None,
+        location: str | None = None,
+        update_bio: bool = False,
+        update_location: bool = False,
     ) -> UserResponse | None:
         async with get_db() as db:
             result = await db.execute(
@@ -586,6 +661,10 @@ class UserRepository:
             if user is None:
                 return None
 
+            if update_bio:
+                user.bio = bio
+            if update_location:
+                user.location = location
             if update_name and name is not None:
                 user.name = name
             if update_profile_image_url:

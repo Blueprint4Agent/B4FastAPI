@@ -797,3 +797,5 @@ unique and preserve original records, plain output and tracebacks when styling c
 Billing ownership, replay/recovery and mail boundaries are recorded in the [issue #93 audit](../../notes/billing-audit-93.md).
 
 Lifecycle mail uses the existing MailQueueService wake-up and encrypted outbox. See [delivery and operator recovery](../../notes/lifecycle-mail.md); no cross-account mail HTTP role is granted.
+
+Personal profile fields and email-code password changes follow [account/profile](../../notes/account-profile.md). Apply migration 0016 before rollout; code verification reuses deletion challenge mechanics with separate purpose keys.

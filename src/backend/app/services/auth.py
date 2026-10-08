@@ -23,6 +23,7 @@ from app.models.oauth import (
 )
 from app.models.user import (
     AdminUserListResponse,
+    ChangePasswordForm,
     LoginForm,
     LoginResponse,
     RefreshResponse,
@@ -34,7 +35,12 @@ from app.models.user import (
     Users,
 )
 from app.services.profile_photo import ProfilePhotoService
-from app.utils.account_verification import consume_deletion_code, issue_deletion_code
+from app.utils.account_verification import (
+    consume_deletion_code,
+    consume_email_code,
+    issue_deletion_code,
+    issue_email_code,
+)
 from app.utils.cookies import get_refresh_cookie_value
 from app.utils.security import hash_password, verify_password
 from app.utils.token import (
@@ -266,7 +272,7 @@ class AuthService:
             code, retry_after = await issue_deletion_code(
                 user_id,
                 ttl=600,
-                cooldown=60,
+                cooldown=30,
                 request_limit=5,
                 request_window=3600,
             )
@@ -814,12 +820,103 @@ class AuthService:
             update_profile_image_url="profile_image_url" in form.model_fields_set,
             keyboard_shortcuts=form.keyboard_shortcuts,
             update_keyboard_shortcuts="keyboard_shortcuts" in form.model_fields_set,
+            bio=form.bio,
+            location=form.location,
+            update_bio="bio" in form.model_fields_set,
+            update_location="location" in form.model_fields_set,
         )
         if user is None:
             logger.debug("Profile update failed (user_id=%s).", user_id)
             raise AuthException(code=AuthErrorCode.PROFILE_UPDATE_FAILED)
         logger.info("Profile update completed (user_id=%s).", user_id)
         return user
+
+    async def request_password_change_code(
+        self, user_id: int, preferred_language: str | None = None
+    ) -> None:
+        self._ensure_login_enabled()
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+        user = await Users.get_auth_user_by_id(user_id)
+        if user is None or not user.password_hash:
+            raise AuthException(code=AuthErrorCode.INVALID_CREDENTIALS)
+        try:
+            code, retry_after = await issue_email_code(
+                user_id,
+                ttl=600,
+                cooldown=30,
+                request_limit=5,
+                request_window=3600,
+                purpose="password_change",
+            )
+            if code is None:
+                raise AuthException(
+                    code=AuthErrorCode.PASSWORD_CHANGE_CODE_THROTTLED,
+                    details={"remaining_seconds": retry_after},
+                )
+            await MAIL_QUEUE_SERVICE.enqueue_password_change(
+                to_email=user.email,
+                user_name=user.name,
+                code=code,
+                language=self._resolve_email_language(preferred_language),
+            )
+        except AuthException:
+            raise
+        except Exception as error:
+            raise AuthException(code=AuthErrorCode.PASSWORD_CHANGE_CODE_SEND_FAILED) from error
+
+    async def verify_account_email_code(self, user_id: int, code: str, *, password: bool) -> None:
+        self._ensure_login_enabled()
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+        invalid = (
+            AuthErrorCode.PASSWORD_CHANGE_CODE_INVALID
+            if password
+            else AuthErrorCode.ACCOUNT_DELETE_CODE_INVALID
+        )
+        failed = (
+            AuthErrorCode.PASSWORD_CHANGE_FAILED
+            if password
+            else AuthErrorCode.ACCOUNT_DELETE_FAILED
+        )
+        try:
+            if not await consume_email_code(
+                user_id,
+                code,
+                attempt_limit=5,
+                window=600,
+                consume=False,
+                purpose="password_change" if password else "account_delete",
+            ):
+                raise AuthException(code=invalid)
+        except AuthException:
+            raise
+        except Exception as error:
+            raise AuthException(code=failed) from error
+
+    async def change_password(self, user_id: int, form: ChangePasswordForm) -> None:
+        self._ensure_login_enabled()
+        if not SETTINGS.EMAIL_ENABLED:
+            raise AuthException(code=AuthErrorCode.EMAIL_DISABLED)
+        try:
+            user = await Users.get_auth_user_by_id(user_id)
+            if user is None or not user.password_hash:
+                raise AuthException(code=AuthErrorCode.INVALID_CREDENTIALS)
+            if not await consume_email_code(
+                user_id, form.code, attempt_limit=5, window=600, purpose="password_change"
+            ):
+                raise AuthException(code=AuthErrorCode.PASSWORD_CHANGE_CODE_INVALID)
+            # Invalidate renewal before committing the new credential; Redis outages fail closed.
+            await delete_refresh_token(user_id)
+            if not await Users.change_password_hash(
+                user_id, user.password_hash, hash_password(form.password)
+            ):
+                raise AuthException(code=AuthErrorCode.PASSWORD_CHANGE_CODE_INVALID)
+        except AuthException:
+            raise
+        except Exception as error:
+            raise AuthException(code=AuthErrorCode.PASSWORD_CHANGE_FAILED) from error
+        logger.info("Password change completed (user_id=%s).", user_id)
 
     async def reset_password(self, token: str, password: str) -> None:
         self._ensure_login_enabled()

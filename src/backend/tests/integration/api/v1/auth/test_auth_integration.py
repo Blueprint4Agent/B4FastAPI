@@ -453,9 +453,16 @@ def _request_delete_code(client, headers, monkeypatch):
     monkeypatch.setattr(MAIL_QUEUE_SERVICE, "enqueue_account_deletion", publish)
     response = client.post("/api/v1/auth/me/deletion-code", headers=headers)
     assert response.status_code == 200
-    assert response.json() == {"expires_in": 600, "retry_after": 60}
+    assert response.json() == {"expires_in": 600, "retry_after": 30}
     assert client.post("/api/v1/auth/me/deletion-code", headers=headers).status_code == 429
-    return publish.call_args.kwargs["code"]
+    code = publish.call_args.kwargs["code"]
+    assert (
+        client.post(
+            "/api/v1/auth/me/deletion-code/verify", headers=headers, json={"code": code}
+        ).status_code
+        == 200
+    )
+    return code
 
 
 @pytest.mark.primary_data

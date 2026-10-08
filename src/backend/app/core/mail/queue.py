@@ -9,7 +9,9 @@ from app.core.config.settings import SETTINGS, Settings
 from app.core.observability.logging import get_logger, mask_email
 
 logger = get_logger("app.core.mail.queue")
-MailKind = Literal["signup_verification", "password_reset", "welcome", "account_deletion"]
+MailKind = Literal[
+    "signup_verification", "password_reset", "welcome", "account_deletion", "password_change"
+]
 MAIL_TASK_NAME = "b4fastapi.mail.send"
 
 
@@ -69,6 +71,19 @@ class MailQueueService:
             ttl_minutes=10,
         )
 
+    async def enqueue_password_change(
+        self, *, to_email: str, user_name: str, code: str, language: str
+    ) -> None:
+        await self._enqueue(
+            "password_change",
+            to_email=to_email,
+            user_name=user_name,
+            link="",
+            code=code,
+            language=language,
+            ttl_minutes=10,
+        )
+
     async def _enqueue(
         self,
         kind: MailKind,
@@ -88,7 +103,7 @@ class MailQueueService:
             payload={
                 "message": {
                     "kind": kind,
-                    **({"code": code} if kind == "account_deletion" else {}),
+                    **({"code": code} if kind in ("account_deletion", "password_change") else {}),
                     "to_email": to_email,
                     "user_name": user_name,
                     "link": link,

@@ -247,3 +247,33 @@ def test_lifecycle_wake_uses_existing_queue_without_recipient_payload(monkeypatc
         publish.assert_awaited_once_with("b4fastapi.notifications.drain", payload={})
     else:
         publish.assert_not_called()
+
+
+@pytest.mark.parametrize("kind", ["account_deletion", "password_change"])
+def test_code_mail_producer_and_worker_keep_purpose_and_expiry(monkeypatch, kind):
+    """Scenario: private six-digit code jobs reach only their intended mail sender."""
+    # Given: captured publication and a mocked SMTP boundary.
+    publish = AsyncMock()
+    monkeypatch.setattr("app.core.mail.queue.publish_task", publish)
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    queue = MailQueueService(Settings(EMAIL_ENABLED=True))
+    # When: queueing and executing the exact generated job.
+    asyncio.run(
+        getattr(queue, f"enqueue_{kind}")(
+            to_email="person@example.com", user_name="User", code="123456", language="ko"
+        )
+    )
+    job = publish.call_args.kwargs["payload"]["message"]
+    assert job["expires_at"] - job["created_at"] == 600
+    assert job["kind"] == kind and job["link"] == ""
+    sender = AsyncMock()
+    monkeypatch.setattr(mail.MAIL_SERVICE, f"send_{kind}_email", sender)
+    mail.send_mail.apply(kwargs={"message": job}, throw=True)
+    # Then: the purpose-specific sender receives a code, never a reset/deletion link.
+    sender.assert_awaited_once_with(
+        to_email="person@example.com",
+        user_name="User",
+        code="123456",
+        language="ko",
+        raise_on_failure=True,
+    )

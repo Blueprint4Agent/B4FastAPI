@@ -395,6 +395,41 @@ def build_account_deletion_email(
     return EmailContent(subject=subject, text=f"{intro}\n\n{code}\n\n{warning}", html=html)
 
 
+def build_password_change_email(
+    *,
+    name: str | None,
+    code: str,
+    app_name: str = "B4A",
+    language: str | None = None,
+) -> EmailContent:
+    locale = resolve_locale(language)
+    display_name = _display_name(name)
+    if locale == "ko":
+        subject = "비밀번호 변경 인증 코드"
+        intro = f"{display_name}님, {app_name} 비밀번호 변경을 요청하셨습니다. 아래 코드는 10분 동안 유효합니다."
+        warning = "이 코드를 입력하면 새 비밀번호를 저장할 수 있습니다. 요청하지 않았다면 코드를 공유하거나 입력하지 마세요."
+    else:
+        subject = "Confirm password change"
+        intro = f"Hi {display_name}, you requested a password change for your {app_name} account. This code expires in 10 minutes."
+        warning = "Use this code to confirm your new password. If you did not request this, do not share or enter this code."
+    # A code-only email has no action URL, so opening a mail client cannot change a password.
+    html = _build_email_html(
+        app_name=app_name,
+        preheader=intro,
+        heading=subject,
+        intro=intro,
+        cta_label="",
+        link="",
+        outro=warning,
+        footer="",
+        manual_link_label="",
+        theme=FRONTEND_LIGHT_THEME,
+        locale=locale,
+        code=code,
+    )
+    return EmailContent(subject=subject, text=f"{intro}\n\n{code}\n\n{warning}", html=html)
+
+
 def build_lifecycle_email(
     *, kind: str, name: str, plan: str, link: str, app_name: str, language: str = "en"
 ) -> EmailContent:

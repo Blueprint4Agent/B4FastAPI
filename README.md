@@ -558,3 +558,5 @@ Object storage providers (`local`, `s3`, `r2`, `supabase`): [English](notes/obje
 Startup and shutdown use a B4A service/status panel in interactive terminals, with plain-log fallback. See [lifecycle display settings](notes/startup-display.md).
 
 Lifecycle email operations: [English](notes/lifecycle-mail.md) · [한국어](notes/ko/lifecycle-mail.md).
+
+- Personal profile and account security: [English](notes/account-profile.md) · [한국어](notes/ko/account-profile.md)

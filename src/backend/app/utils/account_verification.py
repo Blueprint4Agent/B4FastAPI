@@ -4,22 +4,28 @@ import hashlib
 import hmac
 import json
 import secrets
+from typing import Literal
 
 from redis.exceptions import WatchError
 
 from app.core.cache.redis import RedisManager
 from app.core.config.settings import SETTINGS
 
+ChallengePurpose = Literal["account_delete", "password_change"]
 
-def _digest(user_id: int, nonce: str, code: str) -> str:
+
+def _digest(
+    user_id: int, nonce: str, code: str, purpose: ChallengePurpose = "account_delete"
+) -> str:
+    domain = purpose.replace("_", "-")
     return hmac.new(
         SETTINGS.SECRET_KEY.encode(),
-        f"account-delete:{user_id}:{nonce}:{code}".encode(),
+        f"{domain}:{user_id}:{nonce}:{code}".encode(),
         hashlib.sha256,
     ).hexdigest()
 
 
-async def issue_deletion_code(
+async def issue_email_code(
     user_id: int,
     *,
     ttl: int,
@@ -27,9 +33,10 @@ async def issue_deletion_code(
     request_limit: int,
     request_window: int,
     attempt_limit: int = 5,
+    purpose: ChallengePurpose = "account_delete",
 ) -> tuple[str | None, int]:
     redis = await RedisManager.get_client()
-    prefix = f"account_delete:{user_id}"
+    prefix = f"{purpose}:{user_id}"
     challenge, throttle, budget = (
         f"{prefix}:{part}" for part in ("challenge", "cooldown", "budget")
     )
@@ -49,7 +56,9 @@ async def issue_deletion_code(
                     return None, max(1, budget_ttl)
                 code = f"{secrets.randbelow(1_000_000):06d}"
                 nonce = secrets.token_hex(16)
-                payload = json.dumps({"nonce": nonce, "digest": _digest(user_id, nonce, code)})
+                payload = json.dumps(
+                    {"nonce": nonce, "digest": _digest(user_id, nonce, code, purpose)}
+                )
                 pipe.multi()
                 pipe.set(challenge, payload, ex=ttl)
                 pipe.set(throttle, "1", ex=cooldown)
@@ -58,14 +67,20 @@ async def issue_deletion_code(
                 return code, cooldown
             except WatchError:
                 continue
-    raise RuntimeError("Deletion challenge contention")
+    raise RuntimeError("Email challenge contention")
 
 
-async def consume_deletion_code(
-    user_id: int, code: str, *, attempt_limit: int, window: int
+async def consume_email_code(
+    user_id: int,
+    code: str,
+    *,
+    attempt_limit: int,
+    window: int,
+    consume: bool = True,
+    purpose: ChallengePurpose = "account_delete",
 ) -> bool:
     redis = await RedisManager.get_client()
-    prefix = f"account_delete:{user_id}"
+    prefix = f"{purpose}:{user_id}"
     challenge, failures = f"{prefix}:challenge", f"{prefix}:failures"
     for _ in range(8):
         async with redis.pipeline(transaction=True) as pipe:
@@ -77,12 +92,16 @@ async def consume_deletion_code(
                     return False
                 stored = json.loads(raw) if raw else None
                 valid = stored is not None and hmac.compare_digest(
-                    stored["digest"], _digest(user_id, stored["nonce"], code)
+                    stored["digest"], _digest(user_id, stored["nonce"], code, purpose)
                 )
                 failure_ttl = await pipe.ttl(failures)
                 pipe.multi()
                 if valid:
-                    pipe.delete(challenge)
+                    if consume:
+                        pipe.delete(challenge)
+                    else:
+                        # Keep WATCH/MULTI active for verification without consuming or extending TTL.
+                        pipe.get(challenge)
                 else:
                     pipe.set(failures, attempts + 1, ex=failure_ttl if failure_ttl > 0 else window)
                     if attempts + 1 >= attempt_limit:
@@ -91,4 +110,9 @@ async def consume_deletion_code(
                 return valid
             except WatchError:
                 continue
-    raise RuntimeError("Deletion challenge contention")
+    raise RuntimeError("Email challenge contention")
+
+
+# Preserve the existing deletion callers and default challenge namespace.
+issue_deletion_code = issue_email_code
+consume_deletion_code = consume_email_code

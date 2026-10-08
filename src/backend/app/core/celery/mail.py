@@ -32,9 +32,9 @@ class MailJob(BaseModel):
 
     @model_validator(mode="after")
     def validate_content(self) -> "MailJob":
-        if self.kind == "account_deletion":
+        if self.kind in ("account_deletion", "password_change"):
             if self.code is None:
-                raise ValueError("Missing deletion code")
+                raise ValueError("Missing verification code")
         elif not self.link:
             raise ValueError("Missing mail link")
         return self
@@ -122,13 +122,18 @@ def send_mail(
         "password_reset": MAIL_SERVICE.send_password_reset_email,
         "welcome": MAIL_SERVICE.send_welcome_email,
         "account_deletion": MAIL_SERVICE.send_account_deletion_email,
+        "password_change": MAIL_SERVICE.send_password_change_email,
     }[job.kind]
     try:
         asyncio.run(
             sender(
                 to_email=job.to_email,
                 user_name=job.user_name,
-                **({"code": job.code} if job.kind == "account_deletion" else {"link": job.link}),
+                **(
+                    {"code": job.code}
+                    if job.kind in ("account_deletion", "password_change")
+                    else {"link": job.link}
+                ),
                 language=job.language,
                 raise_on_failure=True,
             )
