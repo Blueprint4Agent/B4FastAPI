@@ -6,7 +6,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urljoin
 from urllib.request import Request as URLRequest, urlopen
 
-from fastapi import Request
+from fastapi import Depends, Request
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.cache.redis import RedisManager
@@ -33,6 +33,7 @@ from app.models.user import (
     UserRoleStatsResponse,
     Users,
 )
+from app.services.profile_photo import ProfilePhotoService
 from app.utils.account_verification import consume_deletion_code, issue_deletion_code
 from app.utils.cookies import get_refresh_cookie_value
 from app.utils.security import hash_password, verify_password
@@ -60,6 +61,9 @@ EMAIL_LANGUAGE_BY_PREFIX = {
 
 
 class AuthService:
+    def __init__(self, photos: ProfilePhotoService = Depends(ProfilePhotoService)):
+        self.photos = photos
+
     def _ensure_login_enabled(self) -> None:
         if not SETTINGS.LOGIN_ENABLED:
             logger.debug("Blocked request because login is disabled.")
@@ -305,11 +309,13 @@ class AuthService:
                 name=user.name,
                 language=self._resolve_email_language(preferred_language),
             )
-            await Users.delete_account(user_id, email, notification=notice)
+            deleted_photo = await Users.delete_account(user_id, email, notification=notice)
         except AuthException:
             raise
         except Exception as error:
             raise AuthException(code=AuthErrorCode.ACCOUNT_DELETE_FAILED) from error
+        if deleted_photo:
+            await self.photos.cleanup(deleted_photo)
         try:
             await delete_account_tokens(user_id)
         except Exception:

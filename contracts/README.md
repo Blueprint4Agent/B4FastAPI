@@ -152,3 +152,12 @@ See [billing setup](../notes/billing.md) for exact retry and ownership semantics
 Subscription billing exposes authenticated plans, current subscription, checkout creation and owner-checked return status. Monetary amounts use minor currency units; clients send only plan/currency/request UUID, never price/customer/amount/URLs. Only paid=true confirms payment; current subscription is read from Stripe. Account deletion can return ACCOUNT_BILLING_REVIEW_REQUIRED for checkout history pending operator reconciliation.
 
 Subscription management adds owner-scoped POST /billing/subscription/change with expected_version and period-end-only free/monthly/annual/keep semantics. Subscription snapshots expose can_manage/change_version/pending_plan/pending_effective_at. Billing profile, four recent invoices and restricted portal sessions are authenticated; customer/URLs/prices remain server-owned.
+
+Profile photos use authenticated binary PUT/GET/DELETE `/api/v1/auth/me/photo`.
+PUT accepts at most 8 MiB of actual PNG/JPEG/WebP/GIF pixels and returns UserResponse;
+GET returns private no-store WebP for the current owner/revision; DELETE clears it.
+New account JSON stores an API reference, not Base64. Existing external/data URLs are
+still readable. PATCH photo inputs (including null) now return 422; adopt the new
+endpoints together with the client. New failures include 413 size, 422 image validation,
+409 concurrent change, 404 missing photo and 503 storage unavailable. Failed upload
+must not replace confirmed client state; binary reads need bearer/API-key headers.

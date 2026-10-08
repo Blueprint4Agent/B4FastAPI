@@ -57,6 +57,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(50), nullable=False)
     role: Mapped[str] = mapped_column(String(20), default=UserRole.USER.value, nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    profile_photo: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     keyboard_shortcuts: Mapped[dict[str, list[str]] | None] = mapped_column(JSON, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -188,31 +189,16 @@ class KeyboardShortcuts(BaseModel):
 class UpdateProfileForm(BaseModel):
     keyboard_shortcuts: KeyboardShortcuts | None = None
     name: str | None = Field(default=None, min_length=2, max_length=50)
-    profile_image_url: str | None = Field(default=None, max_length=12_000_000)
+    profile_image_url: str | None = Field(
+        default=None,
+        deprecated=True,
+        description="Use PUT/DELETE /auth/me/photo; legacy PATCH photo writes are rejected.",
+    )
 
     @field_validator("profile_image_url")
     @classmethod
     def validate_profile_image_url(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-
-        normalized = value.strip()
-        if not normalized:
-            return None
-
-        allowed_data_url_prefixes = (
-            "data:image/png;base64,",
-            "data:image/jpeg;base64,",
-            "data:image/jpg;base64,",
-            "data:image/webp;base64,",
-            "data:image/gif;base64,",
-        )
-        if normalized.startswith(("http://", "https://")):
-            return normalized
-        if normalized.startswith(allowed_data_url_prefixes):
-            return normalized
-
-        raise ValueError("profile_image_url must be a valid image URL or image data URL.")
+        raise ValueError("Use PUT/DELETE /auth/me/photo to change the profile photo.")
 
     @model_validator(mode="after")
     def validate_fields(self):
@@ -619,7 +605,7 @@ class UserRepository:
         await self.set_operator_role(user.email, role, operator="internal")
         return await self.get_user_response_by_id(user_id)
 
-    async def delete_account(self, user_id: int, email: str, notification=None) -> None:
+    async def delete_account(self, user_id: int, email: str, notification=None) -> dict | None:
         """Delete credentials and owned keys atomically; serialize with role changes."""
         from app.models.billing import BillingCheckout
 
@@ -652,8 +638,10 @@ class UserRepository:
                 raise AuthException(code=AuthErrorCode.ACCOUNT_BILLING_REVIEW_REQUIRED)
             if notification is not None:
                 db.add(notification)
+            photo = user.profile_photo
             await db.delete(user)
             await db.commit()
+            return photo
 
     async def set_operator_role(
         self, email: str, role: UserRole, *, operator: str = "operator"

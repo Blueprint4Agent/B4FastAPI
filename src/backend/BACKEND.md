@@ -732,3 +732,9 @@ local I/O or shared S3 transport; the app lifespan owns its client. Follow the
 I/O, persistence and provider limitations. This foundation does not change profile
 photo storage or introduce a file API. Keep image policy and DB/cleanup orchestration
 in domain services, not storage providers.
+
+Profile photo integration uses migration 0015 and authenticated binary PUT/GET/DELETE
+`/auth/me/photo`. The domain validates/normalizes pixels, stores unique keys, uses DB
+compare-and-swap and compensating cleanup; no automatic local fallback exists. Legacy
+PATCH photo writes are rejected while existing photo display stays compatible. Follow
+[photo lifecycle and failure policy](../../notes/object-storage.md#profile-photo-integration).
