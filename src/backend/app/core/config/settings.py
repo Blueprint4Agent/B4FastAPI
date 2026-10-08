@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
 from typing import Literal
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, SecretStr
 
 load_dotenv()
 
@@ -38,6 +38,47 @@ class Settings(BaseModel):
         os.getenv("OTEL_EXPORTER_OTLP_TIMEOUT_SECONDS", "10")
     )
     OTEL_TRACE_SAMPLE_RATIO: float = float(os.getenv("OTEL_TRACE_SAMPLE_RATIO", "1.0"))
+
+    OBJECT_STORAGE_PROVIDER: Literal["local", "s3", "r2", "supabase"] = Field(
+        default=os.getenv("OBJECT_STORAGE_PROVIDER", "local"), validate_default=True
+    )
+    OBJECT_STORAGE_LOCAL_ROOT: Path = Path(
+        os.getenv("OBJECT_STORAGE_LOCAL_ROOT")
+        or str(Path(__file__).resolve().parents[3] / "data/object-storage")
+    )
+    OBJECT_STORAGE_MAX_BYTES: int = Field(
+        default=int(os.getenv("OBJECT_STORAGE_MAX_BYTES", "8388608")),
+        ge=1,
+        le=104857600,
+        validate_default=True,
+    )
+    OBJECT_STORAGE_TIMEOUT_SECONDS: int = Field(
+        default=int(os.getenv("OBJECT_STORAGE_TIMEOUT_SECONDS", "10")),
+        ge=1,
+        le=120,
+        validate_default=True,
+    )
+    OBJECT_STORAGE_S3_ENDPOINT_URL: str = os.getenv("OBJECT_STORAGE_S3_ENDPOINT_URL", "")
+    OBJECT_STORAGE_S3_BUCKET: str = os.getenv("OBJECT_STORAGE_S3_BUCKET", "")
+    OBJECT_STORAGE_S3_REGION: str = os.getenv("OBJECT_STORAGE_S3_REGION", "")
+    OBJECT_STORAGE_S3_ACCESS_KEY_ID: SecretStr = Field(
+        default=SecretStr(os.getenv("OBJECT_STORAGE_S3_ACCESS_KEY_ID", "")),
+        repr=False,
+        exclude=True,
+    )
+    OBJECT_STORAGE_S3_SECRET_ACCESS_KEY: SecretStr = Field(
+        default=SecretStr(os.getenv("OBJECT_STORAGE_S3_SECRET_ACCESS_KEY", "")),
+        repr=False,
+        exclude=True,
+    )
+    OBJECT_STORAGE_S3_SESSION_TOKEN: SecretStr = Field(
+        default=SecretStr(os.getenv("OBJECT_STORAGE_S3_SESSION_TOKEN", "")),
+        repr=False,
+        exclude=True,
+    )
+    OBJECT_STORAGE_S3_ADDRESSING_STYLE: Literal["auto", "path", "virtual"] = Field(
+        default=os.getenv("OBJECT_STORAGE_S3_ADDRESSING_STYLE", "auto"), validate_default=True
+    )
 
     STRIPE_ENABLED: bool = os.getenv("STRIPE_ENABLED", "false").lower() == "true"
     STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -148,6 +189,7 @@ class Settings(BaseModel):
         super().__init__(**kwargs)
 
         self.validate_runtime_mode()
+        self.validate_object_storage()
 
         # When login is globally disabled, auth entry integrations must also stay off.
         if not self.LOGIN_ENABLED:
@@ -176,6 +218,49 @@ class Settings(BaseModel):
         else:
             redis_url = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         object.__setattr__(self, "REDIS_URL", redis_url)
+
+    def validate_object_storage(self) -> None:
+        if self.OBJECT_STORAGE_PROVIDER == "local":
+            if not self.OBJECT_STORAGE_LOCAL_ROOT.is_absolute():
+                raise ValueError("OBJECT_STORAGE_LOCAL_ROOT must be an absolute path.")
+            return
+        if not self.OBJECT_STORAGE_S3_BUCKET.strip() or "/" in self.OBJECT_STORAGE_S3_BUCKET:
+            raise ValueError("OBJECT_STORAGE_S3_BUCKET must be a bucket name.")
+        endpoint = self.OBJECT_STORAGE_S3_ENDPOINT_URL
+        if endpoint:
+            parsed = urlsplit(endpoint)
+            if (
+                parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username
+                or parsed.password
+                or parsed.query
+                or parsed.fragment
+            ):
+                raise ValueError(
+                    "OBJECT_STORAGE_S3_ENDPOINT_URL must be an HTTP(S) endpoint without credentials/query/fragment."
+                )
+            if self.OBJECT_STORAGE_PROVIDER == "r2" and parsed.path not in {"", "/"}:
+                raise ValueError(
+                    "R2 endpoint must contain only the account host, without a bucket/path; "
+                    "set the bucket separately in OBJECT_STORAGE_S3_BUCKET."
+                )
+            if self.APP_MODE == "production" and parsed.scheme != "https":
+                raise ValueError("Production object storage requires HTTPS.")
+        if self.OBJECT_STORAGE_PROVIDER != "r2" and not self.OBJECT_STORAGE_S3_REGION.strip():
+            raise ValueError("OBJECT_STORAGE_S3_REGION is required for s3/supabase.")
+        has_key = bool(self.OBJECT_STORAGE_S3_ACCESS_KEY_ID.get_secret_value())
+        has_secret = bool(self.OBJECT_STORAGE_S3_SECRET_ACCESS_KEY.get_secret_value())
+        if has_key != has_secret:
+            raise ValueError("Object storage access key and secret key must be set together.")
+        if self.OBJECT_STORAGE_S3_SESSION_TOKEN.get_secret_value() and not has_key:
+            raise ValueError(
+                "Object storage session token requires explicit access and secret keys."
+            )
+        if self.OBJECT_STORAGE_PROVIDER in {"r2", "supabase"} and (not endpoint or not has_key):
+            raise ValueError(
+                "r2/supabase require OBJECT_STORAGE_S3_ENDPOINT_URL and S3 access/secret keys."
+            )
 
     def validate_runtime_mode(self) -> None:
         if self.APP_MODE == "production" and not self.LOGIN_ENABLED:

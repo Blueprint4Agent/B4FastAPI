@@ -3,7 +3,7 @@ import hmac
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy import or_, select
@@ -16,6 +16,7 @@ from app.core.error import (
     AuthErrorCode,
     AuthException,
 )
+from app.core.object_storage import ObjectStorage
 from app.models.api_key import APIKey
 from app.models.user import UserResponse, UserRole, Users
 
@@ -154,3 +155,8 @@ async def get_current_directory_user(
 ) -> UserResponse:
     """Read-only directory permission; does not grant other administrator privileges."""
     return current_user
+
+
+def get_object_storage(request: Request) -> ObjectStorage:
+    """Inject into domain services; never construct SDK clients in routers."""
+    return request.app.state.object_storage

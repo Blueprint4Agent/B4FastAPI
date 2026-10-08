@@ -26,3 +26,6 @@ Thumbs.db
 .vscode/
 
 .project-backups/
+
+# Private local object storage
+src/backend/data/object-storage/

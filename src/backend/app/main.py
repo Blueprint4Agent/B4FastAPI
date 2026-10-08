@@ -1,4 +1,5 @@
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
@@ -15,6 +16,7 @@ from app.core.db.migrations import run_startup_schema_migrations
 from app.core.db.session import dispose_db, init_db
 from app.core.error import ServiceException, service_exception_to_http
 from app.core.mail.service import MAIL_SERVICE
+from app.core.object_storage import object_storage_lifespan
 from app.core.observability.error_logging import exception_log_level
 from app.core.observability.health import HealthCheckResult, ReadinessResponse, get_readiness
 from app.core.observability.integration_health import INTEGRATION_HEALTH
@@ -85,7 +87,7 @@ class AppConfigResponse(BaseModel):
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def application_lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global BOOTSTRAP_USER
     await INTEGRATION_HEALTH.reset()
     STARTUP_CHECKS.clear()
@@ -132,6 +134,13 @@ async def lifespan(_app: FastAPI):
         await INTEGRATION_HEALTH.reset()
         await dispose_db()
         await RedisManager.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # The storage client is also closed if subsequent application startup fails.
+    async with object_storage_lifespan(app, SETTINGS), application_lifespan(app):
+        yield
 
 
 def create_app() -> FastAPI:
