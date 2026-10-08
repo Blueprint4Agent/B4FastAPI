@@ -547,6 +547,7 @@ Korean guide: [한국어](notes/ko/backend/CELERY.md).
 
 Stripe / Link billing: [English](notes/billing.md) · [한국어](notes/ko/billing.md).
 Issue #93 billing audit: [English](notes/billing-audit-93.md) · [한국어](notes/ko/billing-audit-93.md).
+Additional payment provider research: [English](notes/payment-provider-research.md) · [한국어](notes/ko/payment-provider-research.md).
 
 API authentication policy audit: [English](notes/api-authentication.md) · [한국어](notes/ko/api-authentication.md).
 
