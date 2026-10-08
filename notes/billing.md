@@ -72,11 +72,11 @@ and bind the existing customer ID, or establish that no customer was created bef
 recreating the reservation. Do not blindly rotate a reservation after an ambiguous failure.
 SDK requests use 5-second timeouts, one network retry, and a 20-second service provider budget.
 
-Stripe remains authoritative; reads do not create customers or write registration state.
-No webhook endpoint, local payment projection or entitlement enforcement is implemented. Default payment method and invoice summaries are read from Stripe; profile/card editing uses its restricted portal. Subscription Checkout and read-through status are described below. Add verified,
-replay-safe webhook processing before introducing any payment-driven local side effect.
-No worker/realtime loop is needed for this request/response-only foundation. A future UI
-must refetch on return and account/connectivity recovery and must not trust query parameters.
+Stripe remains authoritative. Card/Link, profile and invoice operations use Stripe directly;
+subscription GET reads a stored snapshot synchronized by signed webhooks, confirmed
+mutations/checkout returns and Beat reconciliation. Native profile/card editing and invoice
+history are implemented. Tier-specific application entitlement enforcement is not implemented.
+See Stored subscription state below and the [issue #93 audit](billing-audit-93.md).
 
 Local user deletion cascades local customer mappings but **does not delete Stripe customers
 or detach saved methods**. Operators own remote data retention/reconciliation; automated
@@ -239,9 +239,9 @@ finish the existing hosted session or wait until the original hour expires. Afte
 reserve a new attempt and recheck subscriptions before creating. Do not bypass reservations
 by creating additional sessions for the same customer outside this application.
 
-The backend reads Stripe subscription state directly on request; it does not implement
-local paid entitlements, webhook projections or background synchronization. Add signed,
-replay-safe event handling before payment-driven local side effects. Supported subscriptions can be changed/cancelled at period end through the authenticated management endpoint; unsupported/externally managed states require operator review. The UI prevents a second purchase.
+Subscription GET uses the stored snapshot described below. Mutations validate current
+Stripe state under the customer lock. Supported period-end changes preserve paid time;
+Plus-to-Pro upgrades require payment confirmation. Unknown/external states require review.
 
 Accounts with any Checkout reservation history cannot be deleted until operator review
 (`ACCOUNT_BILLING_REVIEW_REQUIRED`, 409). The user row is locked before checking history,
@@ -258,7 +258,7 @@ Free sets cancel_at_period_end; keep clears cancellation or releases this applic
 
 `GET /billing/profile` returns customer email/name/address, effective default payment-method ID and portal availability. `GET /billing/invoices` returns the four most recent invoices in minor currency units; View all opens Stripe. `POST /billing/portal-sessions` takes request UUID and overview/customer_update/payment_method_update flow. The server owns the customer and return URL. Set STRIPE_PORTAL_CONFIGURATION_ID to an active configuration with customer_update (email/name/address), payment_method_update and invoice_history enabled, but subscription_cancel/update disabled; runtime rejects configurations that bypass app plan policy. Leave it blank to disable portal actions. The local sandbox configuration is provisioned in ignored backend .env; production and Docker remain separately configured.
 
-All sixteen endpoints accept bearer/application API keys with no-store responses. Required Stripe permissions additionally include customer/invoice reads, subscription/schedule writes, and portal session creation/configuration reads. No card numbers are handled by this application. Scheduled execution belongs to Stripe; local paid entitlements still require a separate webhook design.
+Authenticated billing endpoints accept bearer/application API keys with no-store responses; the webhook instead requires a Stripe signature. Required Stripe permissions additionally include customer/invoice reads, subscription/schedule writes, and portal session creation/configuration reads. No card numbers are handled by this application. Scheduled execution belongs to Stripe; local paid entitlements still require a separate webhook design.
 
 When STRIPE_PORTAL_CONFIGURATION_ID is set, startup performs a read-only active/mode/feature-policy validation. Runtime repeats this check before creating each portal session.
 
@@ -271,7 +271,7 @@ Set optional `STRIPE_PUBLISHABLE_KEY` (`pk_test_…` or `pk_live_…`) for embed
 - `POST /billing/card-setups`: `{request_id}`; creates an off-session card-only SetupIntent for the authenticated customer and returns `{id,client_secret}` with no-store. The secret is for Stripe Elements only; never log or persist it.
 - `GET /billing/card-setups/{intent_id}`: `{registered}`; true requires succeeded SetupIntent, attached payment method and matching customer/user/mode. Return URLs alone never prove registration.
 
-Setup/default/detach writes require corresponding Stripe permissions. Raw card numbers and CVC go directly from Elements to Stripe. Link methods identify a wallet; their API object does not expose underlying card brand/last four/expiry. Only real card methods provide these fields. Invoice overview remains in the restricted portal. No webhook entitlement projection is added.
+Setup/default/detach writes require corresponding Stripe permissions. Raw card numbers and CVC go directly from Elements to Stripe. Link methods identify a wallet; their API object does not expose underlying card brand/last four/expiry. Only real card methods provide these fields. Invoice overview remains in the restricted portal. Subscription snapshots do not themselves enforce application entitlements.
 
 ## Tiers and billing intervals
 

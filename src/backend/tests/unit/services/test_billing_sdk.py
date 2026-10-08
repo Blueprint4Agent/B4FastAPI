@@ -52,6 +52,7 @@ def test_actual_sdk_setup_status_and_customer_method_protocol(monkeypatch):
                     "id": "seti_fixture",
                     "customer": "cus_fixture",
                     "status": "succeeded",
+                    "livemode": False,
                     "payment_method": "pm_fixture",
                 },
             }

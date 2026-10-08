@@ -545,7 +545,8 @@ Change-scoped verification: [English](notes/verification.md) · [한국어](note
 Standalone worker/Beat setup and migration audit: [English](src/backend/CELERY.md).
 Korean guide: [한국어](notes/ko/backend/CELERY.md).
 
-Stripe / Link registration foundation: [English](notes/billing.md) · [한국어](notes/ko/billing.md).
+Stripe / Link billing: [English](notes/billing.md) · [한국어](notes/ko/billing.md).
+Issue #93 billing audit: [English](notes/billing-audit-93.md) · [한국어](notes/ko/billing-audit-93.md).
 
 API authentication policy audit: [English](notes/api-authentication.md) · [한국어](notes/ko/api-authentication.md).
 

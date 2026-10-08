@@ -232,6 +232,7 @@ class BillingService:
                 and not isinstance(intent, str)
                 and intent.status == "succeeded"
                 and intent.customer == row.stripe_customer_id
+                and getattr(intent, "livemode", None) == row.livemode
                 and intent.payment_method
             )
             return BillingSetupStatusResponse(
@@ -401,7 +402,7 @@ class BillingService:
                 if len(subscriptions) > 1:
                     # Persist uncertainty rather than continuing to advertise an old tier.
                     snapshot = BillingSubscriptionResponse(
-                        plan="unknown", status="reconciliation_required"
+                        plan="unknown", status="reconciliation_required", has_subscription=True
                     )
                 else:
                     snapshot = (
@@ -498,6 +499,7 @@ class BillingService:
                 and subscription
                 and not isinstance(subscription, str)
                 and subscription.customer == row.stripe_customer_id
+                and getattr(subscription, "livemode", None) == row.livemode
                 and subscription.status == "active"
             )
             if session.status == "complete":
@@ -720,7 +722,7 @@ class BillingService:
                         options={"idempotency_key": prefix + ":upgrade"},
                     )
                     return self._save_subscription(
-                        row, await self._managed_response(client, updated)
+                        row, await self._managed_response(client, updated), updated.id
                     )
                 if subscription.cancel_at_period_end:
                     await client.v1.subscriptions.update_async(
