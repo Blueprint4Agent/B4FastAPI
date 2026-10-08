@@ -535,3 +535,5 @@ Stripe·Link 카드 등록 기본 구성: [한국어](billing.md) · [English](.
 API 인증 정책 점검: [한국어](api-authentication.md) · [English](../api-authentication.md).
 
 실행 모드와 역할: [한국어](runtime-modes-rbac.md) · [English](../runtime-modes-rbac.md).
+
+대화형 터미널에서는 B4A 시작·종료 상태 표를 표시하며 일반 로그로 자동 전환할 수 있습니다. [시작 및 종료 화면 설정](startup-display.md)을 참고하세요.

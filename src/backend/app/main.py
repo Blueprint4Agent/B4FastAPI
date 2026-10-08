@@ -1,6 +1,7 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 from typing import Literal
 
@@ -31,6 +32,15 @@ from app.core.observability.request_context import (
     set_request_context,
 )
 from app.core.observability.startup_checks import STARTUP_CHECKS, record_startup_check
+from app.core.observability.startup_display import (
+    ShutdownDisplay,
+    StartupDisplay,
+    configure_startup_console,
+    show_shutdown_farewell,
+    shutdown_step,
+    startup_phase,
+    startup_step,
+)
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
 from app.models.user import UserResponse, Users
@@ -91,56 +101,80 @@ async def application_lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global BOOTSTRAP_USER
     await INTEGRATION_HEALTH.reset()
     STARTUP_CHECKS.clear()
-    SETTINGS.validate_runtime_mode()
-    if not SETTINGS.OAUTH_ENABLED:
-        logger.info("OAuth integration is disabled.")
-    else:
-        logger.info(
-            "OAuth integration enabled (providers=%s).",
-            ",".join(SETTINGS.oauth_provider_list),
-        )
-
-    oauth_errors = SETTINGS.get_oauth_validation_errors()
-    if oauth_errors:
-        raise RuntimeError("Invalid OAuth configuration: " + " ".join(oauth_errors))
-    if SETTINGS.OAUTH_ENABLED:
-        logger.info("OAuth configuration validation succeeded.")
-
-    record_startup_check("oauth", "configured" if SETTINGS.OAUTH_ENABLED else "disabled")
-    await MAIL_SERVICE.initialize()
-    record_startup_check(
-        "email",
-        "disabled"
-        if not SETTINGS.EMAIL_ENABLED
-        else "ok"
-        if SETTINGS.SMTP_VALIDATE_ON_STARTUP
-        else "configured",
-    )
-    await BillingService().initialize()
-    record_startup_check("billing", "ok" if SETTINGS.STRIPE_ENABLED else "disabled")
-    await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
-    logger.info("Database schema migration check complete (target=head).")
-    await init_db()
-    logger.info("Database initialization complete.")
-    BOOTSTRAP_USER = None
-    if not SETTINGS.LOGIN_ENABLED:
-        from app.services.bootstrap import BootstrapService
-
-        BOOTSTRAP_USER = await BootstrapService().initialize()
-    logger.info("Application startup sequence complete.")
     try:
+        SETTINGS.validate_runtime_mode()
+        with startup_step("redis"):
+            await asyncio.wait_for(RedisManager.verify_startup(), timeout=5)
+        with startup_step("oauth", success="Configured"):
+            if not SETTINGS.OAUTH_ENABLED:
+                logger.info("OAuth integration is disabled.")
+            else:
+                logger.info(
+                    "OAuth integration enabled (providers=%s).",
+                    ",".join(SETTINGS.oauth_provider_list),
+                )
+
+            oauth_errors = SETTINGS.get_oauth_validation_errors()
+            if oauth_errors:
+                raise RuntimeError("Invalid OAuth configuration: " + " ".join(oauth_errors))
+            if SETTINGS.OAUTH_ENABLED:
+                logger.info("OAuth configuration validation succeeded.")
+
+            record_startup_check("oauth", "configured" if SETTINGS.OAUTH_ENABLED else "disabled")
+        with startup_step(
+            "email",
+            success="Verified" if SETTINGS.SMTP_VALIDATE_ON_STARTUP else "Configured",
+            detail="" if SETTINGS.SMTP_VALIDATE_ON_STARTUP else "Connection check skipped",
+        ):
+            await MAIL_SERVICE.initialize()
+        record_startup_check(
+            "email",
+            "disabled"
+            if not SETTINGS.EMAIL_ENABLED
+            else "ok"
+            if SETTINGS.SMTP_VALIDATE_ON_STARTUP
+            else "configured",
+        )
+        with startup_step("billing"):
+            await BillingService().initialize()
+        record_startup_check("billing", "ok" if SETTINGS.STRIPE_ENABLED else "disabled")
+        with startup_step("database", success="Ready"):
+            startup_phase("database", "Migrating…")
+            await run_startup_schema_migrations(SETTINGS.DATABASE_URL)
+            logger.info("Database schema migration check complete (target=head).")
+            startup_phase("database", "Initializing…")
+            await init_db()
+            logger.info("Database initialization complete.")
+            BOOTSTRAP_USER = None
+            if not SETTINGS.LOGIN_ENABLED:
+                from app.services.bootstrap import BootstrapService
+
+                BOOTSTRAP_USER = await BootstrapService().initialize()
+        logger.info("Application startup sequence complete.")
         yield
     finally:
         await INTEGRATION_HEALTH.reset()
-        await dispose_db()
-        await RedisManager.close()
+        try:
+            with shutdown_step("database"):
+                await dispose_db()
+        finally:
+            with shutdown_step("redis"):
+                await RedisManager.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # The storage client is also closed if subsequent application startup fails.
-    async with object_storage_lifespan(app, SETTINGS), application_lifespan(app):
-        yield
+    async with AsyncExitStack() as stack:
+        with StartupDisplay(SETTINGS).activate():
+            await stack.enter_async_context(object_storage_lifespan(app, SETTINGS))
+            await stack.enter_async_context(application_lifespan(app))
+        try:
+            yield
+        finally:
+            with ShutdownDisplay(SETTINGS, redis_open=RedisManager._client is not None).activate():
+                await stack.aclose()
+    show_shutdown_farewell(SETTINGS)
 
 
 def create_app() -> FastAPI:
@@ -155,6 +189,7 @@ def create_app() -> FastAPI:
     logging.getLogger("uvicorn.access").setLevel(log_level_value)
     logging.getLogger("uvicorn").setLevel(log_level_value)
     configure_request_context_logging()
+    configure_startup_console(SETTINGS)
     setup_log_export()
 
     app = FastAPI(

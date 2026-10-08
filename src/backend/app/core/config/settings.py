@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from typing import Literal
 from urllib.parse import quote, urlsplit
@@ -10,6 +11,16 @@ load_dotenv()
 
 
 class Settings(BaseModel):
+    def has_multiple_server_workers(self) -> bool:
+        """Recognize Uvicorn CLI/env worker counts before enabling terminal animation."""
+        values = [os.getenv("WEB_CONCURRENCY", "1"), os.getenv("UVICORN_WORKERS", "1")]
+        for index, arg in enumerate(sys.argv):
+            if arg == "--workers" and index + 1 < len(sys.argv):
+                values.append(sys.argv[index + 1])
+            elif arg.startswith("--workers="):
+                values.append(arg.partition("=")[2])
+        return any(value.isdigit() and int(value) > 1 for value in values)
+
     # Agent customization note:
     # Add project-wide toggles here first. Keep env names stable for scripts.
     ROOT_DIR: Path = Path(__file__).resolve().parents[2]
@@ -18,6 +29,9 @@ class Settings(BaseModel):
     APP_MODE: Literal["development", "production"] = os.getenv("APP_MODE", "development")
     APP_ENV: str = os.getenv("APP_ENV", "local")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
+    STARTUP_DISPLAY: Literal["auto", "plain", "off"] = Field(
+        default=os.getenv("STARTUP_DISPLAY", "auto"), validate_default=True
+    )
     APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5173")
     SWAGGER_ENABLED: bool = os.getenv("SWAGGER_ENABLED", "true").lower() == "true"

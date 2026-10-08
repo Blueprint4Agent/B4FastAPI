@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 import redis.asyncio as redis
 
 from app.core.config.settings import SETTINGS
@@ -19,9 +21,22 @@ class RedisManager:
                     encoding="utf-8",
                     decode_responses=True,
                 )
-            await client.ping()
+            try:
+                await client.ping()
+            except BaseException:
+                # A failed or cancelled startup probe must not leak an unpublished pool.
+                with suppress(Exception):
+                    await client.aclose()
+                raise
             cls._client = client
         return cls._client
+
+    @classmethod
+    async def verify_startup(cls) -> None:
+        if cls._client is None:
+            await cls.get_client()  # First creation already performs PING.
+        else:
+            await cls._client.ping()  # Existing clients need fresh evidence too.
 
     @classmethod
     async def close(cls) -> None:

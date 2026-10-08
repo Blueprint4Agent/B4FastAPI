@@ -18,6 +18,7 @@ from app.core.object_storage.base import (
 from app.core.object_storage.local import LocalObjectStorage
 from app.core.object_storage.s3 import S3ObjectStorage, create_s3_client
 from app.core.observability.logging import get_logger
+from app.core.observability.startup_display import shutdown_step, startup_step
 
 __all__ = [
     "ObjectMetadata",
@@ -57,8 +58,9 @@ async def object_storage_lifespan(app: FastAPI, settings: Settings) -> AsyncIter
     try:
         logger.info("Object storage startup check started (provider=%s).", provider)
         try:
-            storage = await create_object_storage(settings)
-            await storage.check_connection()
+            with startup_step("storage"):
+                storage = await create_object_storage(settings)
+                await storage.check_connection()
         except (StorageError, ValueError) as exc:
             code = exc.code.value if isinstance(exc, StorageError) else "invalid_configuration"
             logger.error(
@@ -71,7 +73,8 @@ async def object_storage_lifespan(app: FastAPI, settings: Settings) -> AsyncIter
     finally:
         if storage is not None:
             try:
-                await storage.close()
+                with shutdown_step("storage"):
+                    await storage.close()
             finally:
                 if getattr(app.state, "object_storage", None) is storage:
                     del app.state.object_storage

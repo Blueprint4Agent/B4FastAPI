@@ -180,6 +180,7 @@ def test_lifespan_waits_for_stripe_before_migrations(configured, transport, monk
     monkeypatch.setattr(main, "init_db", AsyncMock())
     monkeypatch.setattr(main, "dispose_db", AsyncMock())
     monkeypatch.setattr(main.RedisManager, "close", AsyncMock())
+    monkeypatch.setattr(main.RedisManager, "verify_startup", AsyncMock())
     if reject == "authentication":
         transport.return_value = (
             json.dumps(

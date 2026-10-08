@@ -62,7 +62,8 @@ async def init_db() -> None:
 
 
 async def dispose_db() -> None:
-    await get_engine().dispose()
+    if _ENGINE is not None:
+        await _ENGINE.dispose()
 
 
 @asynccontextmanager
