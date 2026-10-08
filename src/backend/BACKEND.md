@@ -722,3 +722,13 @@ Run `make db-current` from the repository root to inspect the configured databas
 Keyboard shortcuts are stored in the account profile via GET/PATCH /auth/me, using the existing auth snapshot and mutation path. Guests use defaults with editing disabled. Only successful writes replace active keys; failures keep the last confirmed bindings. Null resets both actions, omission preserves them. Legacy browser preferences are ignored and never automatically imported into an account. Reload/login and desktop auth recovery refresh settings; changes are not pushed to already-open clients. No new store, poller or background task is introduced.
 
 Migration 0014 adds nullable users.keyboard_shortcuts JSON. Validation bounds key lengths/action names and rejects conflicts across Mac/Windows modifier mappings. /config reads the current bootstrap profile so login-free reloads do not restore stale startup preferences. Run make db-migrate before rollout.
+
+## Object storage
+
+Use the provider-neutral `core/object_storage/` interface through `get_object_storage`
+DI for domain file operations. `OBJECT_STORAGE_PROVIDER=local|s3|r2|supabase` selects
+local I/O or shared S3 transport; the app lifespan owns its client. Follow the
+[storage guide](../../notes/object-storage.md) for settings, private access, bounded
+I/O, persistence and provider limitations. This foundation does not change profile
+photo storage or introduce a file API. Keep image policy and DB/cleanup orchestration
+in domain services, not storage providers.

@@ -19,6 +19,13 @@ from tests.fixtures.scenario_seed_data import (
 
 
 @pytest.fixture(autouse=True)
+def isolate_object_storage(monkeypatch, tmp_path):
+    """Tests never use a developer's local files or remote storage credentials."""
+    monkeypatch.setattr(SETTINGS, "OBJECT_STORAGE_PROVIDER", "local")
+    monkeypatch.setattr(SETTINGS, "OBJECT_STORAGE_LOCAL_ROOT", tmp_path / "objects")
+
+
+@pytest.fixture(autouse=True)
 def isolate_lifecycle_notification_publication(monkeypatch):
     """Lifecycle tests must not wake a developer's external worker/database."""
     monkeypatch.setattr(

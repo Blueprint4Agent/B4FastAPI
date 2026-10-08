@@ -11,6 +11,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD-postgres}
       DB_NAME: ${DB_NAME:-template}
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      OBJECT_STORAGE_LOCAL_ROOT: ${OBJECT_STORAGE_LOCAL_ROOT:-/var/lib/b4fastapi/objects}
+    volumes:
+      - object_storage_data:${OBJECT_STORAGE_LOCAL_ROOT:-/var/lib/b4fastapi/objects}
     ports:
       - "${APP_HOST_PORT:-8000}:8000"
     healthcheck:
@@ -28,6 +31,8 @@ services:
       dockerfile: docker/Dockerfile
     profiles: ["celery"]
     environment: *backend-environment
+    volumes:
+      - object_storage_data:${OBJECT_STORAGE_LOCAL_ROOT:-/var/lib/b4fastapi/objects}
     env_file:
       - ./.env
     command: ["./.venv/bin/celery", "-A", "app.core.celery.app:celery_app", "worker", "--loglevel=INFO", "--pool=prefork", "--concurrency=2"]
@@ -188,6 +193,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  object_storage_data:
   celery_beat_data:
   postgres_data:
   redis_data:

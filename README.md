@@ -550,3 +550,5 @@ Stripe / Link registration foundation: [English](notes/billing.md) · [한국어
 API authentication policy audit: [English](notes/api-authentication.md) · [한국어](notes/ko/api-authentication.md).
 
 Runtime modes and roles: [English](notes/runtime-modes-rbac.md) · [한국어](notes/ko/runtime-modes-rbac.md).
+
+Object storage providers (`local`, `s3`, `r2`, `supabase`): [English](notes/object-storage.md) · [한국어](notes/ko/object-storage.md).

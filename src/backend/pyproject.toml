@@ -29,6 +29,7 @@ dependencies = [
     "celery[redis]>=5.6,<6",
     "stripe[async]>=15,<16",
     "cryptography>=46.0.5",
+    "boto3>=1.40,<2",
 ]
 
 [dependency-groups]
