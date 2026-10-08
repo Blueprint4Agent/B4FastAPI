@@ -35,6 +35,9 @@ def test_status_role_contract(monkeypatch, role, expected):
     app = FastAPI()
     register_exception_handlers(app)
     app.include_router(router, prefix="/api/v1/admin")
+    from unittest.mock import AsyncMock
+
+    app.state.object_storage = AsyncMock()
     app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=1, role=UserRole(role))
 
     async def healthy():
@@ -183,3 +186,62 @@ def test_database_address_excludes_credentials_and_options(monkeypatch):
     assert result.connections[2].port == 6380
     assert "private-" not in result.model_dump_json()
     assert "sslmode" not in result.model_dump_json()
+
+
+@pytest.mark.parametrize(
+    "provider,endpoint,transport,port",
+    [
+        ("local", "", "filesystem", None),
+        ("s3", "", "https", 443),
+        (
+            "r2",
+            "https://private-account.example:8443/private-bucket?secret=private-token",
+            "https",
+            8443,
+        ),
+        ("supabase", "https://private-project.example/storage/v1/s3", "https", 443),
+        ("s3", "http://private-host:9000", "http", 9000),
+    ],
+)
+def test_storage_metadata_allowlist_and_cached_probe(
+    monkeypatch, provider, endpoint, transport, port
+):
+    """Only safe connection metadata leaves the admin service; repeated reads share a probe."""
+    from unittest.mock import AsyncMock
+
+    monkeypatch.setattr(SETTINGS, "OBJECT_STORAGE_PROVIDER", provider)
+    monkeypatch.setattr(SETTINGS, "OBJECT_STORAGE_S3_ENDPOINT_URL", endpoint)
+    monkeypatch.setattr(SETTINGS, "OBJECT_STORAGE_S3_BUCKET", "private-bucket")
+    monkeypatch.setattr(SETTINGS, "OBJECT_STORAGE_S3_ACCESS_KEY_ID", "private-access-key")
+    storage = AsyncMock()
+
+    async def run():
+        first = await AdminService().status(storage)
+        second = await AdminService().status(storage)
+        return first, second
+
+    first, second = asyncio.run(run())
+    item = first.connections[-1]
+    assert item.id == "object_storage"
+    assert item.technology == provider
+    assert item.transport == transport
+    assert item.port == port
+    assert item.host is None
+    assert item.status == "ok"
+    assert item.latency_ms is not None
+    assert item.checked_at == second.connections[-1].checked_at
+    assert "private-" not in first.model_dump_json()
+    storage.check_connection.assert_awaited_once()
+
+
+def test_storage_failure_is_sanitized_and_degrades_status(monkeypatch):
+    """An unavailable storage provider leaves all other dependency rows observable."""
+    from unittest.mock import AsyncMock
+
+    storage = AsyncMock()
+    storage.check_connection.side_effect = RuntimeError("private-token-and-endpoint")
+    result = asyncio.run(AdminService().status(storage))
+    assert result.status == "degraded"
+    assert result.connections[-1].status == "failed"
+    assert len(result.connections) == 4
+    assert "private-token" not in result.model_dump_json()

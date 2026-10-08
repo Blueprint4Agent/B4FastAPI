@@ -6,6 +6,7 @@ from app.core.config import SETTINGS
 from app.core.db.session import get_engine
 from app.core.error.admin_exception import AdminErrorCode, AdminException
 from app.core.mail.service import MAIL_SERVICE
+from app.core.object_storage import ObjectStorage
 from app.core.observability.health import check_dependencies
 from app.core.observability.integration_health import INTEGRATION_HEALTH
 from app.core.observability.service import observe_service
@@ -21,11 +22,17 @@ from app.services.billing import BillingService
 
 class AdminService:
     @observe_service("admin.status")
-    async def status(self) -> AdminStatusResponse:
+    async def status(self, storage: ObjectStorage | None = None) -> AdminStatusResponse:
         try:
             billing_service = BillingService()
             billing = billing_service.config()
-            checks, email_check, billing_check = await asyncio.gather(
+
+            async def storage_probe() -> None:
+                if storage is None:
+                    raise RuntimeError("Storage is not initialized")
+                await storage.check_connection()
+
+            checks, email_check, billing_check, storage_check = await asyncio.gather(
                 check_dependencies(),
                 INTEGRATION_HEALTH.check(
                     "email", SETTINGS.EMAIL_ENABLED, MAIL_SERVICE.check_connection
@@ -33,7 +40,24 @@ class AdminService:
                 INTEGRATION_HEALTH.check(
                     "billing", billing.enabled, billing_service.check_connection
                 ),
+                INTEGRATION_HEALTH.check("object_storage", True, storage_probe),
             )
+            transport, storage_port = "filesystem", None
+            if SETTINGS.OBJECT_STORAGE_PROVIDER != "local":
+                transport = "https"
+                storage_port = 443
+                endpoint = SETTINGS.OBJECT_STORAGE_S3_ENDPOINT_URL
+                if endpoint:
+                    try:
+                        parsed = urlsplit(endpoint)
+                        transport = parsed.scheme if parsed.scheme in {"https", "http"} else None
+                        storage_port = (
+                            (parsed.port or (443 if transport == "https" else 80))
+                            if transport
+                            else None
+                        )
+                    except ValueError:
+                        transport, storage_port = None, None
             engine = get_engine()
             dialect = engine.dialect.name
             database = (
@@ -51,7 +75,8 @@ class AdminService:
                 status="ok"
                 if all(check.status == "ok" for check in checks.values())
                 and all(
-                    check.status in {"ok", "disabled"} for check in (email_check, billing_check)
+                    check.status in {"ok", "disabled"}
+                    for check in (email_check, billing_check, storage_check)
                 )
                 else "degraded",
                 checked_at=datetime.now(UTC),
@@ -76,6 +101,18 @@ class AdminService:
                         host=cache_host,
                         port=cache_port,
                         **checks["redis"].model_dump(),
+                    ),
+                    AdminConnection(
+                        id="object_storage",
+                        technology=SETTINGS.OBJECT_STORAGE_PROVIDER,
+                        status=storage_check.status,
+                        latency_ms=storage_check.latency_ms,
+                        checked_at=storage_check.checked_at,
+                        transport=transport,
+                        port=storage_port,
+                        probe="local_io"
+                        if SETTINGS.OBJECT_STORAGE_PROVIDER == "local"
+                        else "bucket_access",
                     ),
                 ],
                 environment_values=AdminEnvironmentValues(

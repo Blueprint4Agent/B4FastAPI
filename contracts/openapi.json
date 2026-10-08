@@ -248,6 +248,18 @@
       },
       "AdminConnection": {
         "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
           "host": {
             "anyOf": [
               {
@@ -263,7 +275,8 @@
             "enum": [
               "server",
               "database",
-              "cache"
+              "cache",
+              "object_storage"
             ],
             "title": "Id",
             "type": "string"
@@ -290,6 +303,21 @@
             ],
             "title": "Port"
           },
+          "probe": {
+            "anyOf": [
+              {
+                "enum": [
+                  "local_io",
+                  "bucket_access"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probe"
+          },
           "status": {
             "enum": [
               "ok",
@@ -308,10 +336,30 @@
               "mariadb",
               "database",
               "redis",
-              "memory"
+              "memory",
+              "local",
+              "s3",
+              "r2",
+              "supabase"
             ],
             "title": "Technology",
             "type": "string"
+          },
+          "transport": {
+            "anyOf": [
+              {
+                "enum": [
+                  "filesystem",
+                  "https",
+                  "http"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transport"
           }
         },
         "required": [
@@ -1993,6 +2041,17 @@
             "format": "date-time",
             "title": "Checked At",
             "type": "string"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
           },
           "status": {
             "enum": [
