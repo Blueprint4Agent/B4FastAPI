@@ -787,3 +787,9 @@ handler stream and NO_COLOR; preserve caller-owned file formatters and raw recor
 Console HTTP methods have distinct terminal colors, timestamps are gray and API
 paths bright blue. Pad visible fields before applying ANSI styles so terminal and
 plain outputs align identically. NO_COLOR and redirected streams remain uncolored.
+
+Severity labels and message bodies use separate 256-color palettes from HTTP
+methods and status/structural fields. INFO is violet with a lavender message;
+WARNING orange, ERROR rose, DEBUG sand and CRITICAL white on burgundy. Each label
+is bold; other bodies use softer related tints. Keep named foreground RGB values
+unique and preserve original records, plain output and tracebacks when styling copies.
