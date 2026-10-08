@@ -27,6 +27,17 @@ def _price(obj: dict) -> str:
     return _mapping(_mapping(items[0]).get("price")).get("id", "")
 
 
+def _invoice_price(obj: dict) -> str:
+    lines = _mapping(obj.get("lines"))
+    items = lines.get("data", [])
+    if lines.get("has_more") or not isinstance(items, list) or len(items) != 1:
+        return ""
+    line = _mapping(items[0])
+    return _mapping(line.get("price")).get("id", "") or _mapping(
+        _mapping(line.get("pricing")).get("price_details")
+    ).get("price", "")
+
+
 class BillingNotificationService:
     async def receive(self, payload: bytes, signature: str) -> None:
         if not SETTINGS.STRIPE_ENABLED or not SETTINGS.STRIPE_WEBHOOK_SECRET:
@@ -73,13 +84,14 @@ class BillingNotificationService:
         if not SETTINGS.EMAIL_ENABLED:
             return
         kind, plan, key = None, None, None
+        previous_key = None
         if (
             event_type == "invoice.paid"
             and obj.get("billing_reason") == "subscription_create"
             and obj.get("status") == "paid"
         ):
-            sub_id = obj.get("subscription") or obj.get("parent", {}).get(
-                "subscription_details", {}
+            sub_id = obj.get("subscription") or _mapping(
+                _mapping(obj.get("parent")).get("subscription_details")
             ).get("subscription")
             if not isinstance(sub_id, str):
                 return
@@ -89,6 +101,8 @@ class BillingNotificationService:
                 sub.customer != customer
                 or sub.status != "active"
                 or sub.livemode != event["livemode"]
+                or not _invoice_price(obj)
+                or _invoice_price(obj) != _price(sub.to_dict())
             ):
                 return
             plan = _plan(_price(sub.to_dict()))
@@ -96,7 +110,7 @@ class BillingNotificationService:
         elif (
             event_type == "customer.subscription.updated"
             and isinstance(obj.get("id"), str)
-            and isinstance(event.get("created"), int)
+            and isinstance(event.get("id"), str)
         ):
             previous = _mapping(data.get("previous_attributes"))
             old_price, new_price = _price(previous), _price(obj)
@@ -115,13 +129,18 @@ class BillingNotificationService:
                 or sub.status != "active"
                 or sub.livemode != event["livemode"]
                 or _price(sub.to_dict()) != new_price
+                or getattr(sub, "pending_update", None)
             ):
                 return  # A delayed/out-of-order event must not describe an obsolete plan.
             plan = _plan(new_price)
             kind, key = (
                 "plan_changed",
-                f"plan-changed:{obj['id']}:{event['created']}:{old_price}:{new_price}",
+                f"plan-changed:{obj['id']}:{event['id']}",
             )
+            if isinstance(event.get("created"), int):
+                previous_key = (
+                    f"plan-changed:{obj['id']}:{event['created']}:{old_price}:{new_price}"
+                )
         elif (
             event_type == "customer.subscription.deleted"
             and _mapping(obj.get("cancellation_details")).get("reason") == "cancellation_requested"
@@ -134,7 +153,26 @@ class BillingNotificationService:
             kind, plan, key = "plan_changed", "Free", f"subscription-ended:{obj['id']}"
         if kind is None or plan is None:
             return
-        language = _mapping(obj.get("metadata")).get("b4a_language", "en")
+        # Provider customer locales survive invoice metadata differences and delayed events.
+        async with BillingService()._provider() as client:
+            recipient = await client.v1.customers.retrieve_async(customer)
+        if recipient.id != customer or recipient.livemode != event["livemode"]:
+            raise BillingException(BillingErrorCode.BILLING_WEBHOOK_INVALID)
+        locales = getattr(recipient, "preferred_locales", []) or []
+        language = next(
+            (
+                locale.split("-")[0].lower()
+                for locale in locales
+                if isinstance(locale, str) and locale.split("-")[0].lower() in ("ko", "en")
+            ),
+            "en",
+        )
         await queue_notification(
-            key, kind, email=user.email, name=user.name, plan=plan, language=language
+            key,
+            kind,
+            previous_key=previous_key,
+            email=user.email,
+            name=user.name,
+            plan=plan,
+            language=language,
         )

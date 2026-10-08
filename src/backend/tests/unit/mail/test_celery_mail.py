@@ -231,3 +231,19 @@ def test_worker_delivers_deletion_code_without_turning_it_into_a_link(delivery, 
         raise_on_failure=True,
     )
     archive.assert_not_called()
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_lifecycle_wake_uses_existing_queue_without_recipient_payload(monkeypatch, enabled):
+    """Scenario: the existing mail queue wakes lifecycle delivery without sending private broker data."""
+    # Given: an isolated queue service and captured publication.
+    publish = AsyncMock()
+    monkeypatch.setattr("app.core.mail.queue.publish_task", publish)
+    service = MailQueueService(Settings(EMAIL_ENABLED=enabled))
+    # When: a committed outbox asks for a worker wake-up.
+    asyncio.run(service.wake_lifecycle())
+    # Then: disabled mode is silent; enabled mode sends only the task name and empty payload.
+    if enabled:
+        publish.assert_awaited_once_with("b4fastapi.notifications.drain", payload={})
+    else:
+        publish.assert_not_called()

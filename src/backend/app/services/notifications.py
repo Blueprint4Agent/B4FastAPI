@@ -8,11 +8,11 @@ from typing import Literal
 
 from cryptography.fernet import Fernet
 
-from app.core.celery.publisher import publish_task
 from app.core.config.settings import SETTINGS
+from app.core.mail.queue import MAIL_QUEUE_SERVICE
 from app.core.mail.service import MAIL_SERVICE
 from app.core.observability.logging import get_logger
-from app.models.notification import Notification, Notifications
+from app.models.notification import MAX_DELIVERY_ATTEMPTS, Notification, Notifications
 
 logger = get_logger("app.service.notifications")
 NotificationKind = Literal["subscription_started", "plan_changed", "account_deleted"]
@@ -30,11 +30,10 @@ def notification_row(
     key: str, kind: NotificationKind, *, email: str, name: str, language: str = "en", plan: str = ""
 ) -> Notification:
     now = datetime.now(UTC)
-    payload = (
-        cipher()
-        .encrypt(json.dumps(dict(email=email, name=name, language=language, plan=plan)).encode())
-        .decode()
-    )
+    recipient = dict(email=email, language=language)
+    if kind != "account_deleted":
+        recipient.update(name=name, plan=plan)
+    payload = cipher().encrypt(json.dumps(recipient).encode()).decode()
     return Notification(
         id=hashlib.sha256(key.encode()).hexdigest(),
         kind=kind,
@@ -48,14 +47,20 @@ def notification_row(
 
 async def wake_notifications() -> None:
     try:
-        await publish_task("b4fastapi.notifications.drain", payload={})
+        await MAIL_QUEUE_SERVICE.wake_lifecycle()
     except Exception:
         # Beat will recover; do not undo the committed domain result.
         logger.warning("Notification wake-up unavailable; durable outbox retained.")
 
 
-async def queue_notification(key: str, kind: NotificationKind, **payload: str) -> None:
+async def queue_notification(
+    key: str, kind: NotificationKind, *, previous_key: str | None = None, **payload: str
+) -> None:
     if not SETTINGS.EMAIL_ENABLED:
+        return
+    if previous_key and await Notifications.exists(
+        hashlib.sha256(previous_key.encode()).hexdigest()
+    ):
         return
     await Notifications.add(notification_row(key, kind, **payload))
     await wake_notifications()
@@ -73,10 +78,14 @@ async def deliver_notifications() -> None:
             continue
         try:
             payload = json.loads(cipher().decrypt(row.payload.encode()))
+            payload.setdefault("name", "")
+            payload.setdefault("plan", "")
             await MAIL_SERVICE.send_lifecycle_email(kind=row.kind, **payload)
         except Exception:
             await Notifications.finish(
-                row, state="pending" if row.attempts < 5 else "failed", error="delivery_failed"
+                row,
+                state="pending" if row.attempts < MAX_DELIVERY_ATTEMPTS else "failed",
+                error="delivery_failed",
             )
             logger.warning(
                 "Lifecycle mail delivery failed (id=%s, attempt=%s).", row.id, row.attempts

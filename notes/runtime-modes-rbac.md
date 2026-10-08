@@ -133,3 +133,8 @@ hidden according to public config. OAuth callbacks check the current feature/pro
 configuration before consuming state or exchanging a code. Password login/signup continue
 working with email and OAuth disabled; new email accounts are already verified in that mode.
 Feature settings are process configuration, so changing environment values requires restart.
+
+
+## Mail recovery access
+
+No application role (user, manager or admin) grants cross-account lifecycle-mail HTTP access. The metadata-only inspection/retry CLI requires trusted deployment-operator shell/DB access, like the role CLI. See [mail operations](lifecycle-mail.md).

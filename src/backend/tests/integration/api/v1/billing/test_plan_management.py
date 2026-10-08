@@ -89,6 +89,9 @@ def managed(provider, monkeypatch):
     monkeypatch.setattr(SETTINGS, "STRIPE_PORTAL_CONFIGURATION_ID", "bpc_fixture")
     provider.v1.customers.retrieve_async = AsyncMock(
         return_value=stripe_object(
+            id="cus_fixture",
+            livemode=False,
+            preferred_locales=["ko-KR"],
             email="billing@example.com",
             name="Billing User",
             address={"city": "Seoul", "country": "KR"},
@@ -605,6 +608,7 @@ def test_billing_mail_deduplicates_and_ignores_obsolete_plan_event(
                 "customer": "cus_fixture",
                 "status": "paid",
                 "billing_reason": "subscription_create",
+                "lines": {"data": [{"pricing": {"price_details": {"price": "price_monthly_krw"}}}]},
                 "parent": {"subscription_details": {"subscription": "sub_fixture"}},
             }
         },
@@ -641,3 +645,152 @@ def test_billing_mail_deduplicates_and_ignores_obsolete_plan_event(
         integration_client.get("/api/v1/billing/subscription", headers=headers).json()["plan"]
         == "annual"
     )
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_late_initial_invoice_does_not_announce_a_later_plan(
+    integration_client, managed, monkeypatch, legacy
+):
+    """Scenario: a delayed initial invoice cannot label a later subscription plan as newly purchased."""
+    from sqlalchemy import select
+
+    from app.core.db.session import get_db
+    from app.models.notification import Notification
+
+    # Given: the customer has already changed from monthly to annual.
+    _provider, state = managed
+    ready(integration_client)
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
+    state["subscription"]["items"].data[0].price.id = "price_annual_krw"
+    line = (
+        {"price": {"id": "price_monthly_krw"}}
+        if legacy
+        else {"pricing": {"price_details": {"price": "price_monthly_krw"}}}
+    )
+    # When: the initial monthly paid invoice arrives late.
+    result = signed_event(
+        integration_client,
+        {
+            "id": "evt_late_initial",
+            "type": "invoice.paid",
+            "livemode": False,
+            "data": {
+                "object": {
+                    "customer": "cus_fixture",
+                    "status": "paid",
+                    "billing_reason": "subscription_create",
+                    "subscription": "sub_fixture",
+                    "lines": {"data": [line]},
+                }
+            },
+        },
+    )
+    assert result.status_code == 200
+
+    # Then: no inaccurate start email is reserved (the Stripe receipt remains authoritative).
+    async def inspect():
+        async with get_db() as db:
+            assert await db.scalar(select(Notification)) is None
+
+    asyncio.run(inspect())
+
+
+@pytest.mark.parametrize(
+    "locales, expected", [(["ko-KR"], "ko"), (["fr", "en-US"], "en"), ([], "en")]
+)
+def test_same_second_plan_events_keep_distinct_identity_and_customer_locale(
+    integration_client, managed, monkeypatch, locales, expected
+):
+    """Scenario: real changes in one second are distinct, redelivery is deduplicated, and locale is durable."""
+    import json
+
+    from sqlalchemy import select
+
+    from app.core.db.session import get_db
+    from app.models.notification import Notification
+    from app.services.notifications import cipher
+
+    # Given: provider preference survives independently of subscription/invoice metadata.
+    provider, state = managed
+    ready(integration_client)
+    provider.v1.customers.retrieve_async.return_value.preferred_locales = locales
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
+    # When: three real price changes share an event timestamp, each delivered twice.
+    old = "price_monthly_krw"
+    for number, price in enumerate(["price_annual_krw", "price_monthly_krw", "price_annual_krw"]):
+        state["subscription"]["items"].data[0].price.id = price
+        event = {
+            "id": f"evt_change_{number}",
+            "created": 1900000000,
+            "type": "customer.subscription.updated",
+            "livemode": False,
+            "data": {
+                "object": state["subscription"].to_dict(),
+                "previous_attributes": {"items": {"data": [{"price": {"id": old}}]}},
+            },
+        }
+        for _ in range(2):
+            assert signed_event(integration_client, event).status_code == 200
+        old = price
+
+    # Then: three legitimate notices survive and repeated events add none.
+    async def inspect():
+        async with get_db() as db:
+            rows = list((await db.scalars(select(Notification))).all())
+            assert len(rows) == 3
+            assert all(
+                json.loads(cipher().decrypt(row.payload.encode()))["language"] == expected
+                for row in rows
+            )
+
+    asyncio.run(inspect())
+
+
+@pytest.mark.parametrize("replacement", [False, True])
+def test_cancellation_notice_requires_no_replacement_subscription(
+    integration_client, managed, monkeypatch, replacement
+):
+    """Scenario: requested cancellation sends Free only if no newer subscription is active."""
+    import json
+
+    from sqlalchemy import select
+
+    from app.core.db.session import get_db
+    from app.models.notification import Notification
+    from app.services.notifications import cipher
+
+    # Given: a signed cancellation completion and an optional replacement subscription.
+    provider, _state = managed
+    ready(integration_client)
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
+    if not replacement:
+        provider.v1.subscriptions.list_async.return_value = stripe_object(data=[], has_more=False)
+    event = {
+        "id": "evt_deleted",
+        "type": "customer.subscription.deleted",
+        "livemode": False,
+        "data": {
+            "object": {
+                "id": "sub_old",
+                "customer": "cus_fixture",
+                "status": "canceled",
+                "cancellation_details": {"reason": "cancellation_requested"},
+            }
+        },
+    }
+    # When: cancellation completion is redelivered.
+    for _ in range(2):
+        assert signed_event(integration_client, event).status_code == 200
+
+    # Then: no replacement can be described as Free; otherwise one completion is queued.
+    async def inspect():
+        async with get_db() as db:
+            rows = list((await db.scalars(select(Notification))).all())
+            assert len(rows) == (0 if replacement else 1)
+            if rows:
+                assert json.loads(cipher().decrypt(rows[0].payload.encode()))["plan"] == "Free"
+
+    asyncio.run(inspect())

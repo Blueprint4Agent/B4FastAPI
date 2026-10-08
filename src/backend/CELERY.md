@@ -157,3 +157,5 @@ References: [Celery Redis delivery caveats](https://docs.celeryq.dev/en/stable/g
 Subscription-start, plan-change and account-deleted mail use migration 0011 encrypted outbox. Deletion notice commits with deletion. One Celery Beat scans every minute; existing auth/welcome mail policy remains unchanged. See [billing setup](../../notes/billing.md) for webhook activation, retention, key rotation and duplicate-delivery limitations.
 
 Billing reconciliation (b4fastapi.billing.reconcile) runs every 300 seconds, reads at most 50 stale customer snapshots and refreshes them from Stripe. Apply migrations 0012–0013 first. One Beat plus workers is required; no frontend polling is used.
+
+Lifecycle scans bound abandoned leases as well as SMTP failures to five attempts. See [lifecycle mail operations](../../notes/lifecycle-mail.md) for metadata-only CLI recovery and 72-hour recipient erasure.

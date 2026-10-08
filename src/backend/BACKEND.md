@@ -795,3 +795,5 @@ is bold; other bodies use softer related tints. Keep named foreground RGB values
 unique and preserve original records, plain output and tracebacks when styling copies.
 
 Billing ownership, replay/recovery and mail boundaries are recorded in the [issue #93 audit](../../notes/billing-audit-93.md).
+
+Lifecycle mail uses the existing MailQueueService wake-up and encrypted outbox. See [delivery and operator recovery](../../notes/lifecycle-mail.md); no cross-account mail HTTP role is granted.
