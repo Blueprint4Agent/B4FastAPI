@@ -248,3 +248,62 @@ def test_debug_mode_keeps_source_and_request_ids(monkeypatch):
     assert "[services.example] Checked" in rendered
     assert "request_id=debug-request trace_id=debug-trace" in rendered
     assert record.msg == "Checked"
+
+
+def test_request_field_colors_preserve_visible_alignment_and_original_records():
+    """Scenario: HTTP verbs, time and API path use distinct colors without shifting columns."""
+    from rich.text import Text
+
+    from app.core.observability.logging import CompactAccessFormatter
+
+    # Given: explicitly enabled terminal colors and a plain formatter for comparison.
+    format_string = "%(asctime)s  %(method)s %(path)s %(status_code)s"
+    colored = CompactAccessFormatter(fmt=format_string, datefmt="%H:%M:%S", use_colors=True)
+    plain = CompactAccessFormatter(fmt=format_string, datefmt="%H:%M:%S", use_colors=False)
+    methods = {
+        "GET": 32,
+        "POST": 36,
+        "PUT": 33,
+        "PATCH": 35,
+        "DELETE": 31,
+        "HEAD": 34,
+        "OPTIONS": 90,
+    }
+    status_columns = set()
+    # When: each HTTP verb is rendered using identical request fields.
+    for method, ansi_color in methods.items():
+        args = ("127.0.0.1:12345", method, "/api/v1/example?q=test", "1.1", 200)
+        record = logging.LogRecord(
+            "uvicorn.access", logging.INFO, "", 0, "%s %s %s %s %s", args, None
+        )
+        rendered = colored.format(record)
+        visible = Text.from_ansi(rendered).plain
+        # Then: the requested palette is distinct while visible text and original args stay intact.
+        assert f"\x1b[{ansi_color}m{method}" in rendered
+        assert "\x1b[94m/api/v1/example?q=test" in rendered
+        assert rendered.startswith("\x1b[90m")
+        assert visible == plain.format(record)
+        assert record.args == args
+        status_columns.add(visible.index("200 OK"))
+    assert len(status_columns) == 1
+
+
+def test_console_color_detection_respects_no_color_and_redirected_streams(monkeypatch):
+    """Scenario: NO_COLOR and nonterminal output never acquire ANSI escape sequences."""
+    import io
+
+    from app.core.observability.logging import _console_uses_colors
+
+    # Given: redirected output and an emulated color-capable terminal.
+    class Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+    monkeypatch.delenv("FORCE_COLOR", raising=False)
+    monkeypatch.delenv("NO_COLOR", raising=False)
+    monkeypatch.setenv("TERM", "xterm-256color")
+    # When/Then: only a terminal without NO_COLOR supports colored fields.
+    assert not _console_uses_colors(logging.StreamHandler(io.StringIO()))
+    assert _console_uses_colors(logging.StreamHandler(Terminal()))
+    monkeypatch.setenv("NO_COLOR", "1")
+    assert not _console_uses_colors(logging.StreamHandler(Terminal()))

@@ -85,3 +85,9 @@ INFO, WARNING, DEBUG, ERROR and CRITICAL. DEBUG/error messages show a compact
 request/trace/task correlation policy and full exception tracebacks are preserved.
 Color follows the actual handler stream and NO_COLOR. Caller file formatters and
 original exported records are not replaced by the console presentation.
+
+Terminal request colors: GET green, POST cyan, PUT yellow, PATCH magenta, DELETE
+red, HEAD blue and OPTIONS gray. Timestamps are gray and API paths bright blue;
+status retains its HTTP-class color. Padding is applied before coloring so colored
+and uncolored output have identical visible column alignment. Docker/file output
+stays free of ANSI codes unless an explicit terminal/color environment enables them.

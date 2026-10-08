@@ -2,6 +2,7 @@ import logging
 from copy import copy
 
 from rich.console import Console
+from rich.style import Style
 from uvicorn.logging import AccessFormatter, DefaultFormatter
 
 from app.core.config.settings import SETTINGS
@@ -12,6 +13,17 @@ APP_LOGGER_NAME = "uvicorn.app"
 UVICORN_ERROR_LOGGER_NAME = "uvicorn.error"
 LOG_FORMAT_CONSOLE = "%(asctime)s  %(level_label)s %(source)s%(message)s%(request_context)s"
 LOG_DATE_FORMAT = "%H:%M:%S"
+_TIME_STYLE = Style(color="bright_black")
+_PATH_STYLE = Style(color="bright_blue")
+_METHOD_STYLES = {
+    "GET": Style(color="green"),
+    "POST": Style(color="cyan"),
+    "PUT": Style(color="yellow"),
+    "PATCH": Style(color="magenta"),
+    "DELETE": Style(color="red"),
+    "HEAD": Style(color="blue"),
+    "OPTIONS": Style(color="bright_black"),
+}
 _ORIGINAL_LOG_RECORD_FACTORY = logging.getLogRecordFactory()
 _REQUEST_CONTEXT_RECORD_FACTORY_CONFIGURED = False
 _REQUEST_CONTEXT_LOG_ENABLED = SETTINGS.LOG_LEVEL.upper() == "DEBUG"
@@ -116,8 +128,14 @@ class CompactAccessFormatter(AccessFormatter):
             return record.getMessage()
         _, method, full_path, _, status_code = args
         record_copy = copy(record)
-        record_copy.method = method
-        record_copy.path = full_path
+        method_text = str(method).ljust(8)
+        path_text = str(full_path).ljust(52)
+        record_copy.method = method_text
+        record_copy.path = path_text
+        if self.use_colors:
+            record_copy.asctime = _TIME_STYLE.render(record.asctime)
+            record_copy.method = _METHOD_STYLES.get(str(method), Style()).render(method_text)
+            record_copy.path = _PATH_STYLE.render(path_text)
         record_copy.status_code = self.get_status_code(int(status_code))
         return logging.Formatter.formatMessage(self, record_copy)
 
@@ -125,6 +143,8 @@ class CompactAccessFormatter(AccessFormatter):
 class CompactLogFormatter(DefaultFormatter):
     def formatMessage(self, record: logging.LogRecord) -> str:
         record_copy = copy(record)
+        if self.use_colors:
+            record_copy.asctime = _TIME_STYLE.render(record.asctime)
         level = record.levelname.ljust(8)
         record_copy.level_label = (
             self.color_level_name(level, record.levelno) if self.use_colors else level
@@ -167,7 +187,7 @@ def configure_request_context_logging() -> None:
         ):
             handler.setFormatter(
                 CompactAccessFormatter(
-                    fmt="%(asctime)s  %(method)-8s %(path)-52s %(status_code)s",
+                    fmt="%(asctime)s  %(method)s %(path)s %(status_code)s",
                     datefmt=LOG_DATE_FORMAT,
                     use_colors=_console_uses_colors(handler),
                 )
