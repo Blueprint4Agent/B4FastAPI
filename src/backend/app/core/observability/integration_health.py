@@ -14,6 +14,7 @@ RESPONSE_TIMEOUT_SECONDS = 5.0
 
 class IntegrationCheck(BaseModel):
     status: Literal["ok", "failed", "timeout", "disabled"]
+    latency_ms: float | None = None
     checked_at: datetime
 
 
@@ -41,6 +42,7 @@ class IntegrationHealth:
             return IntegrationCheck(status="timeout", checked_at=datetime.now(UTC))
 
     async def _run(self, name: str, probe: Callable[[], Awaitable[None]]) -> IntegrationCheck:
+        started = monotonic()
         try:
             await probe()
             status = "ok"
@@ -48,7 +50,11 @@ class IntegrationHealth:
             status = "timeout"
         except Exception:
             status = "failed"
-        result = IntegrationCheck(status=status, checked_at=datetime.now(UTC))
+        result = IntegrationCheck(
+            status=status,
+            checked_at=datetime.now(UTC),
+            latency_ms=round((monotonic() - started) * 1000, 1),
+        )
         self._cache[name] = (monotonic(), result)
         return result
 

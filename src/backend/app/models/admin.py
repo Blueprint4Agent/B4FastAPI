@@ -8,14 +8,28 @@ from app.core.observability.startup_checks import StartupCheck
 
 
 class AdminConnection(BaseModel):
-    id: Literal["server", "database", "cache"]
+    id: Literal["server", "database", "cache", "object_storage"]
     technology: Literal[
-        "fastapi", "sqlite", "postgresql", "mysql", "mariadb", "database", "redis", "memory"
+        "fastapi",
+        "sqlite",
+        "postgresql",
+        "mysql",
+        "mariadb",
+        "database",
+        "redis",
+        "memory",
+        "local",
+        "s3",
+        "r2",
+        "supabase",
     ]
     status: Literal["ok", "failed", "timeout"]
     latency_ms: float | None = None
     host: str | None = None
     port: int | None = None
+    transport: Literal["filesystem", "https", "http"] | None = None
+    probe: Literal["local_io", "bucket_access"] | None = None
+    checked_at: datetime | None = None
 
 
 class AdminEnvironmentValues(BaseModel):

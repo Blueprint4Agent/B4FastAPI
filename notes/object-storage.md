@@ -218,3 +218,7 @@ Rate limits and aggregate request quotas belong at the deployment ingress when n
 Startup still fails closed on the configured storage check as requested; an outage
 there prevents a restart until storage recovers. A future optional-service degraded
 startup policy should be an explicit availability decision.
+
+## Administrator status
+
+The admin-only `/admin/status` adds an object_storage connection row with provider, transport, port, status, latency and cached check timestamp. Local checks use temporary write/read/delete; remote checks use HeadBucket, which does not verify upload permission or bucket privacy. Checks reuse the existing 60-second per-process single-flight cache and bounded response wait. Raw errors, credentials, account/project identifiers, endpoint hosts/URLs, bucket names, regions and local paths are excluded. The UI shows provider icons, transport/port and existing status/latency columns; per-row probe details/timestamps are intentionally omitted. No public readiness change or background worker is introduced.
