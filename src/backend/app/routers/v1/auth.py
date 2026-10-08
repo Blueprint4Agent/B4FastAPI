@@ -33,6 +33,7 @@ from app.models.user import (
 )
 from app.routers.list_query import DEFAULT_PAGE_SIZE, PageQuery, PageSizeQuery, SearchQuery
 from app.services.auth import AuthService
+from app.services.profile_photo import ProfilePhotoService
 from app.utils.cookies import clear_refresh_cookies, set_refresh_cookies
 from app.utils.token import create_refresh_session_id
 
@@ -338,6 +339,67 @@ async def update_me(
     service: AuthService = Depends(AuthService),
 ) -> UserResponse:
     return await service.update_profile(user_id=current_user.id, form=form)
+
+
+PHOTO_ERRORS = current_user_error_responses(
+    auth_error_responses(
+        AuthErrorCode.PROFILE_PHOTO_INVALID,
+        AuthErrorCode.PROFILE_PHOTO_TOO_LARGE,
+        AuthErrorCode.PROFILE_PHOTO_UNAVAILABLE,
+        AuthErrorCode.PROFILE_PHOTO_NOT_FOUND,
+        AuthErrorCode.PROFILE_PHOTO_CONFLICT,
+        AuthErrorCode.PROFILE_UPDATE_FAILED,
+    )
+)
+
+
+@router.put(
+    "/me/photo",
+    response_model=UserResponse,
+    responses=PHOTO_ERRORS,
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}
+            },
+        }
+    },
+)
+async def upload_profile_photo(
+    request: Request,
+    current_user: UserResponse = Depends(get_current_user),
+    service: ProfilePhotoService = Depends(),
+) -> UserResponse:
+    return await service.upload(current_user.id, request.stream())
+
+
+@router.get(
+    "/me/photo",
+    response_class=Response,
+    responses={
+        **PHOTO_ERRORS,
+        200: {"content": {"image/webp": {"schema": {"type": "string", "format": "binary"}}}},
+    },
+)
+async def read_profile_photo(
+    version: str | None = Query(default=None, max_length=32),
+    current_user: UserResponse = Depends(get_current_user),
+    service: ProfilePhotoService = Depends(),
+) -> Response:
+    data = await service.read(current_user.id, version)
+    return Response(
+        data,
+        media_type="image/webp",
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
+    )
+
+
+@router.delete("/me/photo", response_model=UserResponse, responses=PHOTO_ERRORS)
+async def delete_profile_photo(
+    current_user: UserResponse = Depends(get_current_user), service: ProfilePhotoService = Depends()
+) -> UserResponse:
+    return await service.delete(current_user.id)
 
 
 @router.post(

@@ -692,3 +692,8 @@ DI를 사용합니다. `OBJECT_STORAGE_PROVIDER=local|s3|r2|supabase`로 선택�
 앱 lifespan에서 생성/종료합니다. [설정·저장·접근 정책](../object-storage.md)을 따릅니다.
 프로필 사진 API/저장 방식은 아직 변경하지 않습니다. 이미지 정책과 DB/정리 처리는
 도메인 서비스에 두고 제공자에 결합하지 않습니다.
+
+프로필 사진은 migration 0015와 인증된 PUT/GET/DELETE /auth/me/photo를 사용합니다.
+도메인에서 이미지 검증·변환, 고유 키 저장, DB 버전 비교, 보상 삭제를 처리합니다.
+기존 PATCH 사진 쓰기는 거부하며 기존 저장 사진의 표시는 유지합니다.
+로컬 자동 fallback은 없으며 [수명주기·실패 정책](../object-storage.md)을 따릅니다.

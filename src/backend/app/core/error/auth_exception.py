@@ -101,6 +101,27 @@ class AuthErrorCode(Enum):
         "User not found.",
         status.HTTP_404_NOT_FOUND,
     )
+    PROFILE_PHOTO_INVALID = ServiceErrorCode(
+        "PROFILE_PHOTO_INVALID", "Invalid profile image.", status.HTTP_422_UNPROCESSABLE_CONTENT
+    )
+    PROFILE_PHOTO_TOO_LARGE = ServiceErrorCode(
+        "PROFILE_PHOTO_TOO_LARGE",
+        "Profile image exceeds the upload limit.",
+        status.HTTP_413_CONTENT_TOO_LARGE,
+    )
+    PROFILE_PHOTO_UNAVAILABLE = ServiceErrorCode(
+        "PROFILE_PHOTO_UNAVAILABLE",
+        "Profile image storage is unavailable.",
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+    PROFILE_PHOTO_NOT_FOUND = ServiceErrorCode(
+        "PROFILE_PHOTO_NOT_FOUND", "Profile image not found.", status.HTTP_404_NOT_FOUND
+    )
+    PROFILE_PHOTO_CONFLICT = ServiceErrorCode(
+        "PROFILE_PHOTO_CONFLICT",
+        "Profile image changed; refresh and try again.",
+        status.HTTP_409_CONFLICT,
+    )
     PROFILE_UPDATE_FAILED = ServiceErrorCode(
         "PROFILE_UPDATE_FAILED",
         "Failed to update profile.",

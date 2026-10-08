@@ -73,3 +73,37 @@ def test_manager_migration_preserves_users_and_downgrades_safely(tmp_path, monke
     command.upgrade(config, "head")
     with sqlite3.connect(path) as db:
         assert db.execute("SELECT COUNT(*) FROM role_change_audit").fetchone()[0] == 0
+
+
+@pytest.mark.primary_data
+def test_photo_migration_preserves_legacy_and_clears_managed_urls_on_downgrade(
+    tmp_path, monkeypatch
+):
+    """Scenario: photo schema rollout preserves legacy URLs and safely rolls back references."""
+    # Given: a database on the pre-photo revision with an existing external image.
+    path = tmp_path / "photo-migration.db"
+    url = f"sqlite+aiosqlite:///{path}"
+    monkeypatch.setattr(SETTINGS, "DATABASE_URL", url)
+    config = _build_alembic_config(url)
+    command.upgrade(config, "0014_keyboard_shortcuts")
+    with sqlite3.connect(path) as db:
+        db.execute(
+            "INSERT INTO users (id,email,name,is_active,is_verified,role,created_at,updated_at,profile_image_url) VALUES (10,'photo@example.com','Photo',1,1,'user',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'https://example.com/legacy.png')"
+        )
+    # When: upgrade preserves the old photo and a managed URL is subsequently saved.
+    command.upgrade(config, "head")
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT profile_photo,profile_image_url FROM users").fetchone() == (
+            None,
+            "https://example.com/legacy.png",
+        )
+        db.execute(
+            "UPDATE users SET profile_image_url='/api/v1/auth/me/photo?version=123', profile_photo='{}'"
+        )
+    command.downgrade(config, "0014_keyboard_shortcuts")
+    # Then: stale managed URLs are cleared and re-upgrade restores the nullable column.
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT profile_image_url FROM users").fetchone() == (None,)
+    command.upgrade(config, "head")
+    with sqlite3.connect(path) as db:
+        assert db.execute("SELECT profile_photo FROM users").fetchone() == (None,)

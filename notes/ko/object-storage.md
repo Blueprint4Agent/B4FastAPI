@@ -111,3 +111,44 @@ S3 호환은 ACL·버전 관리 등 모든 AWS 기능의 동일 지원을 뜻하
 [R2 호환성](https://developers.cloudflare.com/r2/api/s3/api/),
 [Supabase 호환성](https://supabase.com/docs/guides/storage/s3/compatibility),
 [Supabase 인증](https://supabase.com/docs/guides/storage/s3/authentication)을 참고합니다.
+
+## 프로필 사진 연동과 방어 정책
+
+`0015_profile_photo` 마이그레이션은 users.profile_photo에 객체 키와 저장 위치 지문을
+기록합니다. 새 사진의 profile_image_url은 버전이 있는 비공개 API 경로입니다. 기존
+Base64/OAuth 사진은 자동 이전하지 않고 계속 표시합니다. 배포 전 `make db-migrate`를
+실행합니다. downgrade는 관리형 API URL을 비우고 참조 컬럼을 제거하며 파일은 남깁니다.
+
+- PUT /api/v1/auth/me/photo: 인증된 바이너리 업로드. 스트림을 최대 8 MiB로 제한하고
+  실제 PNG/JPEG/WebP/GIF 형식과 1,600만 화소 제한을 확인합니다. 방향을 보정하고 최대
+  512px WebP 정지 이미지로 변환하며 메타데이터를 제거합니다.
+- GET /api/v1/auth/me/photo?version=...: 현재 사용자 사진만 인증 후 반환합니다.
+  private/no-store·nosniff를 적용하고 버킷 주소/비밀키를 노출하지 않습니다.
+- DELETE /api/v1/auth/me/photo: DB 참조를 비운 뒤 기존 파일을 정리합니다. 반복 삭제는
+  성공합니다. 기존 PATCH의 사진 쓰기(null 포함)는 422로 거부하며 이름/단축키 수정은 유지합니다.
+
+프런트는 auth hook으로 파일 바이트를 전송하고 성공한 서버 상태만 반영합니다. 계정/사진 버전별
+Blob URL 하나를 설정·사이드바에서 공유하고 교체/로그아웃 시 해제합니다. 늦게 도착한 이전
+계정의 이미지 응답은 무시합니다. 읽기 장애는 기본 아바타로 처리하며 로그아웃시키지 않습니다.
+기존 동의 기반 최근 계정 썸네일의 저장·만료 정책은 유지합니다.
+
+**원격 장애 시 로컬 자동 저장은 넣지 않습니다.** 로컬 대체 저장은 백업과 달리 서버별 파일 분산,
+복구 후 동기화, 삭제 일관성까지 필요합니다. 현재 프로필 사진 용도로는 복잡도가 과합니다.
+[AWS의 fallback 검토](https://builder.aws.com/content/3EuS9Sakq7L3VLQIF3qzfMfke1Y/avoiding-fallback-in-distributed-systems),
+[OWASP 업로드 지침](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)을 참고했습니다.
+
+새 랜덤 키 저장 → DB 버전 비교 후 참조 교체 → 이전 파일 삭제 순서입니다. 저장 실패 시 기존
+사진을 유지하고 동시 변경은 409로 거부한 뒤 실패한 업로드만 지웁니다. DB 오류 시 현재 참조를
+다시 확인해 이미 커밋된 사진을 보상 삭제하지 않습니다. 응답만 유실된 경우 실제 저장은 끝났을
+수 있으므로 새로고침으로 확인합니다. 파일 정리 실패는 키와 안전한 오류 코드만 기록하고 성공한
+DB 변경을 되돌리지 않습니다. 탈퇴 트랜잭션이 마지막 사진 참조를 반환해 정리합니다.
+
+저장 위치 변경은 지문으로 감지하며 다른 버킷/로컬 경로에서 같은 키를 읽거나 지우지 않습니다.
+자동 이관은 없으므로 운영자가 이전 파일을 옮기거나 사진을 교체해야 합니다. 정리는 best effort이며
+작업 큐/outbox 보장은 없습니다. 강제 종료·취소·장기 장애의 고아 파일은 로그와 DB 참조를 대조해
+정리해야 합니다. 전체 profile-photos 접두사에 만료를 걸면 사용 중 사진도 삭제되므로 피합니다.
+고아 파일량/삭제 SLA가 커질 때 durable 정리 큐를 추가하고, 별도 백업·보존은 제공자별 운영 정책으로
+설정합니다. SDK 제한 재시도는 유지하며 503 업로드를 프런트에서 무한 재시도하지 않습니다.
+트래픽 규모에 따른 사용자 요청 제한은 ingress에서 설정할 수 있습니다. 시작 검증 실패 시 서버를
+중단하는 기존 정책은 유지하므로 저장소 장애 중 재시작은 실패합니다. 가용성 요구가 커지면
+일시 장애만 허용하는 degraded startup 정책을 별도로 결정해야 합니다.

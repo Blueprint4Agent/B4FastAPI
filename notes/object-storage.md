@@ -161,3 +161,60 @@ SigV4 and optional checksum behavior only when required for portability. Referen
 [R2 compatibility](https://developers.cloudflare.com/r2/api/s3/api/),
 [Supabase compatibility](https://supabase.com/docs/guides/storage/s3/compatibility),
 [Supabase S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication).
+
+## Profile photo integration
+
+Migration `0015_profile_photo` adds nullable `users.profile_photo` with a unique object
+key and a nonsecret location fingerprint. `profile_image_url` becomes a versioned
+private API reference for new photos; existing data/OAuth URLs are not rewritten.
+Apply `make db-migrate` before rollout. Downgrade clears managed API URLs before
+removing the reference column (files remain for operator recovery).
+
+- `PUT /api/v1/auth/me/photo`: authenticated raw binary body, streamed with an 8 MiB
+  bound before image decode. Actual PNG/JPEG/WebP/GIF pixels are verified, limited to
+  16 million pixels, EXIF orientation applied, resized within 512px, metadata removed,
+  and stored as static WebP. Filename and claimed MIME type are not trusted.
+- `GET /api/v1/auth/me/photo?version=...`: current owner's photo only, bearer/API-key
+  authenticated, binary WebP with private/no-store and nosniff. No bucket credentials
+  or public/signed URL is sent to the browser. Old revision requests return 404.
+- `DELETE /api/v1/auth/me/photo`: clear reference then best-effort delete. Repeated
+  deletion succeeds. Legacy PATCH photo writes (including null) now return 422; use
+  the dedicated endpoints. Name/shortcut PATCH and legacy photo display still work.
+
+The frontend uploads bytes through the auth API hook, updates only confirmed account
+state, and uses a single account/version-scoped Blob URL for settings/sidebar display.
+Logout/replacement revokes it; aborted/late reads cannot replace a different account's
+image. Read failure displays initials without signing the user out; account recovery
+can retry the read. No permanent storage URL is kept in browser storage; existing
+opt-in recent-account thumbnails retain their existing consent/expiry policy.
+
+### Failure policy and alternatives
+
+Use one authoritative storage provider. An automatic local fallback is not a backup:
+it creates a second source of truth, host affinity, replay/sync, capacity and deletion
+problems. It is intentionally absent; see [AWS on fallback complexity](https://builder.aws.com/content/3EuS9Sakq7L3VLQIF3qzfMfke1Y/avoiding-fallback-in-distributed-systems).
+[OWASP upload guidance](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html)
+supports bounded input, content validation and private storage.
+
+Upload a fresh random key first, compare-and-swap the DB revision, then delete the
+previous key. Storage failure preserves the old DB reference. Losing a concurrent
+update returns 409 and cleans only the losing upload. DB errors check the current
+reference before compensating: an ambiguous successful commit must not delete the
+new current image. A lost acknowledgment can return an error after success; reload
+reconciles server truth. Cleanup errors log the immutable key and safe error code,
+without undoing a committed update. Account deletion returns the final reference
+from its transaction so cleanup does not act on a stale pre-deletion snapshot.
+
+Storage switching is detected by the fingerprint; old keys are neither read nor
+deleted from the wrong location. Operators must migrate old files or replace photos.
+Cleanup is best effort, not a durable outbox: process termination/cancellation or a
+prolonged storage/DB outage can leave orphan files. Review cleanup logs and reconcile
+unreferenced `profile-photos/` keys against DB references before deleting anything;
+never expire the entire prefix. A future durable cleanup queue is justified by
+measured orphan volume or deletion SLA, not enabled here. External backup/retention
+is separate and provider-specific; configure it independently of request fallback.
+Existing bounded SDK retries remain; clients do not repeatedly retry uploads on 503.
+Rate limits and aggregate request quotas belong at the deployment ingress when needed.
+Startup still fails closed on the configured storage check as requested; an outage
+there prevents a restart until storage recovers. A future optional-service degraded
+startup policy should be an explicit availability decision.
