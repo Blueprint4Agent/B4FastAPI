@@ -17,6 +17,11 @@ MAIL_TASK_NAME = "b4fastapi.mail.send"
 class MailQueueService:
     settings: Settings
 
+    async def wake_lifecycle(self) -> None:
+        """Wake the durable outbox without placing recipient data in the broker."""
+        if self.settings.EMAIL_ENABLED:
+            await publish_task("b4fastapi.notifications.drain", payload={})
+
     async def enqueue_signup_verification(
         self, *, to_email: str, user_name: str, link: str, language: str
     ) -> None:

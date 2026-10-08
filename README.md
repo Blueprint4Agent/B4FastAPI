@@ -555,3 +555,5 @@ Runtime modes and roles: [English](notes/runtime-modes-rbac.md) · [한국어](n
 Object storage providers (`local`, `s3`, `r2`, `supabase`): [English](notes/object-storage.md) · [한국어](notes/ko/object-storage.md).
 
 Startup and shutdown use a B4A service/status panel in interactive terminals, with plain-log fallback. See [lifecycle display settings](notes/startup-display.md).
+
+Lifecycle email operations: [English](notes/lifecycle-mail.md) · [한국어](notes/ko/lifecycle-mail.md).

@@ -74,3 +74,40 @@ def test_deletion_email_explains_consequences_without_action_links(language):
     assert "href=" not in content.html
     assert "B4A" in content.html
     assert "Blueprint4FastAPI" not in content.html
+
+
+@pytest.mark.parametrize("language", ["en", "ko"])
+@pytest.mark.parametrize("kind", ["subscription_started", "plan_changed", "account_deleted"])
+def test_lifecycle_templates_are_localized_escaped_and_linked(language, kind):
+    """Scenario: lifecycle completion mail has localized copy, safe HTML and working text/HTML links."""
+    from app.core.mail.templates import build_lifecycle_email
+
+    # Given: untrusted display data and a server-owned destination.
+    link = (
+        "https://example.com/home"
+        if kind == "account_deleted"
+        else "https://example.com/settings?section=billing"
+    )
+    content = build_lifecycle_email(
+        kind=kind,
+        name="<script>User</script>",
+        plan="Plus & Pro",
+        link=link,
+        app_name="B4A",
+        language=language,
+    )
+    # When: the message is parsed as HTML.
+    parsed = Links()
+    parsed.feed(content.html)
+    # Then: both action/fallback links and plaintext preserve the destination.
+    assert parsed.hrefs == [link, link] and not parsed.scripts
+    assert "&lt;script&gt;" in content.html
+    assert link in content.text and f'lang="{language}"' in content.html
+    assert ("했습니다" in content.subject) == (language == "ko")
+    if kind == "account_deleted":
+        assert "123456" not in content.text
+        assert (
+            "deletion is complete" in content.text
+            if language == "en"
+            else "삭제가 완료" in content.text
+        )

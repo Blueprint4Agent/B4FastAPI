@@ -9,6 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db.session import Base, get_db
 
+MAX_DELIVERY_ATTEMPTS = 5
+
 
 class Notification(Base):
     __tablename__ = "mail_notifications"
@@ -25,6 +27,13 @@ class Notification(Base):
 
 
 class Notifications:
+    @staticmethod
+    async def exists(key: str) -> bool:
+        async with get_db() as db:
+            return (
+                await db.scalar(select(Notification.id).where(Notification.id == key)) is not None
+            )
+
     @staticmethod
     async def add(row: Notification) -> None:
         key = row.id
@@ -45,10 +54,24 @@ class Notifications:
             await db.execute(
                 update(Notification)
                 .where(Notification.expires_at <= now, Notification.payload.is_not(None))
-                .values(payload=None, state="expired", lease=None)
+                .values(payload=None, state="expired", lease=None, leased_until=None)
+            )
+            # A process can die before finish(); abandoned claims still consume the budget.
+            await db.execute(
+                update(Notification)
+                .where(
+                    Notification.payload.is_not(None),
+                    Notification.attempts >= MAX_DELIVERY_ATTEMPTS,
+                    or_(
+                        Notification.state == "pending",
+                        (Notification.state == "sending") & (Notification.leased_until < now),
+                    ),
+                )
+                .values(state="failed", error="delivery_unconfirmed", lease=None, leased_until=None)
             )
             eligible = (
                 Notification.payload.is_not(None),
+                Notification.attempts < MAX_DELIVERY_ATTEMPTS,
                 Notification.available_at <= now,
                 or_(
                     Notification.state == "pending",
@@ -77,6 +100,52 @@ class Notifications:
             )
             await db.commit()
             return await db.get(Notification, key) if result.rowcount else None
+
+    @staticmethod
+    async def failures(limit: int = 50) -> list[dict]:
+        """Operator metadata only: never load or expose encrypted recipient data."""
+        if not 1 <= limit <= 100:
+            raise ValueError("Limit must be between 1 and 100.")
+        async with get_db() as db:
+            rows = await db.execute(
+                select(
+                    Notification.id,
+                    Notification.kind,
+                    Notification.state,
+                    Notification.attempts,
+                    Notification.error,
+                    Notification.expires_at,
+                )
+                .where(Notification.state.in_(("failed", "expired")))
+                .order_by(Notification.expires_at.desc(), Notification.id)
+                .limit(limit)
+            )
+            return [dict(row._mapping) for row in rows]
+
+    @staticmethod
+    async def retry(key: str) -> bool:
+        """Explicit operator recovery; never extend retention or revive sent/expired jobs."""
+        now = datetime.now(UTC)
+        async with get_db() as db:
+            result = await db.execute(
+                update(Notification)
+                .where(
+                    Notification.id == key,
+                    Notification.state == "failed",
+                    Notification.payload.is_not(None),
+                    Notification.expires_at > now,
+                )
+                .values(
+                    state="pending",
+                    attempts=0,
+                    available_at=now,
+                    lease=None,
+                    leased_until=None,
+                    error=None,
+                )
+            )
+            await db.commit()
+            return bool(result.rowcount)
 
     @staticmethod
     async def finish(row: Notification, *, state: str, error: str | None = None) -> None:

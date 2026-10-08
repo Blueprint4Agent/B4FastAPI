@@ -28,9 +28,7 @@ def isolate_object_storage(monkeypatch, tmp_path):
 @pytest.fixture(autouse=True)
 def isolate_lifecycle_notification_publication(monkeypatch):
     """Lifecycle tests must not wake a developer's external worker/database."""
-    monkeypatch.setattr(
-        "app.services.notifications.publish_task", AsyncMock(return_value="test-notification-task")
-    )
+    monkeypatch.setattr("app.core.mail.queue.MAIL_QUEUE_SERVICE.wake_lifecycle", AsyncMock())
 
 
 @pytest.fixture(autouse=True)

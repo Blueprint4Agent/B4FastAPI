@@ -23,7 +23,7 @@ def test_outbox_deduplicates_encrypts_and_erases_after_delivery(integration_clie
     monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
     publish = AsyncMock(side_effect=RuntimeError("offline"))
     send = AsyncMock()
-    monkeypatch.setattr(notifications, "publish_task", publish)
+    monkeypatch.setattr(notifications.MAIL_QUEUE_SERVICE, "wake_lifecycle", publish)
     monkeypatch.setattr(notifications.MAIL_SERVICE, "send_lifecycle_email", send)
 
     async def scenario():
@@ -72,7 +72,7 @@ def test_claim_excludes_other_workers_and_expired_payloads(integration_client):
 def test_disabled_mail_has_no_publication(monkeypatch):
     monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", False)
     publish = AsyncMock()
-    monkeypatch.setattr(notifications, "publish_task", publish)
+    monkeypatch.setattr(notifications.MAIL_QUEUE_SERVICE, "wake_lifecycle", publish)
     asyncio.run(
         notifications.queue_notification(
             "disabled", "account_deleted", email="a@example.com", name="A"
