@@ -280,8 +280,8 @@ def test_request_field_colors_preserve_visible_alignment_and_original_records():
         visible = Text.from_ansi(rendered).plain
         # Then: the requested palette is distinct while visible text and original args stay intact.
         assert f"\x1b[{ansi_color}m{method}" in rendered
-        assert "\x1b[94m/api/v1/example?q=test" in rendered
-        assert rendered.startswith("\x1b[90m")
+        assert "\x1b[38;5;75m/api/v1/example?q=test" in rendered
+        assert rendered.startswith("\x1b[38;5;245m")
         assert visible == plain.format(record)
         assert record.args == args
         status_columns.add(visible.index("200 OK"))

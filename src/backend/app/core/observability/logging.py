@@ -1,5 +1,6 @@
 import logging
 from copy import copy
+from http import HTTPStatus
 
 from rich.console import Console
 from rich.style import Style
@@ -13,8 +14,8 @@ APP_LOGGER_NAME = "uvicorn.app"
 UVICORN_ERROR_LOGGER_NAME = "uvicorn.error"
 LOG_FORMAT_CONSOLE = "%(asctime)s  %(level_label)s %(source)s%(message)s%(request_context)s"
 LOG_DATE_FORMAT = "%H:%M:%S"
-_TIME_STYLE = Style(color="bright_black")
-_PATH_STYLE = Style(color="bright_blue")
+_TIME_STYLE = Style(color="color(245)")
+_PATH_STYLE = Style(color="color(75)")
 _METHOD_STYLES = {
     "GET": Style(color="green"),
     "POST": Style(color="cyan"),
@@ -23,6 +24,30 @@ _METHOD_STYLES = {
     "DELETE": Style(color="red"),
     "HEAD": Style(color="blue"),
     "OPTIONS": Style(color="bright_black"),
+}
+# Separate severity, message and HTTP-status palettes from HTTP method colors.
+_LEVEL_STYLES = {
+    5: Style(color="color(110)", bold=True),  # Uvicorn TRACE
+    logging.DEBUG: Style(color="color(180)", bold=True),
+    logging.INFO: Style(color="color(141)", bold=True),
+    logging.WARNING: Style(color="color(214)", bold=True),
+    logging.ERROR: Style(color="color(205)", bold=True),
+    logging.CRITICAL: Style(color="color(231)", bgcolor="color(52)", bold=True),
+}
+_MESSAGE_STYLES = {
+    5: Style(color="color(152)"),
+    logging.DEBUG: Style(color="color(187)"),
+    logging.INFO: Style(color="color(183)"),
+    logging.WARNING: Style(color="color(223)"),
+    logging.ERROR: Style(color="color(217)"),
+    logging.CRITICAL: Style(color="color(210)", bold=True),
+}
+_STATUS_STYLES = {
+    1: Style(color="color(250)"),
+    2: Style(color="color(84)"),
+    3: Style(color="color(222)"),
+    4: Style(color="color(209)"),
+    5: Style(color="color(196)", bold=True),
 }
 _ORIGINAL_LOG_RECORD_FACTORY = logging.getLogRecordFactory()
 _REQUEST_CONTEXT_RECORD_FACTORY_CONFIGURED = False
@@ -122,6 +147,16 @@ class SuccessfulPreflightConsoleFilter(logging.Filter):
 class CompactAccessFormatter(AccessFormatter):
     """Leave the original client/protocol/message intact for non-console handlers."""
 
+    def get_status_code(self, status_code: int) -> str:
+        try:
+            phrase = HTTPStatus(status_code).phrase
+        except ValueError:
+            phrase = ""
+        status_text = f"{status_code} {phrase}"
+        if self.use_colors:
+            return _STATUS_STYLES.get(status_code // 100, Style()).render(status_text)
+        return status_text
+
     def formatMessage(self, record: logging.LogRecord) -> str:
         args = record.args
         if not isinstance(args, tuple) or len(args) != 5:
@@ -147,8 +182,14 @@ class CompactLogFormatter(DefaultFormatter):
             record_copy.asctime = _TIME_STYLE.render(record.asctime)
         level = record.levelname.ljust(8)
         record_copy.level_label = (
-            self.color_level_name(level, record.levelno) if self.use_colors else level
+            _LEVEL_STYLES.get(record.levelno, Style(bold=True)).render(level)
+            if self.use_colors
+            else level
         )
+        if self.use_colors:
+            record_copy.message = _MESSAGE_STYLES.get(record.levelno, Style()).render(
+                record.message
+            )
         source = getattr(record, "logger_name", _build_logger_name(record.name))
         record_copy.source = (
             f"[{source}] "

@@ -91,3 +91,20 @@ red, HEAD blue and OPTIONS gray. Timestamps are gray and API paths bright blue;
 status retains its HTTP-class color. Padding is applied before coloring so colored
 and uncolored output have identical visible column alignment. Docker/file output
 stays free of ANSI codes unless an explicit terminal/color environment enables them.
+
+Severity colors use a separate 256-color palette from HTTP methods, timestamps,
+paths and status codes. Labels are bold; message bodies use softer related tints:
+
+| Level | Label | Message |
+| --- | --- | --- |
+| TRACE | Steel blue | Pale sage |
+| DEBUG | Sand | Pale beige |
+| INFO | Violet | Lavender |
+| WARNING | Orange | Peach |
+| ERROR | Rose | Blush |
+| CRITICAL | White on burgundy | Salmon, bold |
+
+Timestamps use medium gray, paths sky blue, and HTTP status classes use their own
+silver/mint/amber/coral/bright-red shades. All named foreground roles have distinct
+RGB values. This extended palette targets 256-color-capable terminals; NO_COLOR
+and redirected output retain the same uncolored text and original records.
