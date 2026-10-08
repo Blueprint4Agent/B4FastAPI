@@ -1,5 +1,6 @@
 """Owner-scoped period-end changes preserve paid time and provider truth."""
 
+import asyncio
 from datetime import UTC, datetime
 from decimal import Decimal
 from types import SimpleNamespace
@@ -9,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 from app.core.config.settings import SETTINGS
+from app.models.billing import BillingCustomers
 from tests.fixtures.billing_data import SETUP_REQUEST, stripe_object
 from tests.integration.api.v1.billing.test_billing_integration import login
 from tests.integration.api.v1.billing.test_subscription_integration import (
@@ -308,6 +310,10 @@ def test_tier_catalog_preserves_legacy_plus_and_upgrades_pro(
     assert changed.status_code == 200, changed.text
     assert changed.json()["plan"] == "pro_monthly"
     assert changed.json()["pending_plan"] is None
+    owner = integration_client.get("/api/v1/auth/me", headers=headers).json()["id"]
+    stored = asyncio.run(BillingCustomers.get(owner, False))
+    assert stored.stripe_subscription_id == state["subscription"].id
+    assert stored.subscription_snapshot == changed.json()
     params = provider.v1.subscriptions.update_async.call_args.kwargs["params"]
     assert params["items"][0] == {
         "id": "si_fixture",
@@ -524,3 +530,114 @@ def test_server_reconciliation_repairs_missing_webhook(integration_client, manag
         == "free"
     )
     provider.v1.subscriptions.list_async.assert_not_called()
+
+
+def signed_event(client, event):
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    payload = json.dumps(event).encode()
+    stamp = str(int(time.time()))
+    signature = hmac.new(
+        b"whsec_fixture", stamp.encode() + b"." + payload, hashlib.sha256
+    ).hexdigest()
+    return client.post(
+        "/api/v1/billing/webhook",
+        content=payload,
+        headers={"stripe-signature": f"t={stamp},v1={signature}"},
+    )
+
+
+def test_webhook_failure_keeps_snapshot_and_redelivery_repairs_it(
+    integration_client, managed, monkeypatch
+):
+    """Scenario: provider outage returns retryable failure without overwriting confirmed state."""
+    import stripe
+
+    # Given: a stored active subscription and an incoming failure event.
+    provider, state = managed
+    headers = ready(integration_client)
+    before = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", False)
+    monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
+    event = {
+        "id": "evt_retry",
+        "type": "invoice.payment_failed",
+        "livemode": False,
+        "data": {"object": {"customer": "cus_fixture"}},
+    }
+    # When: the provider is unavailable, then recovers for the same event.
+    provider.v1.subscriptions.list_async.side_effect = stripe.APIConnectionError("offline")
+    assert signed_event(integration_client, event).status_code == 502
+    assert integration_client.get("/api/v1/billing/subscription", headers=headers).json() == before
+    provider.v1.subscriptions.list_async.side_effect = None
+    state["subscription"].status = "past_due"
+    assert signed_event(integration_client, event).status_code == 200
+    # Then: redelivery persists the current provider state and disables management.
+    after = integration_client.get("/api/v1/billing/subscription", headers=headers).json()
+    assert after["status"] == "past_due" and not after["can_manage"]
+
+
+def test_billing_mail_deduplicates_and_ignores_obsolete_plan_event(
+    integration_client, managed, monkeypatch
+):
+    """Scenario: duplicate starts and plan events queue once; delayed obsolete changes queue nothing."""
+    from sqlalchemy import select
+
+    from app.core.db.session import get_db
+    from app.models.notification import Notification
+
+    # Given: real DB outbox and signed events, without broker or SMTP I/O.
+    _provider, state = managed
+    headers = ready(integration_client)
+    integration_client.get("/api/v1/billing/subscription", headers=headers)
+    monkeypatch.setattr(SETTINGS, "EMAIL_ENABLED", True)
+    monkeypatch.setattr(SETTINGS, "STRIPE_WEBHOOK_SECRET", "whsec_fixture")
+    monkeypatch.setattr("app.services.notifications.wake_notifications", AsyncMock())
+    event = {
+        "id": "evt_start",
+        "type": "invoice.paid",
+        "livemode": False,
+        "data": {
+            "object": {
+                "customer": "cus_fixture",
+                "status": "paid",
+                "billing_reason": "subscription_create",
+                "parent": {"subscription_details": {"subscription": "sub_fixture"}},
+            }
+        },
+    }
+    for _ in range(2):
+        assert signed_event(integration_client, event).status_code == 200
+    # When: an applied annual change is repeated, then a stale monthly event arrives.
+    state["subscription"]["items"].data[0].price.id = "price_annual_krw"
+    event = {
+        "id": "evt_change",
+        "created": 1900000000,
+        "type": "customer.subscription.updated",
+        "livemode": False,
+        "data": {
+            "object": state["subscription"].to_dict(),
+            "previous_attributes": {"items": {"data": [{"price": {"id": "price_monthly_krw"}}]}},
+        },
+    }
+    for _ in range(2):
+        assert signed_event(integration_client, event).status_code == 200
+    event["id"] = "evt_old"
+    event["created"] -= 60
+    event["data"]["object"]["items"]["data"][0]["price"]["id"] = "price_monthly_krw"
+    event["data"]["previous_attributes"]["items"]["data"][0]["price"]["id"] = "price_annual_krw"
+    assert signed_event(integration_client, event).status_code == 200
+
+    # Then: only one start and one applied change are durably reserved.
+    async def kinds():
+        async with get_db() as db:
+            return list((await db.scalars(select(Notification.kind))).all())
+
+    assert sorted(asyncio.run(kinds())) == ["plan_changed", "subscription_started"]
+    assert (
+        integration_client.get("/api/v1/billing/subscription", headers=headers).json()["plan"]
+        == "annual"
+    )

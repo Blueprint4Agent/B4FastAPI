@@ -36,6 +36,7 @@ def provider_stub():
                             status="complete",
                             setup_intent={
                                 "status": "succeeded",
+                                "livemode": False,
                                 "customer": "cus_fixture",
                                 "payment_method": "pm_fixture",
                             },

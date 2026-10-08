@@ -695,7 +695,7 @@ Signup verification token lookup and deletion are one Redis WATCH/MULTI transact
 ## Billing foundation
 
 Bearer or application API-key authenticated Stripe-hosted card/Link setup follows the router/service/repository loop.
-Stripe owns registration state; no webhook projection or billing worker exists yet.
+Stripe owns registration state; signed webhooks and Beat reconcile stored subscription snapshots.
 See [configuration, ownership, retries and limitations](../../notes/billing.md).
 
 When Stripe is enabled, lifespan must await BillingService.initialize before migrations
@@ -703,7 +703,7 @@ and serving requests. Invalid configuration or a failed bounded read-only Checko
 probe aborts startup; disabled Stripe performs no external I/O. See the billing guide
 for permission coverage and sanitized failure behavior.
 
-Subscription Checkout uses configured recurring Price IDs and durable per-customer reservations (migration 0009). Current subscription status is read directly from Stripe; no local entitlement or webhook projection exists. Follow the billing guide for request ownership, duplicate prevention, bounded retries and account-deletion reconciliation.
+Subscription Checkout uses configured recurring Price IDs and durable per-customer reservations (migration 0009). Subscription reads use DB snapshots; mutations verify current Stripe state. No tier-specific application entitlement enforcement exists. Follow the billing guide for request ownership, duplicate prevention, bounded retries and account-deletion reconciliation.
 
 Runtime modes and the manager directory permission follow [runtime modes and roles](../../notes/runtime-modes-rbac.md). This supersedes the two-role/bootstrap promotion descriptions above: dedicated bootstrap identities only, no normal-account promotion, production authentication required, and CLI changes include transactional audit records.
 
@@ -793,3 +793,5 @@ methods and status/structural fields. INFO is violet with a lavender message;
 WARNING orange, ERROR rose, DEBUG sand and CRITICAL white on burgundy. Each label
 is bold; other bodies use softer related tints. Keep named foreground RGB values
 unique and preserve original records, plain output and tracebacks when styling copies.
+
+Billing ownership, replay/recovery and mail boundaries are recorded in the [issue #93 audit](../../notes/billing-audit-93.md).

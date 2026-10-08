@@ -40,6 +40,7 @@ def recurring_price(price_id):
 def subscription(status="active"):
     return stripe_object(
         id="sub_fixture",
+        livemode=False,
         customer="cus_fixture",
         status=status,
         currency="krw",
@@ -289,3 +290,52 @@ def test_checkout_history_blocks_account_deletion(integration_client, provider):
         asyncio.run(Users.delete_account(owner["id"], owner["email"]))
     assert error.value.code.error == "ACCOUNT_BILLING_REVIEW_REQUIRED"
     assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
+
+
+@pytest.mark.parametrize("mode", [True, None])
+def test_checkout_requires_expanded_subscription_mode(integration_client, provider, mode):
+    """Scenario: a valid session cannot confirm a subscription with a mismatched or absent mode."""
+    # Given: an authenticated checkout with a valid enclosing session.
+    headers = login(integration_client)
+    owner = integration_client.get("/api/v1/auth/me", headers=headers).json()["id"]
+    integration_client.post("/api/v1/billing/checkout-sessions", headers=headers, json=FORM)
+    session = provider.v1.checkout.sessions.retrieve_async.return_value
+    session.client_reference_id = str(owner)
+    session.subscription.livemode = mode
+    # When: the return URL triggers server verification.
+    response = integration_client.get(
+        "/api/v1/billing/checkout-sessions/cs_test_checkout", headers=headers
+    )
+    # Then: it never claims payment from the session alone.
+    assert response.status_code == 200
+    assert response.json()["paid"] is False
+
+
+def test_multiple_subscriptions_persist_nonpurchasable_unknown(integration_client, provider):
+    """Scenario: ambiguous provider subscriptions cannot advertise absence of a subscription."""
+    # Given: two active subscriptions belonging to the same customer.
+    headers = login(integration_client)
+    integration_client.post("/api/v1/billing/checkout-sessions", headers=headers, json=FORM)
+    second = subscription()
+    second.id = "sub_second"
+    provider.v1.subscriptions.list_async.return_value = stripe_object(
+        data=[subscription(), second], has_more=False
+    )
+    # When: synchronization persists the reconciliation state.
+    response = integration_client.get("/api/v1/billing/subscription", headers=headers)
+    # Then: both the snapshot and purchase guard reject a new purchase.
+    assert response.status_code == 200
+    snapshot = response.json()
+    assert snapshot["plan"] == "unknown"
+    assert snapshot["status"] == "reconciliation_required"
+    assert snapshot["has_subscription"] is True
+    assert snapshot["can_manage"] is False
+    assert (
+        integration_client.get("/api/v1/billing/subscription", headers=headers).json() == snapshot
+    )
+    assert (
+        integration_client.post(
+            "/api/v1/billing/checkout-sessions", headers=headers, json=FORM
+        ).status_code
+        == 409
+    )

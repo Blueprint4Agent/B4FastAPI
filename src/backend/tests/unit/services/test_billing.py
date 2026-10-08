@@ -197,3 +197,14 @@ def test_invalid_configuration_disables_billing(provider, monkeypatch, setting, 
         asyncio.run(BillingService().create_setup(1, BillingSetupForm(**SETUP_REQUEST)))
     assert exc.value.code.error == "BILLING_DISABLED"
     provider.v1.checkout.sessions.create_async.assert_not_called()
+
+
+@pytest.mark.parametrize("mode", [True, None])
+def test_setup_requires_expanded_intent_mode(provider, mode):
+    """Scenario: hosted setup verifies the expanded intent mode before reporting registration."""
+    # Given: a complete owner-matched session with an inconsistent intent mode.
+    provider.v1.checkout.sessions.retrieve_async.return_value.setup_intent.livemode = mode
+    # When: the server confirms registration.
+    result = asyncio.run(BillingService().setup_status(1, "cs_test_fixture"))
+    # Then: the enclosing session alone cannot establish registration.
+    assert result.registered is False
