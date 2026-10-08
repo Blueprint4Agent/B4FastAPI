@@ -12,6 +12,7 @@ from app.deps import get_current_directory_user, get_current_session_user, get_c
 from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
     AdminUserListResponse,
+    ChangePasswordForm,
     DeleteAccountCodeResponse,
     DeleteAccountForm,
     ForgotPasswordForm,
@@ -28,6 +29,7 @@ from app.models.user import (
     UserResponse,
     UserRole,
     UserRoleStatsResponse,
+    VerifyAccountCodeForm,
     VerifyEmailForm,
     VerifyEmailResponse,
 )
@@ -341,6 +343,78 @@ async def update_me(
     return await service.update_profile(user_id=current_user.id, form=form)
 
 
+PASSWORD_CHANGE_ERRORS = current_user_error_responses(
+    auth_error_responses(
+        AuthErrorCode.INVALID_CREDENTIALS,
+        AuthErrorCode.LOGIN_DISABLED,
+        AuthErrorCode.EMAIL_DISABLED,
+        AuthErrorCode.PASSWORD_CHANGE_CODE_INVALID,
+        AuthErrorCode.PASSWORD_CHANGE_CODE_THROTTLED,
+        AuthErrorCode.PASSWORD_CHANGE_CODE_SEND_FAILED,
+        AuthErrorCode.PASSWORD_CHANGE_FAILED,
+    )
+)
+
+
+@router.post(
+    "/me/password/code", response_model=DeleteAccountCodeResponse, responses=PASSWORD_CHANGE_ERRORS
+)
+async def request_password_change_code(
+    request: Request,
+    current_user: UserResponse = Depends(get_current_session_user),
+    service: AuthService = Depends(AuthService),
+) -> DeleteAccountCodeResponse:
+    await service.request_password_change_code(
+        current_user.id, request.headers.get("X-App-Language")
+    )
+    return DeleteAccountCodeResponse(expires_in=600, retry_after=30)
+
+
+@router.post(
+    "/me/password/code/verify",
+    response_model=ResetPasswordResponse,
+    responses=PASSWORD_CHANGE_ERRORS,
+)
+async def verify_password_change_code(
+    form: VerifyAccountCodeForm,
+    current_user: UserResponse = Depends(get_current_session_user),
+    service: AuthService = Depends(AuthService),
+) -> ResetPasswordResponse:
+    await service.verify_account_email_code(current_user.id, form.code, password=True)
+    return ResetPasswordResponse(message="Code verified.")
+
+
+@router.post(
+    "/me/deletion-code/verify",
+    response_model=ResetPasswordResponse,
+    responses=current_user_error_responses(
+        auth_error_responses(
+            AuthErrorCode.EMAIL_DISABLED,
+            AuthErrorCode.LOGIN_DISABLED,
+            AuthErrorCode.ACCOUNT_DELETE_CODE_INVALID,
+            AuthErrorCode.ACCOUNT_DELETE_FAILED,
+        )
+    ),
+)
+async def verify_deletion_code(
+    form: VerifyAccountCodeForm,
+    current_user: UserResponse = Depends(get_current_session_user),
+    service: AuthService = Depends(AuthService),
+) -> ResetPasswordResponse:
+    await service.verify_account_email_code(current_user.id, form.code, password=False)
+    return ResetPasswordResponse(message="Code verified.")
+
+
+@router.post("/me/password", response_model=ResetPasswordResponse, responses=PASSWORD_CHANGE_ERRORS)
+async def change_password(
+    form: ChangePasswordForm,
+    current_user: UserResponse = Depends(get_current_session_user),
+    service: AuthService = Depends(AuthService),
+) -> ResetPasswordResponse:
+    await service.change_password(current_user.id, form)
+    return ResetPasswordResponse(message="Password changed.")
+
+
 PHOTO_ERRORS = current_user_error_responses(
     auth_error_responses(
         AuthErrorCode.PROFILE_PHOTO_INVALID,
@@ -423,7 +497,7 @@ async def request_deletion_code(
     await service.request_account_deletion_code(
         current_user.id, _resolve_preferred_language(request)
     )
-    return DeleteAccountCodeResponse(expires_in=600, retry_after=60)
+    return DeleteAccountCodeResponse(expires_in=600, retry_after=30)
 
 
 @router.delete(

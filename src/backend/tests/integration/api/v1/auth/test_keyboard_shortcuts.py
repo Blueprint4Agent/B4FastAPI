@@ -2,7 +2,11 @@ import pytest
 
 from tests.fixtures.payload_data import build_login_payload, build_signup_payload
 
-BINDINGS = {"toggleSidebar": ["b"], "openSettings": ["mod", ","]}
+BINDINGS = {
+    "toggleSidebar": ["b"],
+    "openSettings": ["mod", ","],
+    "openProfile": ["mod", "shift", "p"],
+}
 
 
 @pytest.mark.primary_data
@@ -64,6 +68,8 @@ def test_keyboard_shortcuts_persist_per_account_and_reset(integration_client):
         {"toggleSidebar": [], "openSettings": ["b"]},
         {"toggleSidebar": ["shift"], "openSettings": ["b"]},
         {"toggleSidebar": ["b"], "openSettings": ["b"]},
+        {"toggleSidebar": ["b"], "openSettings": [","], "openProfile": ["b"]},
+        {"toggleSidebar": ["b"], "openSettings": ["mod", "p"], "openProfile": ["ctrl", "p"]},
         {"toggleSidebar": ["mod", "b"], "openSettings": ["ctrl", "b"]},
         {"toggleSidebar": ["mod", "ctrl", "b"], "openSettings": [","]},
         {"toggleSidebar": ["b"]},
@@ -98,3 +104,12 @@ def test_keyboard_shortcuts_require_authentication(integration_client):
     # Then: the normal profile authentication boundary applies.
     assert response.status_code == 401
     assert response.json()["detail"]["error"] == "INVALID_TOKEN"
+
+
+def test_legacy_keyboard_binding_model_remains_accepted():
+    from app.models.user import KeyboardShortcuts
+
+    legacy = KeyboardShortcuts.model_validate(
+        {"toggleSidebar": ["b"], "openSettings": ["mod", "shift", "p"]}
+    )
+    assert legacy.openProfile is None

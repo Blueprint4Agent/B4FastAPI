@@ -11,6 +11,26 @@ from .error import (
 
 
 class AuthErrorCode(Enum):
+    PASSWORD_CHANGE_CODE_INVALID = ServiceErrorCode(
+        "PASSWORD_CHANGE_CODE_INVALID",
+        "The password change code is invalid, expired or locked.",
+        status.HTTP_400_BAD_REQUEST,
+    )
+    PASSWORD_CHANGE_CODE_THROTTLED = ServiceErrorCode(
+        "PASSWORD_CHANGE_CODE_THROTTLED",
+        "Wait before requesting another password change code.",
+        status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+    PASSWORD_CHANGE_CODE_SEND_FAILED = ServiceErrorCode(
+        "PASSWORD_CHANGE_CODE_SEND_FAILED",
+        "Unable to queue the password change code.",
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+    PASSWORD_CHANGE_FAILED = ServiceErrorCode(
+        "PASSWORD_CHANGE_FAILED",
+        "Unable to change the password. Request a new code and retry.",
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
     ACCOUNT_BILLING_REVIEW_REQUIRED = ServiceErrorCode(
         "ACCOUNT_BILLING_REVIEW_REQUIRED",
         "Contact the operator to reconcile subscriptions before deleting this account.",

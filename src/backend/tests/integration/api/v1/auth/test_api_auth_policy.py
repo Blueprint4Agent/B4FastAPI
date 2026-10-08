@@ -11,6 +11,10 @@ from tests.fixtures.payload_data import build_login_payload, build_signup_payloa
 pytestmark = pytest.mark.primary_data
 
 SESSION_ONLY = [
+    ("POST", "/api/v1/auth/me/password/code/verify", {"code": "123456"}),
+    ("POST", "/api/v1/auth/me/deletion-code/verify", {"code": "123456"}),
+    ("POST", "/api/v1/auth/me/password/code", None),
+    ("POST", "/api/v1/auth/me/password", {"code": "123456", "password": "NewPassword123!"}),
     ("POST", "/api/v1/auth/me/deletion-code", None),
     ("DELETE", "/api/v1/auth/me", {"email": "tester@example.com", "code": "123456"}),
 ]
@@ -33,7 +37,7 @@ def credentials(integration_client):
 def test_issued_api_key_cannot_substitute_for_session(
     integration_client, credentials, method, path, body
 ):
-    """Scenario: both session-only operations reject a real otherwise-valid API key."""
+    """Scenario: all session-only operations reject a real otherwise-valid API key."""
     # Given: a genuine key that authenticates the general user endpoint.
     bearer, key, _ = credentials
     assert integration_client.get("/api/v1/auth/me", headers=key).status_code == 200
@@ -120,7 +124,7 @@ def test_openapi_session_only_inventory_is_explicit(integration_client):
         if isinstance(operation, dict)
         and operation.get("security") == [{"OAuth2PasswordBearer": []}]
     }
-    # Then: it exactly matches the two known policy exceptions.
+    # Then: it exactly matches the explicit session policy exceptions.
     expected = {
         (method, path.replace("cs_test_fixture", "{session_id}"))
         for method, path, _ in SESSION_ONLY

@@ -166,7 +166,11 @@ def test_config_reads_updated_bootstrap_shortcuts(integration_client, monkeypatc
     user = asyncio.run(BootstrapService().initialize())
     monkeypatch.setattr(main, "BOOTSTRAP_USER", user)
     config = integration_client.get("/config").json()
-    keys = {"toggleSidebar": ["b"], "openSettings": ["mod", ","]}
+    keys = {
+        "toggleSidebar": ["b"],
+        "openSettings": ["mod", ","],
+        "openProfile": ["mod", "shift", "p"],
+    }
     # When: saving after startup.
     response = integration_client.patch(
         "/api/v1/auth/me",

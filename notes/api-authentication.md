@@ -12,6 +12,7 @@ Stripe keys belong only in backend configuration and do not authenticate callers
 | `POST /billing/setup-sessions` | Accepted | Active owner |
 | `GET /billing/setup-sessions/{session_id}` | Accepted | Owned Stripe session |
 | `GET /billing/payment-methods` | Accepted | Only own methods |
+| `POST /auth/me/password/code`, `POST /auth/me/password` | Rejected (401) | Bearer session, enabled login/email, purpose-bound code and limits |
 | `POST /auth/me/deletion-code` | Rejected (401) | Bearer session, enabled login/email, issuance limits |
 | `DELETE /auth/me` | Rejected (401) | Bearer, matching email, one-time code, last-admin protection |
 | `GET /auth/admin/users` | Accepted | Key owner must currently have admin or manager role; otherwise 403 |
@@ -21,7 +22,7 @@ Stripe keys belong only in backend configuration and do not authenticate callers
 | `GET /events/stream` | Accepted | Only own event channel |
 | `POST /auth/logout` | Accepted | Clears owner's refresh sessions; access JWTs expire normally |
 
-Exactly two operations are bearer-only; the two read-only directory operations accept keys and independently
+Exactly six operations are bearer-only; the two read-only directory operations accept keys and independently
 check the owner's current database role. Keys do not have billing or other endpoint scopes.
 They currently also allow profile edits, management of the owner's other keys and logout.
 Billing now accepts that same owner authority; account deletion remains bearer-only.
@@ -51,3 +52,5 @@ outcomes, exercise accepted operations and verify the exact OpenAPI exception in
 No production user or real account is changed by these tests. Billing key access is covered by the real-key registration and ownership integration tests.
 
 Production mode rejects development bootstrap identities for both bearer and API-key authentication. See [runtime modes and RBAC](runtime-modes-rbac.md).
+
+Bearer-only code checks: POST /auth/me/password/code/verify and POST /auth/me/deletion-code/verify. These check the active code without consuming it or extending its expiry; the final action revalidates and consumes it.
