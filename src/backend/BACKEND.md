@@ -738,3 +738,37 @@ Profile photo integration uses migration 0015 and authenticated binary PUT/GET/D
 compare-and-swap and compensating cleanup; no automatic local fallback exists. Legacy
 PATCH photo writes are rejected while existing photo display stays compatible. Follow
 [photo lifecycle and failure policy](../../notes/object-storage.md#profile-photo-integration).
+
+## Startup and shutdown console
+
+`STARTUP_DISPLAY=auto` renders an English B4A banner and live service table in
+interactive terminals. The header shows APP_MODE and LOGIN_ENABLED (Bootstrap
+session when login is disabled). Stack names come from the active settings; enablement and
+check evidence remain separate. OAuth is Configured, SMTP without a connection
+probe is Configured (Connection check skipped), disabled integrations are Not
+checked, and unreached services after a failure are Not run. Database Ready means
+migration and initialization completed, not an ongoing health guarantee.
+
+Shutdown uses a matching cleanup table for Database, Cache and Storage. Closed is
+reported only after the corresponding await succeeds; a lazy Redis client that
+was never opened is Not opened. Cleanup attempts Redis and storage even if database
+disposal fails. `B4A · Bye!!` appears only after successful normal lifespan exit.
+No farewell is printed after startup/cleanup failure or forced process termination.
+
+Redirected/container output retains a static banner and final lifecycle panels.
+Narrow/dumb terminals and recognized multi-worker CLI/env configurations use
+plain lifecycle records. Use `STARTUP_DISPLAY=plain` explicitly
+for programmatically configured multiple workers sharing a terminal. `off` restores
+original lifecycle logging; WARNING and higher log levels do not print the display.
+`NO_COLOR` disables color while retaining terminal updates. Uvicorn reload supervisor
+messages stay visible, and each new application process runs its own checks.
+
+The presentation filters only console handlers: original application and Uvicorn
+records remain available to OTLP/file handlers. Warnings/errors remain visible;
+HTTP access logging is unchanged. Do not put connection URLs, credentials or raw
+provider exceptions in the table. See [lifecycle display](../../notes/startup-display.md).
+
+Cache now performs a bounded five-second Redis PING during startup, including fresh
+evidence for an existing client. Redis · In-memory denotes FakeRedis. Failure aborts
+startup and releases acquired clients; no DB engine is created merely for cleanup.
+Celery worker availability is not probed by this display.

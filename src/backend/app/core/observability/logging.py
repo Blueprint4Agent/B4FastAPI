@@ -115,7 +115,7 @@ def configure_request_context_logging() -> None:
     formatter = DefaultFormatter(
         fmt=format_string,
         datefmt=LOG_DATE_FORMAT,
-        use_colors=True,
+        use_colors=None,
     )
     for logger_name in ("uvicorn.error", "uvicorn"):
         logger = logging.getLogger(logger_name)
