@@ -129,7 +129,7 @@ class StartupConsoleFilter(logging.Filter):
             return False
         if display.live is not None:
             # Existing StreamHandlers hold the original stderr; route through Live explicitly.
-            display.console.print(Text(self.handler.format(record)))
+            display.console.print(Text.from_ansi(self.handler.format(record)))
             return False
         return True
 

@@ -49,3 +49,18 @@ reload 관리 프로세스의 로그는 유지되며, 교체되는 앱 프로세
 실제 worker 검증이 없는 Celery를 정상으로 표시하지 않습니다.
 
 원문: [Startup and shutdown display](../startup-display.md).
+
+## 요청 로그
+
+콘솔 요청 로그는 로컬 `HH:MM:SS`, 정렬된 메서드·경로, 상태 코드 순서로 표시합니다.
+클라이언트 임시 포트, 반복되는 INFO 접두어, HTTP 버전은 콘솔에서 생략합니다.
+전체 경로와 쿼리 문자열은 자르지 않습니다. 성공한 2xx OPTIONS 사전 요청만
+콘솔에서 숨기며, 실패한 OPTIONS와 실제 요청은 유지합니다. 파일·OTLP 핸들러에는
+클라이언트·프로토콜·성공 OPTIONS를 포함한 원본 Uvicorn 기록이 전달됩니다.
+기존 정확한 /metrics 경로 제외 정책과 CORS·실제 요청 처리는 변경하지 않습니다.
+
+일반 서버·앱 메시지도 같은 시간·레벨 열을 사용합니다. INFO/WARNING/DEBUG/ERROR/
+CRITICAL을 정렬하고 DEBUG·오류에는 [출처]를 표시합니다. LOG_LEVEL=DEBUG에서는
+다른 레벨도 출처·상관관계 정보를 유지합니다. 기존 request/trace/task ID 정책과
+예외 스택 트레이스를 보존하며, 실제 출력 스트림과 NO_COLOR에 맞춰 색상을 적용합니다.
+사용자가 지정한 파일 포맷터와 수집기로 전달하는 원본 기록은 변경하지 않습니다.

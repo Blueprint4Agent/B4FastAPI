@@ -62,3 +62,26 @@ closes the client initialized at startup. Celery workers are not claimed healthy
 without an actual worker probe.
 
 Korean: [시작 및 종료 화면](ko/startup-display.md).
+
+## Request console output
+
+Access requests use local `HH:MM:SS`, aligned method/path columns and status:
+
+```text
+19:22:15  GET     /api/v1/admin/status                                 200 OK
+19:22:16  OPTIONS /api/v1/admin/status                                 400 Bad Request
+```
+
+The console omits the client ephemeral port, repeated INFO prefix and HTTP version.
+Full paths and query strings remain intact. Successful 2xx OPTIONS preflights are
+hidden only on console; failed preflights and actual requests remain visible.
+Status colors follow terminal support. File and OTLP handlers retain the original
+Uvicorn record, including client/protocol and successful OPTIONS. The existing exact
+/metrics exclusion is unchanged. CORS handling and request execution are unchanged.
+
+Application and server messages use the same local time and aligned level column:
+INFO, WARNING, DEBUG, ERROR and CRITICAL. DEBUG/error messages show a compact
+[source] tag; LOG_LEVEL=DEBUG shows source/context on other levels too. Existing
+request/trace/task correlation policy and full exception tracebacks are preserved.
+Color follows the actual handler stream and NO_COLOR. Caller file formatters and
+original exported records are not replaced by the console presentation.

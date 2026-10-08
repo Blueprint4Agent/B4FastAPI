@@ -772,3 +772,14 @@ Cache now performs a bounded five-second Redis PING during startup, including fr
 evidence for an existing client. Redis · In-memory denotes FakeRedis. Failure aborts
 startup and releases acquired clients; no DB engine is created merely for cleanup.
 Celery worker availability is not probed by this display.
+
+Uvicorn console access lines use local HH:MM:SS, method, full path/query and status,
+without the INFO prefix, client ephemeral port or HTTP version. Only successful 2xx
+OPTIONS are suppressed on console handlers; failed preflights and actual requests
+remain. File/OTLP handlers receive original records. Exact /metrics filtering is
+unchanged. Do not change CORS behavior or drop original records to reduce console noise.
+
+Console application/server messages use matching HH:MM:SS and aligned level columns,
+with source tags for DEBUG/errors (all levels in DEBUG mode). Keep the existing
+request/trace/task correlation policy and exception tracebacks. Color follows the
+handler stream and NO_COLOR; preserve caller-owned file formatters and raw records.
