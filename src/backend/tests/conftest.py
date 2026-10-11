@@ -37,6 +37,12 @@ def stripe_disabled_by_default(monkeypatch):
     monkeypatch.setattr(SETTINGS, "STRIPE_ENABLED", False)
     monkeypatch.setattr(SETTINGS, "STRIPE_PORTAL_CONFIGURATION_ID", "")
     monkeypatch.setattr(SETTINGS, "STRIPE_PUBLISHABLE_KEY", "")
+    monkeypatch.setattr(
+        SETTINGS,
+        "STRIPE_CHECKOUT_SUCCESS_URL",
+        "http://localhost:5173/settings?checkout={CHECKOUT_SESSION_ID}",
+    )
+    monkeypatch.setattr(SETTINGS, "STRIPE_CHECKOUT_CANCEL_URL", "http://localhost:5173/plans")
     for interval in ("MONTHLY", "ANNUAL"):
         for currency in ("KRW", "USD"):
             monkeypatch.setattr(
