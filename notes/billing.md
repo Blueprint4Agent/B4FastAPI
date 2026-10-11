@@ -333,3 +333,5 @@ Run a Celery worker plus one Beat: billing reconciliation runs every five minute
 Frontend SubscriptionSnapshotProvider shares one in-memory snapshot per signed-in account across sidebar and pages. Mounts use that snapshot; no focus, online-event or timer polling runs. Mutation responses replace it directly, verified checkout return and explicit reload fetch DB state, and account changes discard it. External/dashboard changes become visible on an explicit reload or new browser session after webhook synchronization. Keep webhook delivery and worker/Beat running; a stored snapshot does not synchronize itself.
 
 See [lifecycle mail operations](lifecycle-mail.md) for the current event policy, provider locale selection, five-claim crash budget, privacy and operator recovery.
+
+Billing tests isolate subscription checkout return URLs using localhost fixtures, so registration tests work without a developer `.env`. Provider access remains disabled by default and tests explicitly opt in with mocks. Invalid configuration cases override the fixture values.
