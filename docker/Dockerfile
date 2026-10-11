@@ -14,6 +14,8 @@ RUN npm ci
 
 COPY src/frontend/ ./
 COPY --from=project_branding /out/ ./
+ARG VITE_PUBLIC_SITE_URL=""
+ARG VITE_SITE_DESCRIPTION=""
 RUN npm run build
 
 

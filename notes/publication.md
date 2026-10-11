@@ -34,3 +34,8 @@ Retain the MIT license and third-party notices. Configure your own identity thro
 No hosted demo, performance SLA, external-provider certification or security audit is
 implied by the template. Report issues with reproduction steps and redacted configuration;
 do not publish tokens, passwords or customer data.
+
+The pinned frontend includes its MIT notice and reviewed dependency updates. Configure
+[static sharing metadata](../DEPLOY.md#public-sharing-metadata) with your real public
+origin before distributing a deployment link. Audit results are time-bound; rerun
+`npm audit` in the child when preparing a later release.

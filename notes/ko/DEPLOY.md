@@ -283,3 +283,20 @@ Prometheus는 내부 `app:8000`으로 접근할 수 있고 SSE는 응답을 버�
 실제 도메인에서 `/health/ready`, 로그인·갱신 쿠키, OAuth 리디렉션과 공개 `/metrics`
 차단을 확인하세요. 로컬 TLS 검증은 실제 DNS·인증서 발급·제공자 콜백·백업 복원을
 대신하지 않습니다. [Caddy 프록시 문서](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)를 참고하세요.
+
+## 공개 링크 공유 메타데이터
+
+B4React는 정적 HTML에 description·Open Graph·Twitter 태그를 넣습니다.
+`docker/.env`의 선택 설정 `VITE_PUBLIC_SITE_URL=https://your-domain.example`와
+`VITE_SITE_DESCRIPTION`을 입력한 뒤 `make docker-build`를 실행하고 기존 Compose
+오버레이 구성으로 재배포하세요. 공개 프론트엔드 빌드 인자이므로 실행 환경만 바꾸면
+HTML은 갱신되지 않습니다. `.env` 파일은 계속 Docker 빌드 컨텍스트에서 제외됩니다.
+
+URL은 자격 증명·경로·쿼리·fragment가 없는 HTTP(S) origin이어야 합니다. 실제 공개
+주소가 없으면 비워두세요. 이때 URL·이미지 태그를 생략합니다. 제목은 project.json에서
+생성한 프론트엔드 설정을 따릅니다. 사용자 프로젝트는 자체 래스터 로고를 쓰거나
+이미지 태그를 생략하며 템플릿 배너를 상속하지 않습니다. 직접 Docker 빌드할 때는
+`--build-arg VITE_PUBLIC_SITE_URL=...`, `--build-arg VITE_SITE_DESCRIPTION=...`를 전달합니다.
+사전 빌드 이미지는 빌드 당시 값을 유지합니다.
+[프론트엔드 공유 규칙](../../src/frontend/notes/ko/sharing.md)을 참고하고 배포 주소의
+HTML과 필요한 미리보기 캐시 갱신을 확인하세요.
