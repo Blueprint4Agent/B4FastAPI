@@ -1,0 +1,8 @@
+{$PUBLIC_DOMAIN} {
+    @private path /metrics /metrics/* /docs /docs/* /redoc /redoc/* /openapi.json
+    respond @private 404
+
+    reverse_proxy app:8000 {
+        flush_interval -1
+    }
+}

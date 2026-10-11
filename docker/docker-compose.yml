@@ -1,6 +1,8 @@
 services:
   app:
     image: ${APP_IMAGE:-blueprint4fastapi:local}
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -16,7 +18,7 @@ services:
       - object_storage_data:${OBJECT_STORAGE_LOCAL_ROOT:-/var/lib/b4fastapi/objects}
       - sqlite_data:/var/lib/b4fastapi/database
     ports:
-      - "${APP_HOST_PORT:-8000}:8000"
+      - "127.0.0.1:${APP_HOST_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "--show-error", "--max-time", "4", "http://127.0.0.1:8000/health/ready"]
       interval: 5s
@@ -27,6 +29,8 @@ services:
 
   celery-worker:
     image: ${APP_IMAGE:-blueprint4fastapi:local}
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -49,6 +53,8 @@ services:
 
   celery-beat:
     image: ${APP_IMAGE:-blueprint4fastapi:local}
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
     build:
       context: ..
       dockerfile: docker/Dockerfile

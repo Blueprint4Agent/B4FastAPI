@@ -248,3 +248,47 @@ verify accounts and the current Alembic revision before reopening traffic. Merel
 DB_NAME creates a different database; deployment does not automatically migrate old files.
 Keep the Compose project name stable, and do not run `docker compose down -v` when
 preserving data. See [backup/restore](src/backend/DB_BACKUP_RESTORE.md).
+
+## Public HTTPS deployment and container permissions
+
+The app/worker/Beat image runs as UID/GID `10001:10001`, with no Linux capabilities
+and no privilege escalation in Compose. Fresh named data volumes inherit writable
+image directory ownership. Existing root-owned local-object, SQLite and Beat volumes
+must be backed up and explicitly migrated to UID/GID 10001 before upgrading. Review
+the selected volume names and any custom OBJECT_STORAGE_LOCAL_ROOT first; this
+repository does not recursively change ownership of existing data automatically.
+
+The base app port is published on `127.0.0.1` only. For public access, point your DNS
+to the server, permit inbound TCP 80/443, and configure the production signing key,
+APP_BASE_URL and CORS_ORIGINS with the actual HTTPS origin. Update enabled OAuth
+callback and Stripe return/webhook URLs accordingly. Set SWAGGER_ENABLED=false if
+API documentation is not needed. Keep database passwords unique.
+
+Use the optional proxy after the app passes local readiness:
+
+```sh
+make docker-build
+make docker-up
+cd docker
+export PUBLIC_DOMAIN=app.example.com  # replace with a hostname you control
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml up -d --no-deps --wait app caddy
+```
+
+Keep PUBLIC_DOMAIN exported and both Compose files selected for later public
+rollouts; the plain `make docker-deploy` command does not manage this optional
+overlay and would remove its app proxy-trust setting when recreating the app.
+Build with `make docker-build` from the repository root, then repeat the combined
+Compose command. Start required DB/Redis/mail workers through the normal startup
+flow first; this command deliberately does not recreate infrastructure.
+
+Caddy manages TLS certificates and blocks public metrics, Swagger/Redoc and
+OpenAPI routes. Prometheus can still scrape `app:8000` privately. The proxy streams
+SSE without response buffering. The overlay lets Uvicorn trust forwarded headers
+from this private network so OAuth redirects use HTTPS. Do not expose the app port
+on all interfaces or attach untrusted workloads to that network.
+
+Verify the deployed domain with `/health/ready`, login/refresh cookies and OAuth
+redirects. Confirm `/metrics` is unavailable publicly. Local TLS smoke tests do not
+prove public DNS, certificate issuance, provider callbacks or backup recovery.
+See [Caddy proxy documentation](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
