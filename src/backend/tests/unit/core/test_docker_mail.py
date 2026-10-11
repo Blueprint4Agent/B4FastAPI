@@ -30,6 +30,7 @@ def test_deploy_starts_mail_consumer_before_api(tmp_path, email, login, broker, 
         "REDIS_IN_MEMORY": "true",
         "REDIS_HOST": "redis",
         "DB_DRIVER": "sqlite",
+        "DB_NAME": "/var/lib/b4fastapi/database/test.db",
     }
     run, calls = deployment_fixture(tmp_path, settings)
     # When: deploying with recreation requested.
@@ -67,6 +68,27 @@ def test_failed_mail_worker_prevents_api_rollout(tmp_path):
     assert result.returncode != 0
     commands = [json.loads(line) for line in calls.read_text().splitlines()]
     assert not any("up" in command and command[-1] == "app" for command in commands)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "template.db",
+        "/tmp/data.db",
+        "/var/lib/b4fastapi/database/../lost.db",
+        "/var/lib/b4fastapi/database",
+    ],
+)
+def test_sqlite_deploy_rejects_disposable_paths(tmp_path, path):
+    """Scenario: an unsafe SQLite path fails before any container is recreated."""
+    # Given: a SQLite path outside the persistent volume or containing traversal.
+    run, calls = deployment_fixture(tmp_path, {"DB_DRIVER": "sqlite+aiosqlite", "DB_NAME": path})
+    # When: the actual deployment preflight runs.
+    result = run()
+    # Then: migration guidance is returned and no service starts.
+    assert result.returncode != 0
+    assert "SQLite deployment requires" in result.stderr
+    assert not any("up" in json.loads(line) for line in calls.read_text().splitlines())
 
 
 def deployment_fixture(tmp_path, settings, fail_worker=False):
