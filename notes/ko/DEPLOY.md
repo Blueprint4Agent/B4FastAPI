@@ -12,6 +12,9 @@
 - `5432` (postgres)
 - `6379` (redis)
 
+Git, Make, Python/uv도 필요합니다. Compose는 `up --wait --wait-timeout`을 지원해야 합니다.
+로컬 프론트엔드 빌드에는 Node.js 24와 npm이 필요하며 Docker 빌드는 이미지 안에서 실행합니다.
+
 ## 2) 환경 설정
 
 템플릿 환경 파일 초기화:
@@ -23,6 +26,11 @@ make init
 주 배포 환경 파일:
 
 - `docker/.env`
+
+배포 전에 `docker/.env`의 `SECRET_KEY`를 고유한 난수로 설정하세요.
+`python3 -c "import secrets; print(secrets.token_urlsafe(48))"`로 생성할 수 있습니다.
+DB/Redis 비밀번호, 공개 APP_BASE_URL·CORS_ORIGINS와 활성화할 연동 설정도 확인하세요.
+기존 키는 자동 교체하지 마세요. [운영 키 정책](runtime-modes-rbac.md)을 참고하세요.
 
 ## 3) 배포 모드
 
@@ -133,83 +141,39 @@ bash ./docker/scripts/docker-export.sh
 
 ## 5) GitHub Actions 빌드 파이프라인
 
-워크플로:
+`.github/workflows/build.yml`은 수동 `workflow_dispatch`로만 실행합니다.
+PR·push·태그·release·schedule 이벤트는 자동 실행하지 않습니다. 로컬 훅이 검증을
+수행하며, PR 보호 규칙과 서버 측 테스트 강제는 별개입니다.
 
-- `.github/workflows/build.yml`
+- `ref`: 브랜치·태그·커밋 SHA. `pr_number`가 있으면 `refs/pull/<번호>/head`를 우선합니다.
+- `publish_image=false`(기본): 백엔드/프론트엔드 검증만 수행합니다.
+- `publish_image=true`: 검증 후 선택한 이미지를 `ghcr.io/<owner>/<repo>`에 빌드·push합니다.
+  ref와 PR 번호가 모두 없으면 `main`을 선택합니다.
+- 이미지 태그는 `manual-<정규화된-ref>`(예: `manual-main`), PR 선택 시
+  `manual-pr-<번호>`, 짧은 SHA 태그입니다. `nightly-main`이나 버전 이미지를 자동 발행하지 않습니다.
 
-트리거:
-
-- `main` 대상 Pull request
-- 매일 `00:00 KST`에 `main` nightly build (`15:00 UTC`)
-- 선택적 `ref` 또는 `pr_number` 입력을 받는 수동 `workflow_dispatch`
-- Release published 이벤트
-- `v*` 형식의 버전 태그 push
-- `main` merge마다 Docker 이미지를 자동 빌드하지는 않습니다.
-
-수동 `ref` 예시:
-
-- `main`
-- `v1.0.0`
-- `<commit-sha>`
-
-수동 PR build 예시:
-
-- `pr_number=12`는 `refs/pull/12/head`를 build합니다.
-
-파이프라인 job:
-
-- Backend: `uv sync --frozen`, Ruff check, Ruff format check, Pytest
-- Frontend: `npm ci`, Prettier check, Vitest, production build
-- Docker: release/tag, schedule, 명시적 수동 publish 실행에서만 `docker/Dockerfile` 기반 이미지 빌드
-
-이미지 배포:
-
-- Pull request build는 backend/frontend check만 검증합니다.
-- schedule 실행은 `main` 이미지를 `nightly-main`으로 push합니다.
-- 기본 수동 실행은 backend/frontend check만 검증합니다.
-- 수동 실행은 `publish_image=true`를 설정한 경우에만 선택한 ref 이미지를 push합니다.
-- 수동 이미지 publish에서 `ref`와 `pr_number`가 모두 비어 있으면 `main` ref와 `main` 이미지 태그를 기본으로 사용합니다.
-- 수동 이미지 publish에서 `ref=main`을 지정해도 `main` 이미지 태그를 사용합니다.
-- Release published 이벤트와 `v*` 태그 push는 GitHub Container Registry로 push합니다.
-
-기본 이미지 registry:
-
-- `ghcr.io/<owner>/<repo>`
+백엔드와 프론트엔드 job은 전체 검증을 사용하며 프론트엔드 서브모듈은 고정된 버전을
+재귀 체크아웃합니다. 이미지 공개는 명시적인 작업이므로 실행 전에 대상 버전을 확인하세요.
 
 ## 6) 데스크톱 빌드 파이프라인
 
-워크플로:
+`.github/workflows/desktop-build.yml`도 수동 `workflow_dispatch`로만 실행합니다.
+자동 schedule·release·tag 트리거는 없습니다.
 
-- `.github/workflows/desktop-build.yml`
+| 플랫폼 | Runner | Rust target |
+| --- | --- | --- |
+| macOS Apple Silicon | macos-14 | aarch64-apple-darwin |
+| macOS Intel | macos-15-intel | x86_64-apple-darwin |
+| Linux x64 | ubuntu-22.04 | runner 기본값 |
+| Windows x64 | windows-latest | runner 기본값 |
 
-트리거:
+`api_base_url`, `DESKTOP_API_BASE_URL`, `http://localhost:8000` 순으로 서버 주소를
+선택합니다. 배포용 빌드에는 실제 API 주소를 설정하세요. `VITE_API_BASE_URL`로
+프론트엔드에 포함되며 백엔드는 데스크톱 번들에 포함되지 않습니다.
 
-- 수동 `workflow_dispatch`
-- 매일 `01:00 KST`에 `main` scheduled build (`16:00 UTC`)
-- Release published 이벤트
-- `v*` 형식의 버전 태그 push
-
-파이프라인 job:
-
-- macOS Apple Silicon: `macos-14`, target `aarch64-apple-darwin`
-- macOS Intel: `macos-13`, target `x86_64-apple-darwin`
-- Linux x64: `ubuntu-22.04`
-- Windows x64: `windows-latest`
-
-데스크톱 서버 origin:
-
-- 수동 실행은 `api_base_url`을 입력받습니다.
-- `api_base_url`을 생략하면 repository/environment variable `DESKTOP_API_BASE_URL`을 사용합니다.
-- 둘 다 없으면 데스크톱 빌드는 `http://localhost:8000`으로 fallback합니다.
-- 선택된 값은 Tauri 빌드 전에 `VITE_API_BASE_URL`로 프론트엔드에 전달됩니다.
-
-데스크톱 artifact:
-
-- 워크플로는 생성된 installer/bundle을 GitHub Actions artifact로 업로드합니다.
-- scheduled `main` 빌드는 내부 검증용 workflow artifact로 보관됩니다.
-- Release published 이벤트와 `v*` 태그 push는 생성된 데스크톱 bundle을 해당 GitHub Release asset에도 업로드합니다.
-- 현재 unsigned artifact는 내부 빌드 검증용으로 사용할 수 있습니다.
-- 공개 배포에는 이후 macOS/Windows signing 및 notarization 단계가 필요합니다.
+설치 파일/번들은 Actions artifact로 14일간 보관합니다. 수동으로 태그 ref를 선택하면
+Tauri action에 release 메타데이터를 전달하며, 일반 브랜치 실행은 태그 release를 만들지
+않습니다. 현재 산출물은 서명되지 않았으므로 공개 배포에는 서명·공증과 설치 검증이 필요합니다.
 
 ## 7) 배포 후 검증
 
@@ -222,7 +186,8 @@ docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
 앱 헬스 엔드포인트 확인:
 
 ```bash
-curl -i http://localhost:8000/docs
+curl --fail http://localhost:8000/health/live
+curl --fail http://localhost:8000/health/ready
 curl -i http://localhost:8000/config
 ```
 

@@ -10,7 +10,7 @@
 
 ```bash
 mkdir -p docker/artifacts/db-backups
-docker exec -t b4fastapi-postgres pg_dump -U postgres -d template -Fc > docker/artifacts/db-backups/template-$(date +%Y%m%d-%H%M%S).dump
+docker compose --env-file docker/.env -f docker/docker-compose.yml exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > docker/artifacts/db-backups/template-$(date +%Y%m%d-%H%M%S).dump
 ```
 
 ### 1.2 외부 postgres
@@ -30,7 +30,7 @@ PGPASSWORD='<db_password>' pg_dump \
 ### 2.1 로컬 docker postgres로 복구
 
 ```bash
-cat docker/artifacts/db-backups/<backup_file>.dump | docker exec -i b4fastapi-postgres pg_restore -U postgres -d template --clean --if-exists --no-owner --no-privileges
+docker compose --env-file docker/.env -f docker/docker-compose.yml exec -T postgres sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner --no-privileges' < docker/artifacts/db-backups/<backup_file>.dump
 ```
 
 ### 2.2 외부 postgres로 복구
