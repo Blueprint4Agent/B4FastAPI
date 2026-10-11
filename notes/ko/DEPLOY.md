@@ -80,7 +80,7 @@ REDIS_PASSWORD=<optional>
 
 ```dotenv
 DB_DRIVER=sqlite+aiosqlite
-DB_NAME=template.db
+DB_NAME=/var/lib/b4fastapi/database/template.db
 
 REDIS_IN_MEMORY=true
 ```
@@ -263,3 +263,18 @@ Build·Desktop CI는 recursive checkout을 사용합니다. 프론트는 자체 
 `make frontend-package` 또는 `make build`를 사용합니다.
 서브모듈 갱신 시 제공자 스냅샷·소비자 계약·생성 타입 검사를 모두 통과해야 합니다.
 기존 데스크톱 bundle 식별자는 이번 분리에서 유지합니다.
+
+## SQLite 영속성과 기존 배포
+
+SQLite는 API와 워커에 `/var/lib/b4fastapi/database`로 연결한 `sqlite_data`
+이름 있는 볼륨을 사용합니다. `docker-up`은 상대 경로·`..`를 포함하여 해당 디렉터리
+밖의 경로를 서비스 시작/재생성 전에 거부합니다. 메모리 Redis는 영속적이지 않으며
+API 프로세스 간 공유되지 않으므로 다중 프로세스에서는 실제 Redis를 사용하세요.
+기본 배포 데이터베이스는 PostgreSQL입니다.
+
+기존 SQLite 컨테이너에서는 쓰기와 워커를 멈추고 SQLite 백업 기능으로 백업한 뒤,
+기존 컨테이너를 재생성/삭제하기 **전에** 백업을 외부로 복사하세요. 새 볼륨에 백업을
+가져오고 위의 절대 DB_NAME 경로를 설정한 후, 계정과 Alembic 버전을 확인하고
+트래픽을 재개하세요. DB_NAME만 변경하면 다른 데이터베이스를 생성하며 기존 파일은
+자동 이전되지 않습니다. Compose 프로젝트 이름을 유지하고, 데이터를 보존할 때
+`docker compose down -v`를 실행하지 마세요. [백업/복원](backend/DB_BACKUP_RESTORE.md)을 참고하세요.

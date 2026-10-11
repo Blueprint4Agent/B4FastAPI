@@ -30,7 +30,13 @@ runtime_names="$(docker compose --env-file .env config --format json app |
 import json
 import sys
 from urllib.parse import urlsplit
+from pathlib import PurePosixPath
 settings = json.load(sys.stdin)["services"]["app"].get("environment", {})
+if settings.get("DB_DRIVER", "").startswith("sqlite"):
+    path = PurePosixPath(settings.get("DB_NAME", ""))
+    root = PurePosixPath("/var/lib/b4fastapi/database")
+    if not path.is_absolute() or root not in path.parents or ".." in path.parts:
+        sys.exit("SQLite deployment requires DB_NAME=/var/lib/b4fastapi/database/<file>. Back up and move any existing database before recreating containers.")
 if settings.get("DB_DRIVER", "").startswith("postgresql") and settings.get("DB_HOST") == "postgres":
     print("postgres")
 email_enabled = (

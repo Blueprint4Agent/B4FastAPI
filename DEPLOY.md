@@ -80,7 +80,7 @@ Use this in `docker/.env`:
 
 ```dotenv
 DB_DRIVER=sqlite+aiosqlite
-DB_NAME=template.db
+DB_NAME=/var/lib/b4fastapi/database/template.db
 
 REDIS_IN_MEMORY=true
 ```
@@ -266,3 +266,19 @@ For local integrated serving use `make frontend-package` or `make build`.
 B4React owns frontend source and its local contract. A submodule update must pass
 provider snapshot, consumer snapshot, and generated type checks. Desktop bundle
 identity is preserved during this extraction.
+
+## SQLite persistence and existing deployments
+
+SQLite uses the `sqlite_data` named volume mounted at `/var/lib/b4fastapi/database`
+in both the API and worker. `docker-up` rejects paths outside this directory, including
+relative paths and `..` traversal, before starting/recreating services. In-memory Redis
+is not durable or shared between API processes; use real Redis for multi-process use.
+PostgreSQL remains the default deployment database.
+
+For an existing SQLite container, stop writes and workers, back up the database using
+SQLite's backup facility, and copy the backup out **before** recreating/removing the old
+container. Import that backup into the new volume and set the absolute `DB_NAME` above;
+verify accounts and the current Alembic revision before reopening traffic. Merely changing
+DB_NAME creates a different database; deployment does not automatically migrate old files.
+Keep the Compose project name stable, and do not run `docker compose down -v` when
+preserving data. See [backup/restore](src/backend/DB_BACKUP_RESTORE.md).
