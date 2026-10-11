@@ -135,3 +135,9 @@ make docker-logs DOCKER_SERVICE=caddy
 `make docker-down`은 선택한 프로젝트를 중지하고 기본적으로 이름 있는 볼륨은 남깁니다.
 일반 업데이트에 쓰는 명령은 아닙니다. 모든 핵심 명령은 선택한 환경 파일과 Compose
 오버레이 목록을 유지합니다. [Compose 파일 선택](https://docs.docker.com/compose/how-tos/environment-variables/envvars/)을 참고하세요.
+
+## 개발 모드 후원 링크
+
+선택한 Docker 환경파일에 `VITE_BUY_ME_A_COFFEE_ENABLED=true`, `VITE_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/yourname`을 설정하고 `make docker-deploy`로 다시 빌드합니다. 기본값은 꺼짐이며 두 값은 비밀값이 아닌 공개 빌드 인자입니다. B4A 홈과 사이드바는 서버 `APP_MODE=development`에서만 링크를 표시하고 운영 모드에서는 설정과 무관하게 숨깁니다. 올바른 HTTPS 프로필 주소가 필요하며 외부 임베드는 추가하지 않습니다. Vite 빌드 시점 설정이므로 실행 환경만 바꾸거나 기존 이미지만 재시작해서는 반영되지 않습니다.
+
+수동 Build 워크플로는 GHCR 이미지의 공개 프론트 빌드 인자로 `coffee_enabled`(기본 false), `coffee_url`을 받습니다. 서버 운영 모드에서는 이 설정과 무관하게 후원 링크가 숨겨집니다. 머지 후 `ref=main`, `publish_image=true`로 실행하면 `manual-main` 태그가 갱신됩니다.

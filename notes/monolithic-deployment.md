@@ -150,3 +150,9 @@ The deployment command never automatically restores databases or deletes volumes
 `make docker-down` stops the selected project and retains named volumes by default;
 it is not the normal update command. All core commands honor the selected environment
 and its Compose overlay list. See [Compose file selection](https://docs.docker.com/compose/how-tos/environment-variables/envvars/).
+
+## Optional development support link
+
+Set `VITE_BUY_ME_A_COFFEE_ENABLED=true` and `VITE_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/yourname` in the selected Docker environment, then run `make docker-deploy` to rebuild. The defaults disable the link. These values are public build arguments, not secrets. The B4A home and sidebar show the link only when server `APP_MODE=development`; production hides it even if enabled. A valid HTTPS creator profile is required; no third-party embed is loaded. Changing runtime environment without rebuilding does not change Vite build-time values.
+
+The manual Build workflow accepts `coffee_enabled` (default false) and `coffee_url` as public frontend build arguments for GHCR images. These settings still never render support links when the server uses production mode. After merging, run the workflow with `ref=main` and `publish_image=true`; the published moving tag is `manual-main`.
