@@ -12,6 +12,9 @@ This document defines the concrete deployment flow for this repository.
 - `5432` (postgres)
 - `6379` (redis)
 
+Git, Make and Python/uv are also required. Compose must support `up --wait --wait-timeout`.
+Local frontend builds need Node.js 24 and npm; Docker builds run these inside the image.
+
 ## 2) Environment Setup
 
 Initialize template env files:
@@ -23,6 +26,11 @@ make init
 Primary deployment env file:
 
 - `docker/.env`
+
+Before deployment, set a unique random `SECRET_KEY` in `docker/.env`.
+Generate one with `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
+Review DB/Redis passwords, public APP_BASE_URL/CORS_ORIGINS and enabled integrations.
+Do not automatically replace existing keys; see [production key policy](notes/runtime-modes-rbac.md).
 
 ## 3) Deployment Modes
 
@@ -131,87 +139,44 @@ Export path:
 
 - `docker/artifacts/`
 
-## 5) GitHub Actions Build Pipeline
+## 5) GitHub Actions build pipeline
 
-Workflow:
+`.github/workflows/build.yml` runs only through manual `workflow_dispatch`.
+PRs, pushes, tags, releases and schedules do not automatically run it. Local hooks
+perform verification; PR protection is separate from server-side test enforcement.
 
-- `.github/workflows/build.yml`
+- `ref`: branch, tag or commit SHA; `pr_number` takes precedence as `refs/pull/<number>/head`.
+- `publish_image=false` (default): backend/frontend validation only.
+- `publish_image=true`: validate, build and push the selected image to
+  `ghcr.io/<owner>/<repo>`; when neither ref nor PR is supplied, select `main`.
+- Published tags are `manual-<sanitized-ref>` (for example `manual-main`),
+  `manual-pr-<number>` for PR selection, and a short SHA tag. There is no automatic
+  `nightly-main` or release/version image publishing.
 
-Triggers:
+Backend and frontend jobs use full verification. The frontend checkout includes
+its pinned submodule recursively. Manual publication is an explicit operation;
+select the intended revision before starting it.
 
-- Pull requests targeting `main`
-- Nightly build of `main` at `00:00 KST` (`15:00 UTC`)
-- Manual `workflow_dispatch` with optional `ref` or `pr_number`
-- Release published events
-- Version tag pushes matching `v*`
-- No Docker image is built automatically for every `main` merge.
+## 6) Desktop build pipeline
 
-Manual `ref` examples:
+`.github/workflows/desktop-build.yml` also runs only through manual `workflow_dispatch`.
+It has no automatic schedule, release or tag trigger.
 
-- `main`
-- `v1.0.0`
-- `<commit-sha>`
+| Platform | Runner | Rust target |
+| --- | --- | --- |
+| macOS Apple Silicon | macos-14 | aarch64-apple-darwin |
+| macOS Intel | macos-15-intel | x86_64-apple-darwin |
+| Linux x64 | ubuntu-22.04 | runner default |
+| Windows x64 | windows-latest | runner default |
 
-Manual PR build example:
+`api_base_url` takes precedence over `DESKTOP_API_BASE_URL`, then falls back to
+`http://localhost:8000`. Set the deployed API origin for a distributable build.
+The value is embedded as `VITE_API_BASE_URL`; desktop builds do not bundle the backend.
 
-- `pr_number=12` builds `refs/pull/12/head`
-
-Pipeline jobs:
-
-- Backend: `uv sync --frozen`, Ruff check, Ruff format check, Pytest
-- Frontend: `npm ci`, Prettier check, Vitest, production build
-- Docker: build image from `docker/Dockerfile` only for release/tag, schedule, or explicit manual publish runs
-
-Image publishing:
-
-- Pull request builds validate backend/frontend checks only.
-- Scheduled runs publish the `main` image as `nightly-main`.
-- Default manual runs validate backend/frontend checks only.
-- Manual runs publish the selected ref image only when `publish_image=true`.
-- Manual image publishing defaults to the `main` ref and `main` image tag when both `ref` and `pr_number` are empty.
-- Manual image publishing with `ref=main` also uses the `main` image tag.
-- Release published events and `v*` tag pushes publish to GitHub Container Registry.
-
-Default image registry:
-
-- `ghcr.io/<owner>/<repo>`
-
-## 6) Desktop Build Pipeline
-
-Workflow:
-
-- `.github/workflows/desktop-build.yml`
-
-Triggers:
-
-- Manual `workflow_dispatch`
-- Scheduled build of `main` at `01:00 KST` (`16:00 UTC`)
-- Release published events
-- Version tag pushes matching `v*`
-
-Pipeline jobs:
-
-- macOS Apple Silicon: `macos-14`, target `aarch64-apple-darwin`
-- macOS Intel: `macos-13`, target `x86_64-apple-darwin`
-- Linux x64: `ubuntu-22.04`
-- Windows x64: `windows-latest`
-
-Desktop server origin:
-
-- Manual runs accept `api_base_url`.
-- If `api_base_url` is omitted, the workflow uses repository/environment variable
-  `DESKTOP_API_BASE_URL`.
-- If neither is set, the desktop build falls back to `http://localhost:8000`.
-- The selected value is passed to the frontend as `VITE_API_BASE_URL` before Tauri builds.
-
-Desktop artifacts:
-
-- The workflow uploads generated installers/bundles as GitHub Actions artifacts.
-- Scheduled `main` builds are retained as workflow artifacts for internal verification.
-- Release published events and `v*` tag pushes also upload generated desktop bundles to the
-  matching GitHub Release assets.
-- Current unsigned artifacts can be used for internal build verification.
-- Public distribution still requires a later signing/notarization step for macOS and Windows.
+Installers/bundles are retained as Actions artifacts for 14 days. A manually selected
+tag ref supplies release metadata to the Tauri action; an ordinary branch run does
+not create a tagged release. Current artifacts are unsigned. Public distribution
+still requires appropriate signing/notarization and installation verification.
 
 ## 7) Post-Deploy Verification
 
@@ -224,7 +189,8 @@ docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'
 Check app health endpoints:
 
 ```bash
-curl -i http://localhost:8000/docs
+curl --fail http://localhost:8000/health/live
+curl --fail http://localhost:8000/health/ready
 curl -i http://localhost:8000/config
 ```
 
