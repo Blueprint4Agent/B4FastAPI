@@ -380,3 +380,10 @@ probe failure and timeout. Integration exercises actual SQLite/Redis probes and
 immediate access loss after demotion with an existing token. The endpoint accepts
 no parameters/body, so request validation (422) is not applicable. There are no
 record-dependent aggregates or cross-domain mutations requiring seeded scenarios.
+
+## Terminal display fixtures
+
+Tests for an interactive Rich console explicitly set TERM with monkeypatch before
+constructing the console. `force_terminal=True` alone does not override a dumb
+terminal. Restore the caller environment automatically; do not require a global
+terminal setting or change runtime fallback behavior to satisfy a fixture.

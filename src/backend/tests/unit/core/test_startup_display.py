@@ -112,7 +112,8 @@ def test_cancelled_startup_restores_logging(settings, console_logs):
 
 def test_interactive_panel_keeps_warnings_and_final_frame(settings, console_logs, monkeypatch):
     """Scenario: an interactive terminal shows the banner, live checks and warnings."""
-    # Given: one terminal owner and a normal console handler bound before Live starts.
+    # Given: an explicitly capable terminal, independent of the caller environment.
+    monkeypatch.setenv("TERM", "xterm-256color")
     settings.STARTUP_DISPLAY = "auto"
     monkeypatch.setattr(Settings, "has_multiple_server_workers", lambda _: False)
     output = io.StringIO()
