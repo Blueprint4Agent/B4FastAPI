@@ -95,6 +95,7 @@ def deployment_fixture(tmp_path, settings, fail_worker=False):
     scripts = tmp_path / "docker/scripts"
     scripts.mkdir(parents=True)
     shutil.copyfile(SOURCE / "docker/scripts/docker-up.sh", scripts / "docker-up.sh")
+    shutil.copyfile(SOURCE / "docker/scripts/deploy.py", scripts / "deploy.py")
     (tmp_path / "docker/.env").write_text("# fixture\n")
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
@@ -110,19 +111,14 @@ if "up" in sys.argv and sys.argv[-1] == "celery-worker" and os.environ["TEST_FAI
     sys.exit(2)
 """)
     docker.chmod(0o755)
-    uv = bin_dir / "uv"
-    uv.write_text("""#!/usr/bin/env python3
-import os, sys
-index = sys.argv.index("-c")
-os.execv(sys.executable, [sys.executable] + sys.argv[index:])
-""")
-    uv.chmod(0o755)
     env = dict(
         os.environ,
         PATH=f"{bin_dir}:{os.environ['PATH']}",
-        UV=str(uv),
+        DOCKER_ENV_FILE=str(tmp_path / "docker/.env"),
         TEST_CALLS=str(calls),
-        TEST_MODEL=json.dumps({"services": {"app": {"environment": settings}}}),
+        TEST_MODEL=json.dumps(
+            {"services": {"app": {"image": "example:reviewed", "environment": settings}}}
+        ),
         TEST_FAIL="1" if fail_worker else "0",
     )
     return lambda: subprocess.run(

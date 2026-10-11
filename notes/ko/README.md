@@ -159,12 +159,14 @@ sync는 기존 파일을 변경하기 전에 루트 `.env-backups/`에 시각이
 생성합니다. 주석이나 순서만 바뀌어도 갱신과 백업을 수행하며, 변경이 없으면
 파일을 다시 쓰지 않습니다.
 
-`make docker-deploy`와 배포 스크립트 직접 실행 시 빌드·컨테이너 재생성 전에
-`docker-env-check`를 실행합니다. 오류를 수정하거나 `make docker-env-sync` 후 추가된 설정을
-검토하고 다시 배포하세요. 인증정보 유효성, 연결 상태, 실행 중인 컨테이너의
-설정은 검사하지 않습니다. 이 검사로 인해 Docker 배포에도 `uv`가 필요합니다.
+`make docker-deploy`는 해석된 실행 설정과 이미지 설정을 검사한 뒤 실제 HTTP 응답을
+확인합니다. Docker 운영 명령은 Python 3와 Compose를 사용하며 호스트 uv가 필요하지 않습니다.
+`docker-env-sync` / `docker-env-check`는 uv를 사용하는 선택적 개발용 템플릿 동기화 도구로
+유지합니다. [단일 서버 운영 절차](monolithic-deployment.md)를 참고하세요.
 
 ## Docker 배포
+
+새 AWS/서버 배포는 [모놀로식 운영 절차](monolithic-deployment.md)를 따르세요. 새 설치에서 `make docker-init PUBLIC_DOMAIN=app.example.com`으로 시작하며 기존 환경 파일은 덮어쓰지 않습니다.
 
 ### 프로젝트 이름과 호스트 포트
 
@@ -321,7 +323,7 @@ PostgreSQL에는 실제 존재하는 DB 이름과 일치하는 인증정보를 �
 - DB·Redis·Grafana·Prometheus·OTLP의 호스트 포트는 `127.0.0.1`에만
   바인딩합니다. 컨테이너끼리는 기존 Compose 서비스 이름으로 통신합니다.
   외부 PC에서 접근하려면 SSH 터널 또는 별도로 설정한 프록시를 사용합니다.
-  앱은 기존처럼 모든 호스트 인터페이스에 공개하며 `APP_HOST_PORT`(기본 8000)를 사용합니다.
+  앱도 loopback에만 바인딩하며 `APP_HOST_PORT`(기본 8000)를 사용합니다. 공개 요청은 선택된 HTTPS 프록시를 통과합니다.
 - Tempo와 Loki는 호스트 포트를 공개하지 않습니다. Grafana는 Compose 네트워크의
   `tempo:3200`, `loki:3100`으로 조회하고, Collector는 `tempo:4317`로 트레이스,
   `loki:3100/otlp`로 로그를 전달합니다. 기존 `docker/.env`의 `TEMPO_HOST_PORT`는
@@ -336,10 +338,10 @@ PostgreSQL에는 실제 존재하는 DB 이름과 일치하는 인증정보를 �
 설정은 컨테이너 재생성 시 반영됩니다. env sync/check는 키·배치만 검사하며,
 기존 DB나 Grafana 계정 비밀번호를 자동 변경하지 않습니다.
 
-1. 환경 준비:
+1. 새 배포 환경 준비 (기존 파일은 교체하지 말고 검토):
 
 ```bash
-make init
+make docker-init
 ```
 
 2. 앱 이미지 빌드:
@@ -354,7 +356,7 @@ make docker-build
 make docker-up
 ```
 
-`uv`와 `up --wait --wait-timeout`을 지원하는 Docker Compose가 필요합니다.
+Python 3와 `up --wait --wait-timeout`을 지원하는 Docker Compose가 필요합니다.
 인프라 선택은 Compose가 해석한 앱 환경변수를 기준으로 하므로 따옴표·주석·변수
 치환·서비스 환경변수 우선순위를 반영합니다. 기존 PostgreSQL·Redis 컨테이너는
 `--no-recreate`로 보존하고, 없으면 생성하며 중지 상태면 시작합니다. 각 기동 단계는
@@ -384,16 +386,17 @@ make docker-logs DOCKER_SERVICE=app
 make docker-down
 ```
 
-6. 원샷 배포 (환경 검사 + 빌드 + 앱 재생성 + 준비 대기 + tar 내보내기):
+6. 원샷 배포 (사전 검사 + 이미지 준비 + 서비스 기동 + HTTP 검증):
 
 ```bash
 make docker-deploy
 ```
 
-앱만 강제 재생성하며 기존 로컬 DB·Redis 컨테이너의 설정은 유지합니다.
-준비 확인에 실패하면 이미지 내보내기 전에 배포가 중단됩니다. 이미지 내보내기도
-`.env`의 `APP_IMAGE`를 따로 파싱하지 않고 Compose가 해석한 앱 이미지명을 사용해
-빌드와 동일한 기준을 따릅니다.
+이미지 설정 검사 후 선택된 앱·메일 워커·프록시를 재생성하며 DB·Redis와 데이터 볼륨은
+유지합니다. readiness·실행 설정·프론트엔드 자산 및 HTTPS 사용 시 공개 경로 차단까지
+통과해야 성공합니다. 자동 DB/이미지 롤백이나 tar 내보내기는 수행하지 않습니다.
+레지스트리 이미지는 `DEPLOY_SOURCE=pull`, 기존 로컬 이미지는 `DEPLOY_SOURCE=local`을
+사용합니다. 모든 핵심 운영 명령은 선택한 환경의 `COMPOSE_FILE`을 유지합니다.
 
 7. 앱 이미지 tar 내보내기:
 

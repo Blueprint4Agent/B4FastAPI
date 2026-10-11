@@ -12,22 +12,22 @@
 - `5432` (postgres)
 - `6379` (redis)
 
-Git, Make, Python/uv도 필요합니다. Compose는 `up --wait --wait-timeout`을 지원해야 합니다.
+Git, Make, Python 3도 필요합니다. 배포 명령은 호스트 uv를 요구하지 않습니다. Compose는 `up --wait --wait-timeout`을 지원해야 합니다.
 로컬 프론트엔드 빌드에는 Node.js 24와 npm이 필요하며 Docker 빌드는 이미지 안에서 실행합니다.
 
 ## 2) 환경 설정
 
-템플릿 환경 파일 초기화:
+새 배포 환경 초기화 (기존 파일을 덮어쓰지 않음):
 
 ```bash
-make init
+make docker-init PUBLIC_DOMAIN=app.example.com
 ```
 
 주 배포 환경 파일:
 
 - `docker/.env`
 
-배포 전에 `docker/.env`의 `SECRET_KEY`를 고유한 난수로 설정하세요.
+초기화는 무작위 로컬 인증정보를 생성합니다. 기존 설치는 키를 유지하거나 `docker/.env`의 `SECRET_KEY`를 명시적으로 설정하세요.
 `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`로 생성할 수 있습니다.
 DB/Redis 비밀번호, 공개 APP_BASE_URL·CORS_ORIGINS와 활성화할 연동 설정도 확인하세요.
 기존 키는 자동 교체하지 마세요. [운영 키 정책](runtime-modes-rbac.md)을 참고하세요.
@@ -123,7 +123,7 @@ bash ./docker/scripts/docker-down.sh
 bash ./docker/scripts/docker-logs.sh app
 ```
 
-원샷 배포 (빌드 + 재기동 + tar 내보내기):
+원샷 배포 (사전 점검 + 이미지 준비 + 서비스 준비 + HTTP 확인):
 
 ```bash
 bash ./docker/scripts/docker-deploy.sh
@@ -218,7 +218,7 @@ Alembic 시작 마이그레이션이 revision 길이 오류로 실패
 tar 아티팩트가 생성되지 않음
 
 - `docker-build.sh`는 tar를 내보내지 않습니다.
-- `docker-deploy.sh` 또는 `docker-export.sh`를 사용하세요.
+- 오프라인 아카이브가 필요할 때 `docker-export.sh`를 별도로 실행하세요.
 
 ## 프론트 소스와 패키징
 
@@ -257,22 +257,21 @@ TCP 80/443을 허용한 뒤 운영 서명 키와 실제 HTTPS APP_BASE_URL·CORS
 설정하세요. 활성화된 OAuth 콜백과 Stripe 반환·웹훅 주소도 맞추고, API 문서가
 필요하지 않으면 SWAGGER_ENABLED=false를 사용하세요. DB 비밀번호도 고유하게 설정하세요.
 
-앱의 로컬 readiness를 확인한 뒤 선택형 프록시를 시작합니다.
+`docker/.env`에 프록시 구성을 저장해 배포·상태·로그 명령이 동일한 구성을 사용하게 합니다.
 
-```sh
-make docker-build
-make docker-up
-cd docker
-export PUBLIC_DOMAIN=app.example.com  # 직접 관리하는 호스트명으로 변경
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml config --quiet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml up -d --no-deps --wait app caddy
+```dotenv
+COMPOSE_FILE=docker-compose.yml:docker-compose.https.yml
+PUBLIC_DOMAIN=app.example.com
+APP_BASE_URL=https://app.example.com
+CORS_ORIGINS=https://app.example.com
+VITE_PUBLIC_SITE_URL=https://app.example.com
 ```
 
-후속 공개 배포에도 PUBLIC_DOMAIN과 두 Compose 파일을 함께 사용하세요. 일반
-`make docker-deploy`는 선택형 overlay를 관리하지 않으며 앱 재생성 시 프록시 신뢰
-설정이 빠집니다. 저장소 루트에서 `make docker-build` 후 위의 결합된 Compose 명령을
-다시 실행하세요. 필요한 DB·Redis·메일 워커는 기존 시작 절차로 먼저 준비하며,
-위 명령은 인프라를 재생성하지 않습니다.
+`make docker-check`, `make docker-deploy`로 배포합니다. **새 설치**는
+`make docker-init PUBLIC_DOMAIN=app.example.com`으로 설정과 무작위 로컬 인증정보를
+0600 권한 파일에 생성합니다. 기존 파일은 거부합니다.
+[단일 서버 AWS/Cloudflare 운영 절차](monolithic-deployment.md)에서 업데이트·이미지 선택·백업과
+복구 범위를 확인하세요.
 
 Caddy가 TLS 인증서를 관리하고 공개 metrics·Swagger/Redoc·OpenAPI 접근을 차단합니다.
 Prometheus는 내부 `app:8000`으로 접근할 수 있고 SSE는 응답을 버퍼링하지 않고

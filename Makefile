@@ -159,7 +159,7 @@ docker-export: ## Export docker app image to docker/artifacts
 	bash ./docker/scripts/docker-export.sh
 
 .PHONY: docker-deploy
-docker-deploy: ## Build, recreate app only, wait for readiness, and export image
+docker-deploy: ## Prepare image, start selected services and verify HTTP readiness
 	bash ./docker/scripts/docker-deploy.sh
 
 .PHONY: docker-observability-up
@@ -295,3 +295,13 @@ hooks-install: ## Install commit-msg and pre-push hooks in this clone
 hooks-test: ## Test Git hooks and verification receipt invalidation
 	python3 -m unittest discover -s scripts -p 'test_git_hooks.py'
 	python3 -m unittest discover -s scripts -p 'test_verification_cache.py'
+
+.PHONY: docker-init docker-check docker-status docker-smoke
+docker-init: ## Create a new private deployment environment; PUBLIC_DOMAIN enables HTTPS
+	bash ./docker/scripts/docker-init.sh
+docker-check: ## Validate resolved deployment settings without printing secrets
+	bash ./docker/scripts/docker-check.sh
+docker-status: ## Show deployment containers and image identities
+	bash ./docker/scripts/docker-status.sh
+docker-smoke: ## Verify readiness, runtime config, SPA and public proxy boundaries
+	bash ./docker/scripts/docker-smoke.sh

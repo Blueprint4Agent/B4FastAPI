@@ -14,6 +14,8 @@ from dotenv.parser import parse_stream
 ROOT = Path(__file__).resolve().parents[1]
 DIRECTORIES = ("src/backend", "src/frontend", "docker")
 DOCKER_ONLY_KEYS = {
+    "COMPOSE_FILE",
+    "PUBLIC_DOMAIN",
     # Public frontend build arguments are not backend runtime settings.
     "VITE_PUBLIC_SITE_URL",
     "VITE_SITE_DESCRIPTION",

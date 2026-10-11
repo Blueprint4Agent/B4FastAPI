@@ -165,13 +165,14 @@ only by their owner. No backup is created for unchanged or newly created files.
 Missing files are created from their examples. Comment-only and ordering changes
 also trigger a sync and backup; unchanged files are not rewritten.
 
-`make docker-deploy` (including direct execution of its script) runs `docker-env-check`
-before building or recreating containers. Fix reported keys or run `make docker-env-sync`
-and review new settings before retrying. This does not validate credentials,
-connections, or settings in running containers. Docker deployment now also
-requires `uv` for this check.
+`make docker-deploy` validates resolved runtime settings and the built image, then
+checks actual HTTP readiness. Docker operation requires Python 3 and Compose, not
+host uv. `docker-env-sync` / `docker-env-check` remain optional development tools
+for template synchronization and still use uv. See the [single-server runbook](notes/monolithic-deployment.md).
 
 ## Docker Deployment
+
+For a new AWS/server deployment, start with the [monolithic runbook](notes/monolithic-deployment.md). Use `make docker-init PUBLIC_DOMAIN=app.example.com` on a fresh installation; it never overwrites an existing environment.
 
 ### Project names and host ports
 
@@ -330,7 +331,7 @@ switching usually means the SQLite name was left in the PostgreSQL configuration
 - DB, Redis, Grafana, Prometheus, and OTLP host ports bind to `127.0.0.1`.
   Container-to-container traffic still uses Compose service names. Access from a
   remote workstation requires an SSH tunnel or a separately configured proxy.
-  The app remains published on all host interfaces, using `APP_HOST_PORT` (default 8000).
+  The app also binds to loopback only, using `APP_HOST_PORT` (default 8000). Public traffic enters through the selected HTTPS proxy.
 - Tempo and Loki have no published host ports. Grafana queries `tempo:3200` and
   `loki:3100` on the Compose network. The Collector sends traces to `tempo:4317`
   and logs to `loki:3100/otlp`. The former `TEMPO_HOST_PORT` setting is unused
@@ -345,10 +346,10 @@ switching usually means the SQLite name was left in the PostgreSQL configuration
 These settings take effect when containers are recreated. Env sync/check only
 validates keys/layout; it does not rotate existing database or Grafana credentials.
 
-1. Prepare env:
+1. Prepare a new deployment env (review an existing file instead of replacing it):
 
 ```bash
-make init
+make docker-init
 ```
 
 2. Build app image:
@@ -363,7 +364,7 @@ make docker-build
 make docker-up
 ```
 
-Requires `uv` and Docker Compose with `up --wait --wait-timeout` support.
+Requires Python 3 and Docker Compose with `up --wait --wait-timeout` support.
 Infrastructure selection reads the app environment resolved by Compose, including
 quoting, comments, interpolation, and service environment overrides. Existing
 PostgreSQL/Redis containers are preserved with `--no-recreate`; missing containers
@@ -394,16 +395,18 @@ make docker-logs DOCKER_SERVICE=app
 make docker-down
 ```
 
-6. One-shot deploy (env check + build + recreate app + wait for readiness + export tar):
+6. One-shot deploy (preflight + image preparation + selected services + HTTP smoke):
 
 ```bash
 make docker-deploy
 ```
 
-Only the app is forced to recreate; existing local DB/Redis containers retain their
-configuration. A readiness failure stops deployment before image export. Image
-export uses Compose's resolved app image name, matching build rather than parsing
-`APP_IMAGE` separately from `.env`.
+Selected app/mail-worker/proxy services are recreated after image validation; existing
+DB/Redis containers and data volumes are retained. Success requires HTTP readiness,
+runtime config and packaged frontend assets, plus public route protection when HTTPS
+is selected. No automatic database/image rollback or image archive is performed.
+Set `DEPLOY_SOURCE=pull` for a registry image or `DEPLOY_SOURCE=local` for an existing
+image. All core commands retain `COMPOSE_FILE` from the selected environment.
 
 7. Export app image tar:
 
