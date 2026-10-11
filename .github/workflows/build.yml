@@ -16,6 +16,15 @@ on:
                 required: false
                 type: boolean
                 default: false
+            coffee_enabled:
+                description: "Enable optional support links in development mode only"
+                required: false
+                type: boolean
+                default: false
+            coffee_url:
+                description: "Public Buy Me a Coffee creator URL (no secrets)"
+                required: false
+                type: string
 
 permissions:
     contents: read
@@ -181,6 +190,9 @@ jobs:
                   context: .
                   file: docker/Dockerfile
                   push: ${{ needs.resolve-ref.outputs.publish-image == 'true' }}
+                  build-args: |
+                      VITE_BUY_ME_A_COFFEE_ENABLED=${{ inputs.coffee_enabled }}
+                      VITE_BUY_ME_A_COFFEE_URL=${{ inputs.coffee_url }}
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha
