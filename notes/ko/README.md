@@ -537,3 +537,10 @@ API 인증 정책 점검: [한국어](api-authentication.md) · [English](../api
 실행 모드와 역할: [한국어](runtime-modes-rbac.md) · [English](../runtime-modes-rbac.md).
 
 대화형 터미널에서는 B4A 시작·종료 상태 표를 표시하며 일반 로그로 자동 전환할 수 있습니다. [시작 및 종료 화면 설정](startup-display.md)을 참고하세요.
+
+## 라이선스
+
+프로젝트의 원본 코드·문서는 [MIT 라이선스](../../LICENSE)로 제공합니다.
+복사본이나 상당 부분을 재배포할 때 저작권·허가 고지를 유지하세요. 제3자 의존성·데이터·
+브랜드 자산은 각각의 고지를 유지합니다. [프로필 위치 데이터 고지](../../src/backend/app/models/profile_location.LICENSE.txt)를
+참고하세요. 고정된 B4React 저장소는 자체 라이선스와 자산 고지를 관리합니다.
