@@ -45,6 +45,22 @@ class ProjectInitializationTests(unittest.TestCase):
             status = setup.run(command, self.root, self.config)
         return status, stream.getvalue()
 
+    def test_initialized_example_secret_is_replaced_once(self):
+        for directory in ("src/backend", "docker"):
+            (self.root / directory / ".env").write_text(
+                "SECRET_KEY=CHANGE_ME_FOR_PRODUCTION\n"
+            )
+        self.assertEqual(self.run_command("apply")[0], 0)
+        for directory in ("src/backend", "docker"):
+            path = self.root / directory / ".env"
+            _, entries = setup.env_files.read(path)
+            key = setup.env_value(entries, "SECRET_KEY")
+            self.assertGreaterEqual(len(key), 64)
+            self.assertNotIn("CHANGE_ME", key)
+            before = path.read_text()
+            self.assertEqual(self.run_command("apply")[0], 0)
+            self.assertEqual(path.read_text(), before)
+
     def test_fresh_setup_plan_apply_and_idempotence(self):
         self.assertEqual(self.run_command("plan")[0], 0)
         self.assertFalse((self.root / "src/backend/.env").exists())

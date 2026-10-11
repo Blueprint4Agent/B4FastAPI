@@ -279,6 +279,20 @@ class Settings(BaseModel):
     def validate_runtime_mode(self) -> None:
         if self.APP_MODE == "production" and not self.LOGIN_ENABLED:
             raise ValueError("APP_MODE=production requires LOGIN_ENABLED=true.")
+        if self.APP_MODE == "production":
+            minimum_bytes = {"HS256": 32, "HS384": 48, "HS512": 64}.get(self.ALGORITHM)
+            key = self.SECRET_KEY
+            if (
+                minimum_bytes is None
+                or key != key.strip()
+                or key.upper().startswith("CHANGE_ME")
+                or len(key.encode("utf-8")) < minimum_bytes
+            ):
+                raise ValueError(
+                    "Production SECRET_KEY must be a unique random key without surrounding "
+                    "whitespace or example placeholders; HS256/HS384/HS512 require at least "
+                    "32/48/64 UTF-8 bytes respectively."
+                )
 
     @property
     def celery_broker_url(self) -> str:

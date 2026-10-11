@@ -314,6 +314,7 @@ def test_remote_provider_presets_share_adapter(provider, region, style):
             "OBJECT_STORAGE_PROVIDER": "s3",
             "OBJECT_STORAGE_S3_ENDPOINT_URL": "http://example.com",
             "APP_MODE": "production",
+            "SECRET_KEY": "test-only-production-key-32-bytes!",
         },
         {"OBJECT_STORAGE_LOCAL_ROOT": "relative"},
         {"OBJECT_STORAGE_MAX_BYTES": 0},

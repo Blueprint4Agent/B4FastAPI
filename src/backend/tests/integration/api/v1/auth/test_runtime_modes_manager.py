@@ -19,7 +19,14 @@ def test_production_requires_login_and_known_mode():
         Settings(APP_MODE="production", LOGIN_ENABLED=False)
     with pytest.raises(ValidationError):
         Settings(APP_MODE="prod")
-    assert Settings(APP_MODE="production", LOGIN_ENABLED=True).APP_MODE == "production"
+    assert (
+        Settings(
+            APP_MODE="production",
+            LOGIN_ENABLED=True,
+            SECRET_KEY="test-only-production-key-32-bytes!",
+        ).APP_MODE
+        == "production"
+    )
 
 
 @pytest.mark.primary_data
