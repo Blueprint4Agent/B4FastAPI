@@ -167,3 +167,11 @@ def test_sse_data_matches_typed_event_contract(event_type):
     assert parsed.type == event_type
     assert parsed.payload.api_key.id == 1
     assert json.loads(data)["id"] == event.id
+
+
+@pytest.mark.parametrize("method", ["get", "put", "delete"])
+def test_photo_error_descriptions_are_stable_across_python_versions(contract_app, method):
+    """Scenario: Python 3.12 and 3.13 export the same profile-photo error contract."""
+    responses = contract_app.openapi()["paths"]["/api/v1/auth/me/photo"][method]["responses"]
+    assert responses["413"]["description"] == "Content Too Large"
+    assert responses["422"]["description"] == "Unprocessable Content"
