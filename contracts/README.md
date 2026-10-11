@@ -161,3 +161,5 @@ still readable. PATCH photo inputs (including null) now return 422; adopt the ne
 endpoints together with the client. New failures include 413 size, 422 image validation,
 409 concurrent change, 404 missing photo and 503 storage unavailable. Failed upload
 must not replace confirmed client state; binary reads need bearer/API-key headers.
+
+Domain error descriptions for HTTP 413 and 422 use the pinned phrases `Content Too Large` and `Unprocessable Content`. Python standard-library wording differs between 3.12 and 3.13; these differences must not change the shared OpenAPI baseline.

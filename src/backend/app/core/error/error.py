@@ -123,7 +123,11 @@ def build_error_responses_from_codes(
         if status_code in specs:
             continue
         try:
-            description = HTTPStatus(status_code).phrase
+            # Python 3.13 renamed these phrases; keep the shared contract stable.
+            description = {
+                413: "Content Too Large",
+                422: "Unprocessable Content",
+            }.get(status_code) or HTTPStatus(status_code).phrase
         except ValueError:
             description = str(status_code)
         specs[status_code] = (
