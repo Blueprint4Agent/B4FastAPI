@@ -6,6 +6,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-}
+        VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
     env_file:
       - ./.env
     environment: &backend-environment
@@ -34,6 +37,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-}
+        VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
     profiles: ["celery"]
     environment: *backend-environment
     volumes:
@@ -58,6 +64,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-}
+        VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
     profiles: ["celery"]
     environment: *backend-environment
     env_file:

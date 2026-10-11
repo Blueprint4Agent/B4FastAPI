@@ -292,3 +292,20 @@ Verify the deployed domain with `/health/ready`, login/refresh cookies and OAuth
 redirects. Confirm `/metrics` is unavailable publicly. Local TLS smoke tests do not
 prove public DNS, certificate issuance, provider callbacks or backup recovery.
 See [Caddy proxy documentation](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
+
+## Public sharing metadata
+
+B4React embeds description/Open Graph/Twitter tags into static HTML. Set optional
+`VITE_PUBLIC_SITE_URL=https://your-domain.example` and `VITE_SITE_DESCRIPTION` in
+`docker/.env`, then run `make docker-build` and redeploy using your existing Compose
+overlays. These are public frontend build arguments; runtime environment changes
+alone do not update HTML. `.env` files remain excluded from the Docker build context.
+
+The URL must be an HTTP(S) origin without credentials, path, query or fragment.
+Leave it empty until a real public origin is available; URL/image tags are then
+omitted. Project titles follow project.json via generated child identity. Custom
+projects use their own raster logo or omit images; they never inherit the template
+banner. Direct Docker builds can pass `--build-arg VITE_PUBLIC_SITE_URL=...` and
+`--build-arg VITE_SITE_DESCRIPTION=...`. Prebuilt images retain their build values.
+See [child sharing behavior](src/frontend/notes/sharing.md). Verify the resulting
+HTML at the deployed origin and refresh provider preview caches as needed.
