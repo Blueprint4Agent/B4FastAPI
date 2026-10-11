@@ -1,11 +1,25 @@
 # Blueprint4FastAPI
 
-Blueprint4FastAPI is a full-stack template with:
+A FastAPI + React blueprint with authentication, typed API contracts and a repeatable
+workflow for agents and developers. Start with shared application patterns, then adapt
+the product identity and domain logic to your service.
 
-- Backend: FastAPI + SQLAlchemy + Alembic + Redis
-- Frontend: React + TypeScript + OpenAPI-generated API types
-- Optional desktop shell: Tauri 2 using the same React frontend
-- Monolithic static serving support (frontend build copied into backend static path)
+[Quick start](#quick-start) · [New project setup](PROJECT_SETUP.md) · [Deployment](DEPLOY.md) · [한국어](notes/ko/README.md)
+
+![B4A component library running locally in development mode](notes/assets/showcase-en.png)
+
+*Actual local development showcase. No customer accounts or external integrations are used.*
+
+| Included foundation | Configuration boundary |
+| --- | --- |
+| FastAPI, SQLAlchemy, Alembic and typed React API clients | Domain logic and production database settings belong to your service |
+| Accounts, roles, profile, API keys and realtime refresh | Email, OAuth and Stripe require provider credentials and configuration |
+| Shared UI, English/Korean text, theme and component showcase | Customize identity with project.json; showcase is development-only |
+| Docker packaging, readiness, persistent storage and optional HTTPS | Configure domain, secrets, backups and deployment-specific validation |
+| Agent guides, worklogs, local hooks and contract/browser tests | GitHub workflows are manual; local checks are not server-side enforcement |
+| Optional Tauri desktop shell using the same React app | Backend hosting, signing and distribution are separate tasks |
+
+See [publication notes](notes/publication.md) for the supported claims and release evidence.
 
 ## Documentation Entry
 
@@ -45,6 +59,14 @@ docker/
 ```
 
 ## Quick Start
+
+Install Git, Make, Python 3.11+, uv, Node.js 24 and npm. Local defaults use SQLite
+and in-memory Redis; Docker deployment additionally requires Docker/Compose.
+
+```bash
+git clone --recurse-submodules https://github.com/Blueprint4Agent/B4FastAPI.git
+cd B4FastAPI
+```
 
 1. Initialize env files:
 

@@ -1,11 +1,25 @@
 # Blueprint4FastAPI
 
-Blueprint4FastAPI는 다음 구성을 갖춘 풀스택 템플릿입니다.
+인증, 타입 기반 API 계약, 에이전트와 개발자가 함께 사용하는 작업·검증 절차를 갖춘
+FastAPI + React 블루프린트입니다. 공통 애플리케이션 구조에서 시작해 서비스의
+브랜드와 도메인 로직을 추가할 수 있습니다.
 
-- 백엔드: FastAPI + SQLAlchemy + Alembic + Redis
-- 프론트엔드: React + TypeScript + OpenAPI 기반 API 타입 생성
-- 선택형 데스크톱 셸: 동일한 React 프론트엔드를 사용하는 Tauri 2
-- 모놀리식 정적 서빙 지원 (프론트 빌드를 백엔드 static 경로로 복사)
+[빠른 시작](#빠른-시작) · [새 프로젝트 설정](PROJECT_SETUP.md) · [배포](DEPLOY.md) · [English](../../README.md)
+
+![로컬 개발 모드에서 실행한 B4A 컴포넌트 라이브러리](../assets/showcase-ko.png)
+
+*실제 로컬 개발 쇼케이스입니다. 고객 계정이나 외부 연동을 사용하지 않았습니다.*
+
+| 포함된 기반 | 서비스별 설정 |
+| --- | --- |
+| FastAPI·SQLAlchemy·Alembic과 타입 기반 React API 클라이언트 | 도메인 로직과 운영 데이터베이스 설정 |
+| 계정·역할·프로필·API 키·실시간 갱신 | 이메일·OAuth·Stripe 제공자 인증정보와 설정 |
+| 공통 UI·한국어/영어·테마·컴포넌트 쇼케이스 | project.json으로 브랜드 변경, 쇼케이스는 개발 전용 |
+| Docker 패키징·readiness·영속 저장소·선택형 HTTPS | 도메인·시크릿·백업과 배포 환경별 검증 |
+| 에이전트 가이드·워크로그·로컬 훅·계약/브라우저 테스트 | GitHub 워크플로는 수동이며 로컬 검사는 서버 측 강제가 아님 |
+| React 앱을 공유하는 선택형 Tauri 데스크톱 셸 | 백엔드 호스팅·서명·배포는 별도 작업 |
+
+[공개 소개와 검증 범위](publication.md)에서 소개 문구와 배포 전 확인 범위를 확인하세요.
 
 ## 문서 시작점
 
@@ -40,6 +54,14 @@ docker/
 ```
 
 ## 빠른 시작
+
+Git·Make·Python 3.11 이상·uv·Node.js 24·npm을 준비하세요. 로컬 기본 환경은 SQLite와
+메모리 Redis를 사용하며, Docker 배포에는 Docker/Compose가 별도로 필요합니다.
+
+```bash
+git clone --recurse-submodules https://github.com/Blueprint4Agent/B4FastAPI.git
+cd B4FastAPI
+```
 
 1. 환경 파일 초기화:
 
