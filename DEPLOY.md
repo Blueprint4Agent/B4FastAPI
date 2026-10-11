@@ -12,22 +12,22 @@ This document defines the concrete deployment flow for this repository.
 - `5432` (postgres)
 - `6379` (redis)
 
-Git, Make and Python/uv are also required. Compose must support `up --wait --wait-timeout`.
+Git, Make and Python 3 are also required; deployment commands do not need host uv. Compose must support `up --wait --wait-timeout`.
 Local frontend builds need Node.js 24 and npm; Docker builds run these inside the image.
 
 ## 2) Environment Setup
 
-Initialize template env files:
+Initialize a new deployment env (existing files are never overwritten):
 
 ```bash
-make init
+make docker-init PUBLIC_DOMAIN=app.example.com
 ```
 
 Primary deployment env file:
 
 - `docker/.env`
 
-Before deployment, set a unique random `SECRET_KEY` in `docker/.env`.
+The initializer generates random local credentials. For an existing deployment, retain its keys or explicitly configure a unique random `SECRET_KEY` in `docker/.env`.
 Generate one with `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
 Review DB/Redis passwords, public APP_BASE_URL/CORS_ORIGINS and enabled integrations.
 Do not automatically replace existing keys; see [production key policy](notes/runtime-modes-rbac.md).
@@ -123,7 +123,7 @@ Follow logs:
 bash ./docker/scripts/docker-logs.sh app
 ```
 
-One-shot deploy (build + recreate up + export tar):
+One-shot deploy (preflight + image preparation + service readiness + HTTP smoke):
 
 ```bash
 bash ./docker/scripts/docker-deploy.sh
@@ -221,7 +221,7 @@ Alembic startup migration fails with revision length errors
 No tar artifact found
 
 - `docker-build.sh` does not export tar.
-- Use `docker-deploy.sh` or `docker-export.sh`.
+- Use `docker-export.sh` explicitly when an offline archive is needed.
 
 ## Frontend source and packaging
 
@@ -264,23 +264,22 @@ APP_BASE_URL and CORS_ORIGINS with the actual HTTPS origin. Update enabled OAuth
 callback and Stripe return/webhook URLs accordingly. Set SWAGGER_ENABLED=false if
 API documentation is not needed. Keep database passwords unique.
 
-Use the optional proxy after the app passes local readiness:
+Persist the proxy selection in `docker/.env` so every deployment/status/log command
+uses the same topology:
 
-```sh
-make docker-build
-make docker-up
-cd docker
-export PUBLIC_DOMAIN=app.example.com  # replace with a hostname you control
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml config --quiet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml up -d --no-deps --wait app caddy
+```dotenv
+COMPOSE_FILE=docker-compose.yml:docker-compose.https.yml
+PUBLIC_DOMAIN=app.example.com
+APP_BASE_URL=https://app.example.com
+CORS_ORIGINS=https://app.example.com
+VITE_PUBLIC_SITE_URL=https://app.example.com
 ```
 
-Keep PUBLIC_DOMAIN exported and both Compose files selected for later public
-rollouts; the plain `make docker-deploy` command does not manage this optional
-overlay and would remove its app proxy-trust setting when recreating the app.
-Build with `make docker-build` from the repository root, then repeat the combined
-Compose command. Start required DB/Redis/mail workers through the normal startup
-flow first; this command deliberately does not recreate infrastructure.
+Then run `make docker-check` and `make docker-deploy`. On a **new** installation,
+`make docker-init PUBLIC_DOMAIN=app.example.com` creates this configuration and random
+local credentials with file mode 0600. It refuses existing files. See the
+[single-server AWS/Cloudflare runbook](notes/monolithic-deployment.md) for prerequisites,
+updates, image selection, status, backup and recovery boundaries.
 
 Caddy manages TLS certificates and blocks public metrics, Swagger/Redoc and
 OpenAPI routes. Prometheus can still scrape `app:8000` privately. The proxy streams
@@ -309,3 +308,5 @@ banner. Direct Docker builds can pass `--build-arg VITE_PUBLIC_SITE_URL=...` and
 `--build-arg VITE_SITE_DESCRIPTION=...`. Prebuilt images retain their build values.
 See [child sharing behavior](src/frontend/notes/sharing.md). Verify the resulting
 HTML at the deployed origin and refresh provider preview caches as needed.
+
+Monolithic server deployment: [English](notes/monolithic-deployment.md) · [한국어](notes/ko/monolithic-deployment.md).
