@@ -560,3 +560,11 @@ Startup and shutdown use a B4A service/status panel in interactive terminals, wi
 Lifecycle email operations: [English](notes/lifecycle-mail.md) · [한국어](notes/ko/lifecycle-mail.md).
 
 - Personal profile and account security: [English](notes/account-profile.md) · [한국어](notes/ko/account-profile.md)
+
+## License
+
+Original project material is available under the [MIT License](LICENSE).
+Retain the copyright and permission notice when redistributing copies or substantial
+portions. Third-party dependencies, data and brand assets retain their own notices;
+see the [profile-location data notice](src/backend/app/models/profile_location.LICENSE.txt).
+The pinned B4React repository maintains its own license and asset notices.
