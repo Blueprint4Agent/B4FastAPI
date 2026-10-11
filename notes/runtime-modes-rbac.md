@@ -138,3 +138,16 @@ Feature settings are process configuration, so changing environment values requi
 ## Mail recovery access
 
 No application role (user, manager or admin) grants cross-account lifecycle-mail HTTP access. The metadata-only inspection/retry CLI requires trusted deployment-operator shell/DB access, like the role CLI. See [mail operations](lifecycle-mail.md).
+
+## Production signing key
+
+Production rejects blank/example keys, surrounding whitespace and keys shorter than
+32/48/64 UTF-8 bytes for HS256/HS384/HS512. Generate a unique random value with
+`python3 -c "import secrets; print(secrets.token_urlsafe(48))"` and set `SECRET_KEY`
+in the deployment environment before startup. Length validation cannot prove entropy.
+Development retains its existing behavior. `make project-init` replaces the published
+example placeholders but preserves existing configured keys.
+
+Do not automatically rotate an existing deployment: changing the key invalidates
+JWTs and key-derived API credentials/verification data, and can affect encrypted
+mail recovery data. Plan rotation separately.

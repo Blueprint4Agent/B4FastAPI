@@ -67,7 +67,12 @@ def plan(root: Path, manifest_path: Path) -> dict[Path, bytes]:
                 {key: f"{key}='{value}'\n" for key, value in overrides.items()}
             )
             # Generate only absent/default placeholder keys, never rotate a configured secret.
-            if env_value(entries, "SECRET_KEY") in {None, "", "CHANGE_ME"}:
+            if env_value(entries, "SECRET_KEY") in {
+                None,
+                "",
+                "CHANGE_ME",
+                "CHANGE_ME_FOR_PRODUCTION",
+            }:
                 values["SECRET_KEY"] = f"SECRET_KEY='{secrets.token_urlsafe(48)}'\n"
         output[target] = env_files.render(template, values).encode()
     for target in output:
