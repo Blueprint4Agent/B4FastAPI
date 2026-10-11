@@ -243,3 +243,43 @@ API 프로세스 간 공유되지 않으므로 다중 프로세스에서는 실�
 트래픽을 재개하세요. DB_NAME만 변경하면 다른 데이터베이스를 생성하며 기존 파일은
 자동 이전되지 않습니다. Compose 프로젝트 이름을 유지하고, 데이터를 보존할 때
 `docker compose down -v`를 실행하지 마세요. [백업/복원](backend/DB_BACKUP_RESTORE.md)을 참고하세요.
+
+## 공개 HTTPS 배포와 컨테이너 권한
+
+앱·워커·Beat 이미지는 UID/GID `10001:10001`로 실행하며 Compose에서 Linux
+capability와 권한 상승을 차단합니다. 새 데이터 볼륨은 이미지 디렉터리의 쓰기 권한을
+물려받습니다. 기존 root 소유 로컬 객체·SQLite·Beat 볼륨은 업그레이드 전에 백업하고
+UID/GID 10001로 명시적으로 이전하세요. 대상 볼륨 이름과 사용자 지정
+OBJECT_STORAGE_LOCAL_ROOT를 먼저 확인하세요. 기존 데이터 소유권을 자동 변경하지 않습니다.
+
+기본 앱 포트는 `127.0.0.1`에만 공개합니다. 외부 공개 시 DNS를 서버로 연결하고
+TCP 80/443을 허용한 뒤 운영 서명 키와 실제 HTTPS APP_BASE_URL·CORS_ORIGINS를
+설정하세요. 활성화된 OAuth 콜백과 Stripe 반환·웹훅 주소도 맞추고, API 문서가
+필요하지 않으면 SWAGGER_ENABLED=false를 사용하세요. DB 비밀번호도 고유하게 설정하세요.
+
+앱의 로컬 readiness를 확인한 뒤 선택형 프록시를 시작합니다.
+
+```sh
+make docker-build
+make docker-up
+cd docker
+export PUBLIC_DOMAIN=app.example.com  # 직접 관리하는 호스트명으로 변경
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml config --quiet
+docker compose --env-file .env -f docker-compose.yml -f docker-compose.https.yml up -d --no-deps --wait app caddy
+```
+
+후속 공개 배포에도 PUBLIC_DOMAIN과 두 Compose 파일을 함께 사용하세요. 일반
+`make docker-deploy`는 선택형 overlay를 관리하지 않으며 앱 재생성 시 프록시 신뢰
+설정이 빠집니다. 저장소 루트에서 `make docker-build` 후 위의 결합된 Compose 명령을
+다시 실행하세요. 필요한 DB·Redis·메일 워커는 기존 시작 절차로 먼저 준비하며,
+위 명령은 인프라를 재생성하지 않습니다.
+
+Caddy가 TLS 인증서를 관리하고 공개 metrics·Swagger/Redoc·OpenAPI 접근을 차단합니다.
+Prometheus는 내부 `app:8000`으로 접근할 수 있고 SSE는 응답을 버퍼링하지 않고
+전달합니다. overlay는 OAuth 리디렉션의 HTTPS 처리를 위해 내부 네트워크에서
+전달하는 프록시 헤더를 Uvicorn이 신뢰하도록 설정합니다. 앱 포트를 모든 인터페이스에
+열거나 신뢰하지 않는 컨테이너를 같은 네트워크에 연결하지 마세요.
+
+실제 도메인에서 `/health/ready`, 로그인·갱신 쿠키, OAuth 리디렉션과 공개 `/metrics`
+차단을 확인하세요. 로컬 TLS 검증은 실제 DNS·인증서 발급·제공자 콜백·백업 복원을
+대신하지 않습니다. [Caddy 프록시 문서](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)를 참고하세요.

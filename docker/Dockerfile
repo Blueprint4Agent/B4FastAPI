@@ -36,6 +36,13 @@ RUN uv sync --frozen --no-dev
 COPY src/backend/ ./
 COPY --from=frontend_builder /workspace/src/frontend/dist ./app/static/dist
 
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /var/lib/b4fastapi/objects /var/lib/b4fastapi/database /var/lib/celery \
+    && chown -R app:app /var/lib/b4fastapi /var/lib/celery
+
+USER 10001:10001
+
 EXPOSE 8000
 
 CMD ["./.venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
