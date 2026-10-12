@@ -504,6 +504,8 @@
           },
           "error": {
             "enum": [
+              "ADMIN_DEMO_DISABLED",
+              "ADMIN_DEMO_FAILED",
               "ADMIN_STATUS_FAILED"
             ],
             "example": "ADMIN_STATUS_FAILED",
@@ -726,6 +728,11 @@
                 "type": "null"
               }
             ]
+          },
+          "demo_enabled": {
+            "default": false,
+            "title": "Demo Enabled",
+            "type": "boolean"
           },
           "email_enabled": {
             "title": "Email Enabled",
@@ -2837,6 +2844,210 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/demo/status": {
+      "get": {
+        "operationId": "demo_status_api_v1_admin_demo_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ADMIN_DEMO_DISABLED",
+                    "message": "Demo is not available."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ADMIN_DEMO_FAILED",
+                    "message": "Unable to load demo data."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Demo Status",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
+    "/api/v1/admin/demo/users": {
+      "get": {
+        "operationId": "demo_users_api_v1_admin_demo_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Search",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/UserRole"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Role"
+            }
+          },
+          {
+            "in": "query",
+            "name": "is_active",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Is Active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ADMIN_DEMO_DISABLED",
+                    "message": "Demo is not available."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "ADMIN_DEMO_FAILED",
+                    "message": "Unable to load demo data."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AdminErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Demo Users",
+        "tags": [
+          "Admin"
+        ]
+      }
+    },
     "/api/v1/admin/status": {
       "get": {
         "operationId": "status_api_v1_admin_status_get",

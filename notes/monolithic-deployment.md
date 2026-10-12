@@ -156,3 +156,14 @@ and its Compose overlay list. See [Compose file selection](https://docs.docker.c
 Set `VITE_BUY_ME_A_COFFEE_ENABLED=true` and `VITE_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/yourname` in the selected Docker environment, then run `make docker-deploy` to rebuild. The defaults disable the link. These values are public build arguments, not secrets. The B4A home and sidebar show the link only when server `APP_MODE=development`; production hides it even if enabled. A valid HTTPS creator profile is required; no third-party embed is loaded. Changing runtime environment without rebuilding does not change Vite build-time values.
 
 The manual Build workflow accepts `coffee_enabled` (default false) and `coffee_url` as public frontend build arguments for GHCR images. These settings still never render support links when the server uses production mode. After merging, run the workflow with `ref=main` and `publish_image=true`; the published moving tag is `manual-main`.
+
+
+## Public administrator demo
+
+Set `DEMO_ENABLED=true` in `docker/.env`, then run `make docker-deploy DEPLOY_SOURCE=pull` with an image that includes this feature. The setting is runtime-only: no frontend rebuild is required. It defaults to `false` and works in production. `/config` reports `demo_enabled`.
+
+Visitors, including guests, can open `/demo/admin` and `/demo/admin/server` from the sidebar or the home previews. These reuse the administrator screens through GET-only `/api/v1/admin/demo/users` and `/api/v1/admin/demo/status`. Real administrator routes retain their role checks.
+
+Opting in publishes real totals, roles, active/verified flags, login-provider names, day-level UTC signup/last-login dates and real server health/effective feature flags. Names, emails and database IDs are replaced with keyed pseudonyms; internal connection hosts and ports are removed. Search matches pseudonyms only. This is pseudonymized data, not a guarantee against inference from small populations. No credentials, IPs, profile data or mutation APIs are exposed. Results are cached per process for up to 30 seconds; errors fail closed. The first directory snapshot reads minimal projections of all users, so large deployments should assess memory usage before enabling this showcase feature.
+
+Set `DEMO_ENABLED=false` and redeploy to remove navigation and return 404 from demo APIs. Do not rotate `SECRET_KEY` just to change aliases: it also signs authentication tokens. Demo mode does not enable metrics, tracing, log export or an observability stack.

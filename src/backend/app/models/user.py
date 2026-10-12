@@ -764,6 +764,28 @@ class UserRepository:
             await db.commit()
             return user.id, previous, role.value
 
+    async def list_demo_user_projection(self) -> list[dict]:
+        """Exclude names, emails, profile and credentials at the database boundary."""
+        async with get_db() as db:
+            result = await db.execute(
+                select(
+                    User.id, User.role, User.is_active, User.is_verified, User.created_at
+                ).order_by(User.id.desc())
+            )
+            users = [dict(row) for row in result.mappings()]
+            identities = await db.execute(
+                select(AuthIdentity.user_id, AuthIdentity.provider, AuthIdentity.last_login_at)
+            )
+            by_user: dict[int, list] = {}
+            for identity in identities:
+                by_user.setdefault(identity.user_id, []).append(identity)
+            for user in users:
+                linked = by_user.get(user["id"], [])
+                user["login_providers"] = sorted({item.provider for item in linked})
+                dates = [item.last_login_at for item in linked if item.last_login_at]
+                user["last_login_at"] = max(dates) if dates else None
+            return users
+
     async def list_admin_users(
         self,
         *,

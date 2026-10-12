@@ -11,6 +11,13 @@ from .error import (
 
 
 class AdminErrorCode(Enum):
+    DEMO_DISABLED = ServiceErrorCode(
+        "ADMIN_DEMO_DISABLED", "Demo is not available.", status.HTTP_404_NOT_FOUND
+    )
+    DEMO_FAILED = ServiceErrorCode(
+        "ADMIN_DEMO_FAILED", "Unable to load demo data.", status.HTTP_503_SERVICE_UNAVAILABLE
+    )
+
     STATUS_FAILED = ServiceErrorCode(
         "ADMIN_STATUS_FAILED",
         "Unable to inspect server status.",

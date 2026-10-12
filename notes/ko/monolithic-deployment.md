@@ -141,3 +141,14 @@ make docker-logs DOCKER_SERVICE=caddy
 선택한 Docker 환경파일에 `VITE_BUY_ME_A_COFFEE_ENABLED=true`, `VITE_BUY_ME_A_COFFEE_URL=https://buymeacoffee.com/yourname`을 설정하고 `make docker-deploy`로 다시 빌드합니다. 기본값은 꺼짐이며 두 값은 비밀값이 아닌 공개 빌드 인자입니다. B4A 홈과 사이드바는 서버 `APP_MODE=development`에서만 링크를 표시하고 운영 모드에서는 설정과 무관하게 숨깁니다. 올바른 HTTPS 프로필 주소가 필요하며 외부 임베드는 추가하지 않습니다. Vite 빌드 시점 설정이므로 실행 환경만 바꾸거나 기존 이미지만 재시작해서는 반영되지 않습니다.
 
 수동 Build 워크플로는 GHCR 이미지의 공개 프론트 빌드 인자로 `coffee_enabled`(기본 false), `coffee_url`을 받습니다. 서버 운영 모드에서는 이 설정과 무관하게 후원 링크가 숨겨집니다. 머지 후 `ref=main`, `publish_image=true`로 실행하면 `manual-main` 태그가 갱신됩니다.
+
+
+## 공개 관리자 데모
+
+`docker/.env`에 `DEMO_ENABLED=true`를 설정하고 기능이 포함된 이미지로 `make docker-deploy DEPLOY_SOURCE=pull`을 실행합니다. 기본값은 `false`이며 운영 모드에서도 사용할 수 있습니다. 런타임 설정이라 프론트엔드 이미지를 다시 빌드할 필요가 없고 `/config`의 `demo_enabled`로 확인할 수 있습니다.
+
+비로그인 방문자도 사이드바 또는 홈 미리보기에서 `/demo/admin`, `/demo/admin/server`로 접근합니다. 기존 관리자 화면을 재사용하며 조회 전용 `/api/v1/admin/demo/users`, `/api/v1/admin/demo/status`를 호출합니다. 실제 관리자 API의 권한 검사는 유지됩니다.
+
+활성화하면 실제 사용자 수·역할·활성/인증 여부·로그인 제공자·UTC 일 단위 가입/최근 로그인 날짜와 서버 상태·기능 활성 상태가 공개됩니다. 이름·이메일·DB 식별자는 키 기반 가명으로 대체하고 내부 연결 호스트·포트는 제거합니다. 검색도 가명만 대상으로 합니다. 소수 집단에서는 역할 등으로 추정할 여지가 있는 가명화 데이터입니다. 자격 증명·IP·프로필 데이터와 변경 API는 공개하지 않습니다. 결과는 프로세스별 최대 30초 캐시하며 오류 시 원본 데이터로 대체하지 않습니다. 최초 사용자 스냅샷은 전체 사용자의 최소 필드를 조회하므로 대규모 운영에서는 메모리 사용량을 점검한 뒤 사용합니다.
+
+`DEMO_ENABLED=false`로 재배포하면 메뉴가 사라지고 데모 API는 404를 반환합니다. 가명을 바꾸려고 `SECRET_KEY`를 변경하지 마세요. 인증 토큰에도 사용하는 키입니다. 데모 활성화는 메트릭·트레이싱·로그 내보내기 또는 옵저버빌리티 스택을 켜지 않습니다.
