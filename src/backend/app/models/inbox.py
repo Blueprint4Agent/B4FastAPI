@@ -1,9 +1,10 @@
 """Durable user-facing notifications, separate from the mail delivery outbox."""
 
 import hashlib
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +30,7 @@ class InboxNotification(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
@@ -50,6 +52,10 @@ class InboxSummary(BaseModel):
 
 class InboxPage(PageResponse[InboxItem]):
     summary: InboxSummary
+
+
+class InboxSelectionForm(BaseModel):
+    notification_ids: list[PositiveInt] = Field(min_length=1, max_length=100)
 
 
 class InboxReadAllForm(BaseModel):
@@ -107,15 +113,21 @@ class InboxRepository:
             unread = await db.scalar(
                 select(func.count())
                 .select_from(InboxNotification)
-                .where(InboxNotification.user_id == user_id, InboxNotification.read_at.is_(None))
+                .where(
+                    InboxNotification.user_id == user_id,
+                    InboxNotification.deleted_at.is_(None),
+                    InboxNotification.read_at.is_(None),
+                )
             )
             latest = await db.scalar(
-                select(func.max(InboxNotification.id)).where(InboxNotification.user_id == user_id)
+                select(func.max(InboxNotification.id)).where(
+                    InboxNotification.user_id == user_id, InboxNotification.deleted_at.is_(None)
+                )
             )
             return InboxSummary(unread_count=unread or 0, latest_id=latest or 0)
 
     async def list(self, user_id: int, page: int, page_size: int, unread_only: bool) -> InboxPage:
-        filters = [InboxNotification.user_id == user_id]
+        filters = [InboxNotification.user_id == user_id, InboxNotification.deleted_at.is_(None)]
         if unread_only:
             filters.append(InboxNotification.read_at.is_(None))
         async with get_db() as db:
@@ -144,7 +156,9 @@ class InboxRepository:
         async with get_db() as db:
             row = await db.scalar(
                 select(InboxNotification).where(
-                    InboxNotification.id == notification_id, InboxNotification.user_id == user_id
+                    InboxNotification.id == notification_id,
+                    InboxNotification.user_id == user_id,
+                    InboxNotification.deleted_at.is_(None),
                 )
             )
             if row is None:
@@ -168,11 +182,32 @@ class InboxRepository:
                 update(InboxNotification)
                 .where(
                     InboxNotification.user_id == user_id,
+                    InboxNotification.deleted_at.is_(None),
                     InboxNotification.id <= through_id,
                     InboxNotification.read_at.is_(None),
                 )
                 .values(read_at=datetime.now(UTC))
             )
+            await db.commit()
+
+    async def update_selected(
+        self, user_id: int, notification_ids: Sequence[int], *, remove: bool
+    ) -> None:
+        async with get_db() as db:
+            query = update(InboxNotification).where(
+                InboxNotification.user_id == user_id,
+                InboxNotification.id.in_(notification_ids),
+                InboxNotification.deleted_at.is_(None),
+            )
+            if remove:
+                query = query.values(
+                    deleted_at=datetime.now(UTC), title="", body="", action_path=None
+                )
+            else:
+                query = query.where(InboxNotification.read_at.is_(None)).values(
+                    read_at=datetime.now(UTC)
+                )
+            await db.execute(query)
             await db.commit()
 
 

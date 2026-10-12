@@ -86,3 +86,5 @@ Code flow is request → verify → change/delete. Resend is available after 30 
 Profile shortcut defaults to Cmd+Shift+P on macOS and Ctrl+Shift+P elsewhere, is customizable in Keyboard settings, and ignores text editing and open dialogs. Existing two-action shortcut records remain accepted. The showcase includes shared backgroundless pencil/check/close icon buttons.
 
 Profile enters with the existing 260ms rise animation and honors the global reduced-motion preference.
+
+Clicking outside an inline profile editor discards its unsaved draft. Save/cancel controls and the owned floating country/region menus remain inside the editing boundary. Outside clicks do not interrupt an in-flight save.

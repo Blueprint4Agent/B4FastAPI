@@ -3,7 +3,13 @@ from fastapi import APIRouter, Depends, Response
 from app.core.error.inbox_exception import InboxErrorCode, inbox_error_responses
 from app.core.error.response_contracts import current_user_error_responses
 from app.deps import get_current_user
-from app.models.inbox import InboxItem, InboxPage, InboxReadAllForm, InboxSummary
+from app.models.inbox import (
+    InboxItem,
+    InboxPage,
+    InboxReadAllForm,
+    InboxSelectionForm,
+    InboxSummary,
+)
 from app.models.user import UserResponse
 from app.routers.list_query import DEFAULT_PAGE_SIZE, PageQuery, PageSizeQuery
 from app.services.inbox import InboxService
@@ -58,3 +64,27 @@ async def read(
 ) -> InboxItem:
     response.headers["Cache-Control"] = "no-store"
     return await service.read(user.id, notification_id)
+
+
+@router.post(
+    "/read-selected", response_model=InboxSummary, responses=current_user_error_responses()
+)
+async def read_selected(
+    form: InboxSelectionForm,
+    response: Response,
+    user: UserResponse = Depends(get_current_user),
+    service: InboxService = Depends(),
+) -> InboxSummary:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.update_selected(user.id, form.notification_ids, remove=False)
+
+
+@router.delete("/selected", response_model=InboxSummary, responses=current_user_error_responses())
+async def delete_selected(
+    form: InboxSelectionForm,
+    response: Response,
+    user: UserResponse = Depends(get_current_user),
+    service: InboxService = Depends(),
+) -> InboxSummary:
+    response.headers["Cache-Control"] = "no-store"
+    return await service.update_selected(user.id, form.notification_ids, remove=True)
