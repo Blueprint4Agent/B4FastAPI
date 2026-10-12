@@ -571,3 +571,5 @@ API 인증 정책 점검: [한국어](api-authentication.md) · [English](../api
 참고하세요. 고정된 B4React 저장소는 자체 라이선스와 자산 고지를 관리합니다.
 
 Blueprint4Agent(B4A)는 상위 프로젝트 이름이며 Blueprint4FastAPI(B4FastAPI)는 이 백엔드와 독립 버전의 B4React 프런트엔드를 결합합니다. 공개 검색 페이지와 배포: [한국어](search-discovery.md) · [English](../search-discovery.md).
+
+경로 기반 모놀리식 호스팅: [basePath 배포](base-path-deployment.md) · [English](../base-path-deployment.md).

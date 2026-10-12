@@ -1,3 +1,4 @@
+import hashlib
 from datetime import timedelta
 
 from fastapi import Request, Response
@@ -6,6 +7,16 @@ from app.core.config.settings import SETTINGS
 
 REFRESH_COOKIE_NAME = "template_refresh_token"
 REFRESH_SID_COOKIE_NAME = "template_refresh_sid"
+
+
+def refresh_cookie_names() -> tuple[str, str]:
+    # Root keeps existing names. Prefix-specific names also avoid collisions with a root app.
+    suffix = (
+        "_" + hashlib.sha256(SETTINGS.APP_BASE_PATH.encode()).hexdigest()[:16]
+        if SETTINGS.APP_BASE_PATH
+        else ""
+    )
+    return REFRESH_COOKIE_NAME + suffix, REFRESH_SID_COOKIE_NAME + suffix
 
 
 def _is_https_request(request: Request) -> bool:
@@ -18,10 +29,8 @@ def _is_https_request(request: Request) -> bool:
 
 
 def get_refresh_cookie_value(request: Request) -> tuple[str | None, str | None]:
-    return (
-        request.cookies.get(REFRESH_COOKIE_NAME),
-        request.cookies.get(REFRESH_SID_COOKIE_NAME),
-    )
+    token_name, sid_name = refresh_cookie_names()
+    return request.cookies.get(token_name), request.cookies.get(sid_name)
 
 
 def set_refresh_cookies(
@@ -36,7 +45,7 @@ def set_refresh_cookies(
         "httponly": True,
         "secure": secure,
         "samesite": "none" if secure else "lax",
-        "path": "/",
+        "path": SETTINGS.APP_BASE_PATH + "/",
     }
 
     if remember_me:
@@ -44,10 +53,11 @@ def set_refresh_cookies(
         cookie_params["max_age"] = ttl_seconds
         cookie_params["expires"] = ttl_seconds
 
-    response.set_cookie(REFRESH_COOKIE_NAME, refresh_token, **cookie_params)
-    response.set_cookie(REFRESH_SID_COOKIE_NAME, refresh_session_id, **cookie_params)
+    token_name, sid_name = refresh_cookie_names()
+    response.set_cookie(token_name, refresh_token, **cookie_params)
+    response.set_cookie(sid_name, refresh_session_id, **cookie_params)
 
 
 def clear_refresh_cookies(response: Response) -> None:
-    response.delete_cookie(REFRESH_COOKIE_NAME, path="/")
-    response.delete_cookie(REFRESH_SID_COOKIE_NAME, path="/")
+    for name in refresh_cookie_names():
+        response.delete_cookie(name, path=SETTINGS.APP_BASE_PATH + "/")

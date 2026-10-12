@@ -1,0 +1,23 @@
+# Include the rendered fragment inside the operator-owned HTTPS server block.
+# APP_BASE_PATH must be nonempty, canonical and match the application's build/runtime.
+# APP_UPSTREAM is a reachable host:port, without scheme or path.
+location = ${APP_BASE_PATH} {
+    return 308 ${APP_BASE_PATH}/$is_args$args;
+}
+
+location ~ ^${APP_BASE_PATH}/(metrics|docs|redoc|openapi\.json)(/|$) {
+    return 404;
+}
+
+location ${APP_BASE_PATH}/ {
+    # Trailing slash removes the public prefix before forwarding to FastAPI.
+    proxy_pass http://${APP_UPSTREAM}/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 300s;
+    client_max_body_size 10m;
+}

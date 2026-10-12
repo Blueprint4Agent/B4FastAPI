@@ -7,6 +7,8 @@ from urllib.parse import quote, urlsplit
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, SecretStr
 
+from app.core.config.base_path import normalize_base_path
+
 load_dotenv()
 
 
@@ -33,6 +35,7 @@ class Settings(BaseModel):
         default=os.getenv("STARTUP_DISPLAY", "auto"), validate_default=True
     )
     APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
+    APP_BASE_PATH: str = os.getenv("APP_BASE_PATH", "")
     APP_BASE_URL: str = os.getenv("APP_BASE_URL", "http://localhost:5173")
     SWAGGER_ENABLED: bool = os.getenv("SWAGGER_ENABLED", "true").lower() == "true"
     METRICS_ENABLED: bool = os.getenv("METRICS_ENABLED", "true").lower() == "true"
@@ -203,6 +206,12 @@ class Settings(BaseModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
+        object.__setattr__(self, "APP_BASE_PATH", normalize_base_path(self.APP_BASE_PATH))
+        if (
+            self.APP_BASE_PATH
+            and urlsplit(self.APP_BASE_URL).path.rstrip("/") != self.APP_BASE_PATH
+        ):
+            raise ValueError("APP_BASE_URL must include APP_BASE_PATH")
         self.validate_runtime_mode()
         self.validate_object_storage()
 
