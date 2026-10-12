@@ -162,7 +162,7 @@ The manual Build workflow accepts `coffee_enabled` (default false) and `coffee_u
 
 Set `DEMO_ENABLED=true` in `docker/.env`, then run `make docker-deploy DEPLOY_SOURCE=pull` with an image that includes this feature. The setting is runtime-only: no frontend rebuild is required. It defaults to `false` and works in production. `/config` reports `demo_enabled`.
 
-Visitors, including guests, can open `/demo/admin` and `/demo/admin/server` from the sidebar or the home previews. These reuse the administrator screens through GET-only `/api/v1/admin/demo/users` and `/api/v1/admin/demo/status`. Real administrator routes retain their role checks.
+Visitors, including guests, can open `/demo/admin` and `/demo/admin/server` from the profile dropdown (Admin panel (demo)) or the home previews. These reuse the administrator screens through GET-only `/api/v1/admin/demo/users` and `/api/v1/admin/demo/status`. Real administrator routes retain their role checks.
 
 Opting in publishes real totals, roles, active/verified flags, login-provider names, day-level UTC signup/last-login dates and real server health/effective feature flags. Names, emails and database IDs are replaced with keyed pseudonyms; internal connection hosts and ports are removed. Search matches pseudonyms only. This is pseudonymized data, not a guarantee against inference from small populations. No credentials, IPs, profile data or mutation APIs are exposed. Results are cached per process for up to 30 seconds; errors fail closed. The first directory snapshot reads minimal projections of all users, so large deployments should assess memory usage before enabling this showcase feature.
 
