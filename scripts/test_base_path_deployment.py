@@ -1,4 +1,4 @@
-"""Build two monolithic images and verify them through an isolated real Nginx.
+"""Build one monolithic image and verify them through an isolated real Nginx.
 
 Requires Docker, installed frontend dependencies and Playwright Chromium.
 No developer env files, host services or existing volumes are modified.
@@ -29,21 +29,22 @@ def main():
     with tempfile.TemporaryDirectory(prefix=task) as temporary:
         temporary = Path(temporary)
         try:
-            for index, prefix in enumerate(prefixes):
-                tag = f"{task}:{index}"
-                images.append(tag)
-                run(
-                    "docker",
-                    "build",
-                    "-f",
-                    "docker/Dockerfile",
-                    "--build-arg",
-                    f"APP_BASE_PATH={prefix}",
-                    "-t",
-                    tag,
-                    ".",
-                    cwd=ROOT,
-                )
+            tag = f"{task}:runtime"
+            images.append(tag)
+            run(
+                "docker",
+                "build",
+                "-f",
+                "docker/Dockerfile",
+                "--build-arg",
+                "VITE_PUBLIC_DISCOVERY=true",
+                "--build-arg",
+                "VITE_PUBLIC_SITE_URL=https://build.example.test",
+                "-t",
+                tag,
+                ".",
+                cwd=ROOT,
+            )
             run("docker", "network", "create", task)
             network_created = True
             template = (ROOT / "docker/nginx/app-location.conf.template").read_text()
@@ -99,8 +100,20 @@ def main():
                     "SSE_HEARTBEAT_SECONDS=1",
                     "-e",
                     f"SECRET_KEY={secrets.token_urlsafe(48)}",
-                    images[index],
+                    tag,
                 )
+            image_ids = {
+                run(
+                    "docker",
+                    "inspect",
+                    "--format",
+                    "{{.Image}}",
+                    name,
+                    capture_output=True,
+                ).stdout.strip()
+                for name in containers
+            }
+            assert len(image_ids) == 1, "All prefixes must use the identical image"
             proxy = task + "-nginx"
             containers.append(proxy)
             run(
@@ -139,6 +152,17 @@ def main():
                             "Isolated prefix instance did not become ready"
                         )
                     time.sleep(1)
+            for prefix in prefixes:
+                for path, expected in (
+                    ("/about/", f'href="http://localhost{prefix}/about/"'),
+                    ("/about/ko/", f'href="http://localhost{prefix}/about/ko/"'),
+                    ("/sitemap.xml", f"http://localhost{prefix}/about/"),
+                    ("/robots.txt", f"http://localhost{prefix}/sitemap.xml"),
+                ):
+                    with urlopen(origin + prefix + path, timeout=5) as response:
+                        document = response.read().decode()
+                        assert expected in document, (prefix, path)
+                        assert "https://build.example.test" not in document
             env = {
                 **os.environ,
                 "B4_DEPLOYMENT_TEST_URL": origin,
@@ -154,7 +178,7 @@ def main():
                 cwd=ROOT / "src/frontend",
                 env=env,
             )
-            print("Two monolithic prefix deployments passed through Nginx.")
+            print("One identical image passed at two runtime prefixes through Nginx.")
         except Exception:
             for name in containers:
                 subprocess.run(["docker", "logs", "--tail", "25", name], check=False)

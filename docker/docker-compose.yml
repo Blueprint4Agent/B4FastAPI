@@ -7,7 +7,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        APP_BASE_PATH: ${APP_BASE_PATH:-}
         VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-}
         VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
         VITE_PUBLIC_DISCOVERY: ${VITE_PUBLIC_DISCOVERY:-false}
@@ -43,7 +42,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        APP_BASE_PATH: ${APP_BASE_PATH:-}
         VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-}
         VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
         VITE_PUBLIC_DISCOVERY: ${VITE_PUBLIC_DISCOVERY:-false}
@@ -75,7 +73,6 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
       args:
-        APP_BASE_PATH: ${APP_BASE_PATH:-}
         VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-}
         VITE_SITE_DESCRIPTION: ${VITE_SITE_DESCRIPTION:-}
         VITE_PUBLIC_DISCOVERY: ${VITE_PUBLIC_DISCOVERY:-false}

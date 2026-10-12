@@ -7,13 +7,13 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette._utils import get_route_path
 
 from app.core.cache.redis import RedisManager
 from app.core.config.base_path import PrefixPathMiddleware, validate_frontend_path
+from app.core.config.frontend import RuntimeStaticFiles
 from app.core.config.settings import SETTINGS
 from app.core.db.migrations import run_startup_schema_migrations
 from app.core.db.session import dispose_db, init_db
@@ -305,7 +305,10 @@ def create_app() -> FastAPI:
     app.include_router(events.router, prefix="/api/v1/events", tags=["Events"])
 
     if static_dist_dir.exists():
-        app.mount("/", StaticFiles(directory=static_dist_dir, html=True), name="frontend")
+        frontend = RuntimeStaticFiles(
+            static_dist_dir, SETTINGS.APP_BASE_PATH, SETTINGS.APP_BASE_URL
+        )
+        app.mount("/", frontend, name="frontend")
 
         @app.exception_handler(404)
         async def spa_fallback(request: Request, exc):
@@ -327,7 +330,7 @@ def create_app() -> FastAPI:
             ):
                 index_path = static_dist_dir / "index.html"
                 if index_path.exists():
-                    return FileResponse(index_path)
+                    return await frontend.document_response(index_path, request.scope)
 
             # Preserve API error payload shape for domain 404 responses.
             if is_api_path:

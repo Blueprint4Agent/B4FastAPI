@@ -14,8 +14,6 @@ RUN npm ci
 
 COPY src/frontend/ ./
 COPY --from=project_branding /out/ ./
-ARG APP_BASE_PATH=""
-ENV VITE_BASE_PATH=$APP_BASE_PATH
 ARG VITE_PUBLIC_SITE_URL=""
 ARG VITE_SITE_DESCRIPTION=""
 ARG VITE_PUBLIC_DISCOVERY="false"

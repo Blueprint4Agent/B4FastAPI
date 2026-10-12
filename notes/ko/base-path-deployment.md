@@ -24,23 +24,34 @@ COMPOSE_FILE=docker-compose.yml
 허용하며 `/demos/my-app` 같은 중첩 경로도 가능합니다. 마지막 `/`는 정규화합니다.
 URL, 쿼리, 프래그먼트, 퍼센트 인코딩, `.`·`..` 경로는 거부합니다.
 `CORS_ORIGINS`와 `VITE_PUBLIC_SITE_URL`은 **접두사 없는 origin**을 유지합니다.
-공유 메타데이터는 origin과 빌드 경로를 자동 결합합니다.
+백엔드가 생성된 공유/소개 문서 URL을 런타임 `APP_BASE_URL`에 맞춥니다.
+
+런타임 경로를 지원하는 이미지를 한 번 빌드한 뒤 재사용합니다.
 
 ```sh
 make docker-build
-make docker-deploy
+DEPLOY_SOURCE=local make docker-deploy
 ```
 
-Compose의 `APP_BASE_PATH`가 Docker 빌드에 전달되고, Dockerfile은 이를 Vite의
-`VITE_BASE_PATH`로 전달합니다. FastAPI도 같은 런타임 설정을 사용합니다. React 빌드는
-이미지의 `app/static/dist`에 포함되므로 별도 프런트엔드 서버가 필요하지 않습니다.
-직접 빌드할 때는 `--build-arg APP_BASE_PATH=/my-app`을 전달합니다.
-경로를 변경하면 재시작만 하지 말고 **이미지를 다시 빌드**해야 합니다.
-미리 빌드한 이미지도 경로가 일치해야 하며, 서버는 `deployment-path.json`과 런타임
-설정이 다르면 시작을 거부합니다. 매니페스트 없는 기존 루트 빌드는 호환됩니다.
+`APP_BASE_PATH`는 **실행 시 설정**입니다. FastAPI가 JavaScript 실행 전에 HTML에
+기준 URL과 경로 메타데이터를 넣으며 JS/CSS 빌드 파일은 동일하게 유지됩니다.
+별도 프런트엔드 서버는 필요하지 않습니다. `/my-app`을 `/another-app`으로 바꾸려면
+`APP_BASE_PATH`, `APP_BASE_URL`, Nginx 조각을 바꾸고
+`DEPLOY_SOURCE=local make docker-deploy`로 기존 이미지를 사용해 컨테이너를 재생성합니다.
+단순 `docker restart`는 수정한 Compose 환경 파일을 읽지 않습니다. 실행 중 즉시
+변경되는 설정이 아니라 시작 시 읽는 설정입니다. 기본 `make docker-deploy`는 빌드를
+수행하므로 기존 이미지 재사용 시 `DEPLOY_SOURCE=local`을 명시합니다.
+
+같은 이미지를 별도 Compose 프로젝트에서 `/community`, `/tracker`, `/origin`으로
+동시에 실행할 수 있습니다. 각 실행의 환경 설정과 포트만 구분합니다. 포크별 코드가
+달라지면 각 코드의 빌드는 필요하지만 경로 변경만으로는 재빌드하지 않습니다.
+이전 고정 경로 이미지는 이번 런타임 지원 버전으로 한 번 교체해야 하며, 이후 경로
+변경에는 새 이미지가 필요하지 않습니다. 기존 고정 경로 산출물은 계속 빌드 경로
+일치를 검사하며 매니페스트 없는 기존 루트 빌드도 호환됩니다.
 
 이 구성에서는 루트 전용 Caddy HTTPS 오버레이를 사용하지 않습니다. 앱마다 Compose
-프로젝트, 이미지 태그, 시크릿, 영속 데이터를 구분합니다. 앱 포트는 기본적으로
+프로젝트, 시크릿, 영속 데이터를 구분합니다. 코드가 같으면 이미지는 공유할 수 있습니다.
+앱 포트는 기본적으로
 호스트 loopback에만 바인딩합니다. Nginx도 컨테이너라면 사설 Docker 네트워크와 앱별
 고유 네트워크 별칭의 8000번 포트로 연결합니다. 그 안의 `127.0.0.1`은 호스트가 아닌
 Nginx 컨테이너 자체입니다. 앱 upstream 포트를 외부에 공개하지 않습니다.
@@ -76,7 +87,7 @@ DNS·인증서·공용 Nginx 설치는 자동 수행하지 않습니다.
 ## 로컬 또는 수동 모놀리식 패키징
 
 ```sh
-VITE_BASE_PATH=/my-app make frontend-package
+make frontend-package
 ```
 
 백엔드 환경에도 `APP_BASE_PATH=/my-app`과 해당 경로를 포함한 `APP_BASE_URL`을 설정하고
@@ -113,7 +124,7 @@ upstream과 패키징된 파일을 검사하며 외부 Nginx/TLS 검증을 대�
 IndexNow도 도메인 소유권 구성을 게이트웨이에서 정리하기 전에는
 `INDEXNOW_ENABLED=false`로 유지합니다.
 
-`make base-path-deployment-test`는 임시 이미지 두 개를 빌드해 실제 Nginx 경로,
+`make base-path-deployment-test`는 임시 이미지 하나를 두 런타임 경로에 재사용해 실제 Nginx 경로,
 브라우저 이동, SSE와 앱 간 세션 분리를 검증합니다. Docker·프런트엔드 의존성·
 Playwright Chromium이 필요하며 테스트 컨테이너·네트워크·이미지는 정리합니다.
 기존 앱 스택과 볼륨은 변경하지 않습니다.

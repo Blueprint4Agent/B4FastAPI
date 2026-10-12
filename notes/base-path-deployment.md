@@ -25,23 +25,34 @@ COMPOSE_FILE=docker-compose.yml
 letters, digits, `_`, `-` and single `/` separators; nested paths work. A trailing
 slash is normalized away. URLs, query strings, fragments, percent encoding and dot
 segments are rejected. CORS and `VITE_PUBLIC_SITE_URL` remain **origins without paths**.
-Sharing metadata combines the public origin and build path automatically.
+The backend relocates generated sharing/discovery URLs to runtime `APP_BASE_URL`.
+
+Build the runtime-capable application image once, then reuse it:
 
 ```sh
 make docker-build
-make docker-deploy
+DEPLOY_SOURCE=local make docker-deploy
 ```
 
-Compose passes `APP_BASE_PATH` to the image build; the Dockerfile supplies
-`VITE_BASE_PATH` to Vite. The same runtime setting configures FastAPI. The image
-contains the frontend in `app/static/dist`; no separate frontend server is needed.
-For direct builds, pass `--build-arg APP_BASE_PATH=/my-app`. Prebuilt images must have
-been built for the selected path. Changing a path requires rebuilding, not just
-restarting. Startup rejects a packaged build whose `deployment-path.json` differs
-from the runtime path. Existing root builds without that manifest remain compatible.
+`APP_BASE_PATH` is **runtime-only**. FastAPI supplies the base URL and path metadata
+in HTML before JavaScript runs. Relative JS/CSS chunks remain identical. No separate
+frontend server is needed. To change `/my-app` to `/another-app`, update
+`APP_BASE_PATH`, `APP_BASE_URL` and the Nginx fragment, then run
+`DEPLOY_SOURCE=local make docker-deploy` to recreate with the existing local image.
+A simple `docker restart` does not load edited Compose environment files. This is
+startup configuration, not a live setting. The default `make docker-deploy` builds;
+use `DEPLOY_SOURCE=local` explicitly when reusing an existing image.
+
+The same image can run simultaneously in independent Compose projects at
+`/community`, `/tracker`, and `/origin`, with different runtime settings and ports.
+Each fork still needs its own build when application code changes. Upgrading an old
+fixed-path image to this runtime-capable version requires one new image; subsequent
+path changes do not. Legacy fixed-path artifacts remain validated against their build
+path, and old root artifacts without a manifest remain compatible.
 
 Do not enable the root-only Caddy HTTPS overlay for this topology. Keep each app's
-Compose project, image tag, secrets and persistent data independent. App ports bind
+Compose project, secrets and persistent data independent. The image can be shared
+when application code is identical. App ports bind
 loopback by default. If Nginx runs in a container, use a private shared Docker network
 and the app's unique network alias on port 8000; `127.0.0.1` there means the Nginx
 container, not the host. Do not publicly expose the upstream app ports.
@@ -77,10 +88,10 @@ not install DNS, certificates or a shared Nginx service for you.
 
 ## Local/manual monolithic packaging
 
-Build and package with the equivalent frontend setting:
+Build and package without a path-specific frontend setting:
 
 ```sh
-VITE_BASE_PATH=/my-app make frontend-package
+make frontend-package
 ```
 
 Set `APP_BASE_PATH=/my-app` and the matching `APP_BASE_URL` in the backend environment,
@@ -117,7 +128,7 @@ artifact, not crawler policy for the whole hostname. Optional IndexNow submissio
 must likewise be coordinated at the gateway; leave INDEXNOW_ENABLED=false for this
 topology until its domain ownership configuration is established.
 
-Run `make base-path-deployment-test` to build two disposable images and verify real
+Run `make base-path-deployment-test` to build one disposable image and reuse it at two runtime paths and verify real
 Nginx routing, browser navigation, SSE and cross-app session isolation. Requires Docker,
 installed frontend dependencies and Playwright Chromium; test containers/networks/images
 are cleaned up. Existing application stacks and volumes are untouched.

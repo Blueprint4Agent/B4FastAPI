@@ -252,21 +252,20 @@ def test_indexnow_runs_only_after_successful_deployment_smoke(monkeypatch, smoke
         assert args[args.index("--origin") + 1] == "https://example.test"
 
 
-def test_prefix_preflight_requires_matching_build_and_public_url(project):
+def test_prefix_preflight_requires_public_url_without_build_arguments(project):
     run, model, env_path, _ = project
     env_path.write_text("APP_MODE=development\n")
     app = model["services"]["app"]
     app["environment"].update(
         APP_BASE_PATH="/demos/alpha", APP_BASE_URL="https://example.test/demos/alpha"
     )
-    assert run("check").returncode != 0
-    app["build"] = {"args": {"APP_BASE_PATH": "/demos/alpha"}}
     assert run("check").returncode == 0
     app["environment"]["APP_BASE_URL"] = "https://example.test"
     assert run("check").returncode != 0
 
 
-def test_prefix_smoke_fetches_stripped_upstream_asset(monkeypatch):
+@pytest.mark.parametrize("asset_path", ["/demos/alpha/assets/app.js", "./assets/app.js"])
+def test_prefix_smoke_fetches_stripped_upstream_asset(monkeypatch, asset_path):
     instance = object.__new__(deployment.Deployment)
     instance.model = {
         "services": {
@@ -277,7 +276,7 @@ def test_prefix_smoke_fetches_stripped_upstream_asset(monkeypatch):
         [
             '{"status":"ok"}',
             '{"app_mode":"development"}',
-            '<html><script src="/demos/alpha/assets/app.js"></script></html>',
+            f'<html><script src="{asset_path}"></script></html>',
             "window.loaded=true;",
         ]
     )

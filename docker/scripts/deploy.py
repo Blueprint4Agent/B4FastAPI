@@ -178,11 +178,6 @@ class Deployment:
             not base_path or "caddy" not in self.resolve()["services"],
             "Prefix deployments use an external reverse proxy; disable the root-only Caddy overlay.",
         )
-        build_args = self.resolve()["services"]["app"].get("build", {}).get("args", {})
-        require(
-            str(build_args.get("APP_BASE_PATH", "") or "").rstrip("/") == base_path,
-            "Frontend build APP_BASE_PATH must match runtime APP_BASE_PATH.",
-        )
         driver = settings.get("DB_DRIVER", "")
         if driver.startswith("sqlite"):
             path = PurePosixPath(settings.get("DB_NAME", ""))
@@ -378,14 +373,19 @@ print("Image application settings passed.")"""
         html = fetch("/login", "text/html")
         base_path = str(self.settings().get("APP_BASE_PATH", "") or "").rstrip("/")
         asset = re.search(
-            r'<script[^>]+src="(' + re.escape(base_path) + r'/assets/[^"<>]+\.js)"',
+            r'<script[^>]+src="((?:\.|'
+            + re.escape(base_path)
+            + r')/assets/[^"<>]+\.js)"',
             html,
         )
         require(asset is not None, "Packaged frontend missing")
         require(
             "<html"
             not in fetch(
-                asset.group(1)[len(base_path) :], "application/javascript"
+                asset.group(1)[1:]
+                if asset.group(1).startswith("./")
+                else asset.group(1)[len(base_path) :],
+                "application/javascript",
             ).lower(),
             "JavaScript asset returned SPA fallback",
         )
