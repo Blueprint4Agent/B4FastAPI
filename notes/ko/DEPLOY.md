@@ -299,3 +299,7 @@ URL은 자격 증명·경로·쿼리·fragment가 없는 HTTP(S) origin이어야
 사전 빌드 이미지는 빌드 당시 값을 유지합니다.
 [프론트엔드 공유 규칙](../../src/frontend/notes/ko/sharing.md)을 참고하고 배포 주소의
 HTML과 필요한 미리보기 캐시 갱신을 확인하세요.
+
+## 공개 검색 페이지
+
+`VITE_PUBLIC_DISCOVERY=true`와 `VITE_PUBLIC_SITE_URL`로 기본 템플릿의 영문·한국어 소개(/about/, /about/ko/)를 빌드합니다. 이미지 재빌드가 필요하며 재시작만으로는 반영되지 않습니다. 선택 항목 `VITE_INDEXNOW_KEY`는 공개 소유 확인 파일을 생성하고 `INDEXNOW_ENABLED=true`는 배포 정상 응답 검사 후 변경된 공개 URL을 제출합니다. [배포·등록·재시도 안내](search-discovery.md)를 참고하세요.

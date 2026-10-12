@@ -218,3 +218,35 @@ def test_spa_fallback_cannot_pass_as_a_javascript_asset(monkeypatch):
     # When/Then: readiness alone cannot report successful frontend delivery.
     with pytest.raises(deployment.DeployError, match="JavaScript"):
         instance.probe("http://127.0.0.1")
+
+
+@pytest.mark.parametrize("smoke_fails", [False, True])
+def test_indexnow_runs_only_after_successful_deployment_smoke(monkeypatch, smoke_fails):
+    # Given: an explicitly enabled IndexNow deployment with all Docker work faked.
+    from unittest.mock import MagicMock
+
+    instance = MagicMock()
+    instance.settings.return_value = {
+        "INDEXNOW_ENABLED": "true",
+        "APP_BASE_URL": "https://example.test",
+    }
+    instance.resolve.return_value = {
+        "services": {"app": {"build": {"args": {"VITE_INDEXNOW_KEY": "public-key-123"}}}}
+    }
+    if smoke_fails:
+        instance.smoke.side_effect = deployment.DeployError("smoke failed")
+    monkeypatch.setattr(deployment, "Deployment", lambda: instance)
+    monkeypatch.setattr(deployment.sys, "argv", ["deploy.py", "deploy"])
+    send = MagicMock()
+    monkeypatch.setattr(deployment.subprocess, "run", send)
+    # When: completing the deployment entry point.
+    result = deployment.main()
+    # Then: failed readiness cannot notify search engines; success uses explicit submission.
+    assert result == (1 if smoke_fails else 0)
+    if smoke_fails:
+        send.assert_not_called()
+    else:
+        instance.smoke.assert_called_once()
+        args = send.call_args.args[0]
+        assert "--submit" in args
+        assert args[args.index("--origin") + 1] == "https://example.test"

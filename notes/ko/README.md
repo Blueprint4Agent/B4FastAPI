@@ -569,3 +569,5 @@ API 인증 정책 점검: [한국어](api-authentication.md) · [English](../api
 복사본이나 상당 부분을 재배포할 때 저작권·허가 고지를 유지하세요. 제3자 의존성·데이터·
 브랜드 자산은 각각의 고지를 유지합니다. [프로필 위치 데이터 고지](../../src/backend/app/models/profile_location.LICENSE.txt)를
 참고하세요. 고정된 B4React 저장소는 자체 라이선스와 자산 고지를 관리합니다.
+
+Blueprint4Agent(B4A)는 상위 프로젝트 이름이며 Blueprint4FastAPI(B4FastAPI)는 이 백엔드와 독립 버전의 B4React 프런트엔드를 결합합니다. 공개 검색 페이지와 배포: [한국어](search-discovery.md) · [English](../search-discovery.md).

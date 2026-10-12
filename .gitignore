@@ -29,3 +29,6 @@ Thumbs.db
 
 # Private local object storage
 src/backend/data/object-storage/
+
+# Local accepted IndexNow submission state
+docker/.indexnow/
