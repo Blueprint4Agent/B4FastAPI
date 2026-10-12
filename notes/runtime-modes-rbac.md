@@ -151,3 +151,5 @@ example placeholders but preserves existing configured keys.
 Do not automatically rotate an existing deployment: changing the key invalidates
 JWTs and key-derived API credentials/verification data, and can affect encrypted
 mail recovery data. Plan rotation separately.
+
+Admins see the real admin menu without the redundant demo entry. Home includes profile, inbox, support and realtime capabilities and signed-in shortcuts. The public inquiry demo at /demo/admin/inquiries uses synthetic localized records only, with no inquiry HTTP requests or mutations; DEMO_ENABLED still controls access.

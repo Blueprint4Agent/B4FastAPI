@@ -1,6 +1,6 @@
 # Support inquiries
 
-Signed-in users open Settings → Support (`/settings?section=support`) to create private text inquiries and read replies. Administrators use `/admin/inquiries` to list all inquiries, reply and set Open, In progress or Closed. Managers have only their own user access. Public admin demo never includes support data.
+Signed-in users open Settings → Support (`/settings?section=support`) to create private text inquiries and read replies. Administrators use `/admin/inquiries` to list all inquiries, reply and set Open, In progress or Closed. Managers have only their own user access. The public admin demo never includes real support data. `/demo/admin/inquiries` reuses this screen with localized synthetic inquiries and replies, no inquiry API reads/writes, and no reply/status actions. It is available only when demo mode is enabled.
 
 API routes live under `/api/v1/inquiries`: list/create, `/{id}` detail, `/{id}/messages` replies, admin-only `/admin` list and `/{id}/status` changes. All reads and responses are no-store. Owner/admin authorization is checked on the server; unrelated IDs return 404. Subject/body limits are 160/4000 characters; threads allow 200 messages. Closed threads reject new replies; admins can reopen them.
 
