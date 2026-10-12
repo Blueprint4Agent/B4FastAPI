@@ -129,6 +129,7 @@ class Settings(BaseModel):
     )
     LOGIN_FAILED_LIMIT: int = int(os.getenv("LOGIN_FAILED_LIMIT", "5"))
     LOGIN_LOCKED_MINUTES: int = int(os.getenv("LOGIN_LOCKED_MINUTES", "5"))
+    DEMO_ENABLED: bool = os.getenv("DEMO_ENABLED", "false").lower() == "true"
     LOGIN_ENABLED: bool = os.getenv("LOGIN_ENABLED", "true").lower() == "true"
     BOOTSTRAP_USER_EMAIL: str = os.getenv("BOOTSTRAP_USER_EMAIL", "demo@example.com")
     BOOTSTRAP_USER_NAME: str = os.getenv("BOOTSTRAP_USER_NAME", "Demo User")

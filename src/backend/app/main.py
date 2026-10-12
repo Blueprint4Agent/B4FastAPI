@@ -45,6 +45,7 @@ from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
 from app.models.user import UserResponse, Users
 from app.routers.v1 import admin, api_key, auth, billing, billing_webhook, events
+from app.services.admin import DEMO_SNAPSHOTS
 from app.services.billing import BillingService
 from app.utils.token import create_access_token
 
@@ -86,6 +87,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 class AppConfigResponse(BaseModel):
     api_base_path: str
     app_mode: Literal["development", "production"]
+    demo_enabled: bool = False
     login_enabled: bool
     frontend_base_path: str
     email_enabled: bool
@@ -99,6 +101,7 @@ class AppConfigResponse(BaseModel):
 @asynccontextmanager
 async def application_lifespan(_app: FastAPI) -> AsyncIterator[None]:
     global BOOTSTRAP_USER
+    await DEMO_SNAPSHOTS.reset()
     await INTEGRATION_HEALTH.reset()
     STARTUP_CHECKS.clear()
     try:
@@ -153,6 +156,7 @@ async def application_lifespan(_app: FastAPI) -> AsyncIterator[None]:
         logger.info("Application startup sequence complete.")
         yield
     finally:
+        await DEMO_SNAPSHOTS.reset()
         await INTEGRATION_HEALTH.reset()
         try:
             with shutdown_step("database"):
@@ -270,6 +274,7 @@ def create_app() -> FastAPI:
         return {
             "api_base_path": "/api/v1",
             "app_mode": SETTINGS.APP_MODE,
+            "demo_enabled": SETTINGS.DEMO_ENABLED,
             "login_enabled": SETTINGS.LOGIN_ENABLED,
             "frontend_base_path": "",
             "email_enabled": SETTINGS.EMAIL_ENABLED,
