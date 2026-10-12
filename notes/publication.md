@@ -39,3 +39,5 @@ The pinned frontend includes its MIT notice and reviewed dependency updates. Con
 [static sharing metadata](../DEPLOY.md#public-sharing-metadata) with your real public
 origin before distributing a deployment link. Audit results are time-bound; rerun
 `npm audit` in the child when preparing a later release.
+
+Search publication and community drafts: [search discovery](search-discovery.md). Keep local implementation, merged source, deployed pages, submitted URLs and indexed results as separate evidence.

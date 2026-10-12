@@ -310,3 +310,7 @@ See [child sharing behavior](src/frontend/notes/sharing.md). Verify the resultin
 HTML at the deployed origin and refresh provider preview caches as needed.
 
 Monolithic server deployment: [English](notes/monolithic-deployment.md) · [한국어](notes/ko/monolithic-deployment.md).
+
+## Public search pages
+
+Enable `VITE_PUBLIC_DISCOVERY=true` with `VITE_PUBLIC_SITE_URL` to build the default-template English/Korean introductions at /about/ and /about/ko/. Rebuild the image; restarting alone is insufficient. Optional `VITE_INDEXNOW_KEY` emits public ownership proof; `INDEXNOW_ENABLED=true` submits changed public URLs after successful deployment smoke checks. See [deployment, registration and retry instructions](notes/search-discovery.md).

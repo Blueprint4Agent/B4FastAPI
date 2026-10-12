@@ -50,7 +50,7 @@ install: backend-install frontend-install ## Install backend and frontend depend
 build: backend-build frontend-package ## Build backend environment and frontend static artifacts
 
 .PHONY: check
-check: project-init-check architecture-check env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
+check: discovery-check project-init-check architecture-check env-contract-check backend-check frontend-format-check frontend-typecheck contract-check frontend-api-check ## Check code, env keys, types, and pinned API contracts
 
 .PHONY: git-governance-check
 git-governance-check: ## Validate git governance; optionally pass commit, PR, and merge metadata
@@ -78,7 +78,7 @@ backend-dev: ## Run backend development server
 	cd $(BACKEND_DIR) && $(UV) run uvicorn app.main:app --reload --host $(BACKEND_HOST) --port $(BACKEND_PORT)
 
 .PHONY: backend-check
-backend-check: ## Run backend lint and format checks
+backend-check: discovery-check ## Run backend lint and format checks
 	cd $(BACKEND_DIR) && $(UV) run ruff check . && $(UV) run ruff format . --check
 
 .PHONY: backend-format
@@ -305,3 +305,9 @@ docker-status: ## Show deployment containers and image identities
 	bash ./docker/scripts/docker-status.sh
 docker-smoke: ## Verify readiness, runtime config, SPA and public proxy boundaries
 	bash ./docker/scripts/docker-smoke.sh
+
+.PHONY: discovery-check
+discovery-check: ## Validate changed-URL publication tooling without external submissions
+	$(UV) run --project $(BACKEND_DIR) ruff check scripts/indexnow.py scripts/test_indexnow.py
+	$(UV) run --project $(BACKEND_DIR) ruff format --check scripts/indexnow.py scripts/test_indexnow.py
+	python3 -m unittest discover -s scripts -p 'test_indexnow.py'

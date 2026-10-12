@@ -19,6 +19,9 @@ DOCKER_ONLY_KEYS = {
     # Public frontend build arguments are not backend runtime settings.
     "VITE_PUBLIC_SITE_URL",
     "VITE_SITE_DESCRIPTION",
+    "VITE_PUBLIC_DISCOVERY",
+    "VITE_INDEXNOW_KEY",
+    "INDEXNOW_ENABLED",
     "VITE_BUY_ME_A_COFFEE_ENABLED",
     "VITE_BUY_ME_A_COFFEE_URL",
     "APP_IMAGE",

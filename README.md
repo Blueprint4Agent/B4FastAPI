@@ -599,3 +599,5 @@ Notification inbox: [English](notes/notification-inbox.md) · [한국어](notes/
 - Support inquiries: [English](notes/support-inquiries.md) · [한국어](notes/ko/support-inquiries.md)
 
 - Optional WebSocket provider: [English](notes/websocket-provider.md) · [한국어](notes/ko/websocket-provider.md)
+
+Blueprint4Agent (B4A) is the umbrella project; Blueprint4FastAPI (B4FastAPI) combines this backend with the independently versioned B4React frontend. Public search pages and deployment: [English](notes/search-discovery.md) · [한국어](notes/ko/search-discovery.md).

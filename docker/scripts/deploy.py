@@ -413,6 +413,30 @@ def main():
             if action == "deploy":
                 deployment.smoke()
                 deployment.compose("ps")
+                if (
+                    deployment.settings().get("INDEXNOW_ENABLED", "false").lower()
+                    == "true"
+                ):
+                    build_args = (
+                        deployment.resolve()["services"]["app"]
+                        .get("build", {})
+                        .get("args", {})
+                    )
+                    subprocess.run(
+                        [
+                            sys.executable,
+                            str(ROOT / "scripts/indexnow.py"),
+                            "--origin",
+                            deployment.settings().get("APP_BASE_URL", ""),
+                            "--key",
+                            str(build_args.get("VITE_INDEXNOW_KEY", "")),
+                            "--state",
+                            str(DOCKER_DIR / ".indexnow/accepted.json"),
+                            "--submit",
+                        ],
+                        cwd=ROOT,
+                        check=True,
+                    )
                 print(
                     "Deployment complete. Data volumes retained; image export is a separate command."
                 )

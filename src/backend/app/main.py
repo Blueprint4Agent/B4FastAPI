@@ -306,7 +306,19 @@ def create_app() -> FastAPI:
         async def spa_fallback(request: Request, exc):
             accepts_html = "text/html" in request.headers.get("accept", "")
             is_api_path = request.url.path.startswith("/api/")
-            if request.method in {"GET", "HEAD"} and accepts_html and not is_api_path:
+            # Missing public documents/assets must remain 404 (including deleted
+            # discovery URLs); never disguise them as the application shell.
+            is_document_path = (
+                request.url.path == "/about"
+                or request.url.path.startswith("/about/")
+                or bool(Path(request.url.path).suffix)
+            )
+            if (
+                request.method in {"GET", "HEAD"}
+                and accepts_html
+                and not is_api_path
+                and not is_document_path
+            ):
                 index_path = static_dist_dir / "index.html"
                 if index_path.exists():
                     return FileResponse(index_path)

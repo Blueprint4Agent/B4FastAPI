@@ -16,6 +16,19 @@ on:
                 required: false
                 type: boolean
                 default: false
+            public_site_url:
+                description: "Public HTTP(S) origin for sharing and search metadata"
+                required: false
+                type: string
+            public_discovery:
+                description: "Build B4A English/Korean public introduction (default template identity only)"
+                required: false
+                type: boolean
+                default: false
+            indexnow_key:
+                description: "Optional public IndexNow ownership key (not a secret)"
+                required: false
+                type: string
             coffee_enabled:
                 description: "Enable optional support links in development mode only"
                 required: false
@@ -191,6 +204,9 @@ jobs:
                   file: docker/Dockerfile
                   push: ${{ needs.resolve-ref.outputs.publish-image == 'true' }}
                   build-args: |
+                      VITE_PUBLIC_SITE_URL=${{ inputs.public_site_url }}
+                      VITE_PUBLIC_DISCOVERY=${{ inputs.public_discovery }}
+                      VITE_INDEXNOW_KEY=${{ inputs.indexnow_key }}
                       VITE_BUY_ME_A_COFFEE_ENABLED=${{ inputs.coffee_enabled }}
                       VITE_BUY_ME_A_COFFEE_URL=${{ inputs.coffee_url }}
                   tags: ${{ steps.meta.outputs.tags }}
