@@ -25,7 +25,10 @@ def validate_frontend_path(dist: Path, base_path: str) -> None:
         return  # Backwards-compatible root builds.
     if not manifest.exists():
         raise ValueError("Packaged frontend lacks deployment-path.json; rebuild with APP_BASE_PATH")
-    built_path = json.loads(manifest.read_text()).get("basePath")
+    metadata = json.loads(manifest.read_text())
+    if metadata.get("version") == 2 and metadata.get("mode") == "runtime":
+        return
+    built_path = metadata.get("basePath")
     if built_path != base_path:
         raise ValueError("Frontend build basePath does not match APP_BASE_PATH; rebuild the image")
 
