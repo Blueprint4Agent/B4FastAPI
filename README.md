@@ -595,3 +595,5 @@ see the [profile-location data notice](src/backend/app/models/profile_location.L
 The pinned B4React repository maintains its own license and asset notices.
 
 Notification inbox: [English](notes/notification-inbox.md) · [한국어](notes/ko/notification-inbox.md).
+
+- Support inquiries: [English](notes/support-inquiries.md) · [한국어](notes/ko/support-inquiries.md)
