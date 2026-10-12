@@ -2276,6 +2276,280 @@
         "title": "InboxSummary",
         "type": "object"
       },
+      "InquiryCreate": {
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "subject": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Subject",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "subject",
+          "body"
+        ],
+        "title": "InquiryCreate",
+        "type": "object"
+      },
+      "InquiryDetail": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/InquiryMessageItem"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "requester_email": {
+            "title": "Requester Email",
+            "type": "string"
+          },
+          "requester_name": {
+            "title": "Requester Name",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InquiryStatus"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject",
+          "status",
+          "created_at",
+          "updated_at",
+          "requester_name",
+          "requester_email",
+          "messages"
+        ],
+        "title": "InquiryDetail",
+        "type": "object"
+      },
+      "InquiryErrorDetail": {
+        "properties": {
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details"
+          },
+          "error": {
+            "enum": [
+              "INQUIRY_NOT_FOUND",
+              "INQUIRY_CLOSED",
+              "INQUIRY_THREAD_FULL"
+            ],
+            "example": "INQUIRY_NOT_FOUND",
+            "title": "Error",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "title": "InquiryErrorDetail",
+        "type": "object"
+      },
+      "InquiryErrorResponse": {
+        "properties": {
+          "detail": {
+            "$ref": "#/components/schemas/InquiryErrorDetail"
+          }
+        },
+        "required": [
+          "detail"
+        ],
+        "title": "InquiryErrorResponse",
+        "type": "object"
+      },
+      "InquiryItem": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "requester_email": {
+            "title": "Requester Email",
+            "type": "string"
+          },
+          "requester_name": {
+            "title": "Requester Name",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InquiryStatus"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subject",
+          "status",
+          "created_at",
+          "updated_at",
+          "requester_name",
+          "requester_email"
+        ],
+        "title": "InquiryItem",
+        "type": "object"
+      },
+      "InquiryMessageItem": {
+        "properties": {
+          "author_role": {
+            "title": "Author Role",
+            "type": "string"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "author_role",
+          "body",
+          "created_at"
+        ],
+        "title": "InquiryMessageItem",
+        "type": "object"
+      },
+      "InquiryPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InquiryItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "page_size": {
+            "title": "Page Size",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "page",
+          "page_size"
+        ],
+        "title": "InquiryPage",
+        "type": "object"
+      },
+      "InquiryReply": {
+        "properties": {
+          "body": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "body"
+        ],
+        "title": "InquiryReply",
+        "type": "object"
+      },
+      "InquiryStatus": {
+        "enum": [
+          "open",
+          "in_progress",
+          "closed"
+        ],
+        "title": "InquiryStatus",
+        "type": "string"
+      },
+      "InquiryStatusForm": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/InquiryStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "InquiryStatusForm",
+        "type": "object"
+      },
       "IntegrationCheck": {
         "properties": {
           "checked_at": {
@@ -10535,6 +10809,827 @@
         "summary": "Read",
         "tags": [
           "Inbox"
+        ]
+      }
+    },
+    "/api/v1/inquiries": {
+      "get": {
+        "operationId": "list_own_api_v1_inquiries_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/InquiryStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 List Own Api V1 Inquiries Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 List Own Api V1 Inquiries Get"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "USER_NOT_FOUND",
+                    "message": "User not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Own",
+        "tags": [
+          "Inquiries"
+        ]
+      },
+      "post": {
+        "operationId": "create_api_v1_inquiries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InquiryCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Create Api V1 Inquiries Post"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 Create Api V1 Inquiries Post"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InquiryErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Create Api V1 Inquiries Post"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INQUIRY_CLOSED",
+                    "message": "This inquiry is closed."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Create",
+        "tags": [
+          "Inquiries"
+        ]
+      }
+    },
+    "/api/v1/inquiries/admin": {
+      "get": {
+        "operationId": "list_all_api_v1_inquiries_admin_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/InquiryStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 List All Api V1 Inquiries Admin Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 List All Api V1 Inquiries Admin Get"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "USER_NOT_FOUND",
+                    "message": "User not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AuthErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List All",
+        "tags": [
+          "Inquiries"
+        ]
+      }
+    },
+    "/api/v1/inquiries/{inquiry_id}": {
+      "get": {
+        "operationId": "detail_api_v1_inquiries__inquiry_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inquiry_id",
+            "required": true,
+            "schema": {
+              "title": "Inquiry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Detail Api V1 Inquiries  Inquiry Id  Get"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 Detail Api V1 Inquiries  Inquiry Id  Get"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InquiryErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Detail Api V1 Inquiries  Inquiry Id  Get"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INQUIRY_CLOSED",
+                    "message": "This inquiry is closed."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Detail",
+        "tags": [
+          "Inquiries"
+        ]
+      }
+    },
+    "/api/v1/inquiries/{inquiry_id}/messages": {
+      "post": {
+        "operationId": "reply_api_v1_inquiries__inquiry_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inquiry_id",
+            "required": true,
+            "schema": {
+              "title": "Inquiry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InquiryReply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Reply Api V1 Inquiries  Inquiry Id  Messages Post"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 Reply Api V1 Inquiries  Inquiry Id  Messages Post"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InquiryErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Reply Api V1 Inquiries  Inquiry Id  Messages Post"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INQUIRY_CLOSED",
+                    "message": "This inquiry is closed."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Reply",
+        "tags": [
+          "Inquiries"
+        ]
+      }
+    },
+    "/api/v1/inquiries/{inquiry_id}/status": {
+      "patch": {
+        "operationId": "change_status_api_v1_inquiries__inquiry_id__status_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inquiry_id",
+            "required": true,
+            "schema": {
+              "title": "Inquiry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InquiryStatusForm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 401 Change Status Api V1 Inquiries  Inquiry Id  Status Patch"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/APIKeyErrorResponse"
+                    }
+                  ],
+                  "title": "Response 403 Change Status Api V1 Inquiries  Inquiry Id  Status Patch"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthErrorResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/InquiryErrorResponse"
+                    }
+                  ],
+                  "title": "Response 404 Change Status Api V1 Inquiries  Inquiry Id  Status Patch"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "detail": {
+                    "error": "INQUIRY_CLOSED",
+                    "message": "This inquiry is closed."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/InquiryErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalErrorResponse"
+                }
+              }
+            },
+            "description": "Unexpected server error"
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Change Status",
+        "tags": [
+          "Inquiries"
         ]
       }
     },
