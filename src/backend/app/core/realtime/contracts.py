@@ -36,7 +36,16 @@ class APIKeyEvent(RealtimeEvent):
     payload: APIKeyEventPayload
 
 
+class InboxChangedEvent(RealtimeEvent):
+    type: Literal["inbox.changed"]
+
+
 class RealtimeStreamEvent(
-    RootModel[Annotated[ConnectedEvent | PingEvent | APIKeyEvent, Field(discriminator="type")]]
+    RootModel[
+        Annotated[
+            ConnectedEvent | PingEvent | APIKeyEvent | InboxChangedEvent,
+            Field(discriminator="type"),
+        ]
+    ]
 ):
     pass

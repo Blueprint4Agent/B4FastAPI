@@ -429,6 +429,17 @@ class UserRepository:
             db.add(user)
 
             try:
+                await db.flush()
+                from app.models.inbox import add_inbox_notification
+
+                await add_inbox_notification(
+                    db,
+                    user_id=user.id,
+                    kind="welcome",
+                    title="Welcome to B4A",
+                    body="Your account is ready. Welcome to B4A.",
+                    action_path="/home",
+                )
                 await db.commit()
                 await db.refresh(user)
             except IntegrityError:
@@ -456,6 +467,17 @@ class UserRepository:
             db.add(user)
 
             try:
+                await db.flush()
+                from app.models.inbox import add_inbox_notification
+
+                await add_inbox_notification(
+                    db,
+                    user_id=user.id,
+                    kind="welcome",
+                    title="Welcome to B4A",
+                    body="Your account is ready. Welcome to B4A.",
+                    action_path="/home",
+                )
                 await db.commit()
                 await db.refresh(user)
             except IntegrityError:
