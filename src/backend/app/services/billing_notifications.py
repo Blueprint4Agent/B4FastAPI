@@ -5,7 +5,9 @@ import stripe
 from app.core.config.settings import SETTINGS
 from app.core.error.billing_exception import BillingErrorCode, BillingException
 from app.models.billing import BillingCustomers
+from app.models.inbox import INBOX
 from app.services.billing import BillingService
+from app.services.inbox import InboxService
 from app.services.notifications import queue_notification
 
 
@@ -81,8 +83,6 @@ class BillingNotificationService:
             # Fetch current provider state under a customer lock: duplicate or older payloads
             # cannot roll the DB back to an obsolete plan. Failure returns non-2xx for redelivery.
             await BillingService().sync_subscription(user.id)
-        if not SETTINGS.EMAIL_ENABLED:
-            return
         kind, plan, key = None, None, None
         previous_key = None
         if (
@@ -152,6 +152,18 @@ class BillingNotificationService:
                     return  # A newer subscription must not be reported as Free.
             kind, plan, key = "plan_changed", "Free", f"subscription-ended:{obj['id']}"
         if kind is None or plan is None:
+            return
+        created = await INBOX.deliver(
+            key=key,
+            user_id=user.id,
+            kind=kind,
+            title="Subscription started" if kind == "subscription_started" else "Plan changed",
+            body=plan,
+            action_path="/settings?section=billing",
+        )
+        if created:
+            await InboxService().changed(user.id)
+        if not SETTINGS.EMAIL_ENABLED:
             return
         # Provider customer locales survive invoice metadata differences and delayed events.
         async with BillingService()._provider() as client:

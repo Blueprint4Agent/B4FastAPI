@@ -593,3 +593,5 @@ Retain the copyright and permission notice when redistributing copies or substan
 portions. Third-party dependencies, data and brand assets retain their own notices;
 see the [profile-location data notice](src/backend/app/models/profile_location.LICENSE.txt).
 The pinned B4React repository maintains its own license and asset notices.
+
+Notification inbox: [English](notes/notification-inbox.md) · [한국어](notes/ko/notification-inbox.md).
