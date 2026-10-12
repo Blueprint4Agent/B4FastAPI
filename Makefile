@@ -311,3 +311,7 @@ discovery-check: ## Validate changed-URL publication tooling without external su
 	$(UV) run --project $(BACKEND_DIR) ruff check scripts/indexnow.py scripts/test_indexnow.py
 	$(UV) run --project $(BACKEND_DIR) ruff format --check scripts/indexnow.py scripts/test_indexnow.py
 	python3 -m unittest discover -s scripts -p 'test_indexnow.py'
+
+.PHONY: base-path-deployment-test
+base-path-deployment-test: ## Verify two isolated monolithic apps behind real Nginx (requires Docker)
+	python3 scripts/test_base_path_deployment.py

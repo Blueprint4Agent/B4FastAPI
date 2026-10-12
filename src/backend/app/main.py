@@ -10,8 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette._utils import get_route_path
 
 from app.core.cache.redis import RedisManager
+from app.core.config.base_path import PrefixPathMiddleware, validate_frontend_path
 from app.core.config.settings import SETTINGS
 from app.core.db.migrations import run_startup_schema_migrations
 from app.core.db.session import dispose_db, init_db
@@ -196,7 +198,9 @@ def create_app() -> FastAPI:
     configure_startup_console(SETTINGS)
     setup_log_export()
 
+    validate_frontend_path(static_dist_dir, SETTINGS.APP_BASE_PATH)
     app = FastAPI(
+        root_path=SETTINGS.APP_BASE_PATH,
         title=SETTINGS.APP_NAME,
         version="0.1.0",
         lifespan=lifespan,
@@ -207,6 +211,7 @@ def create_app() -> FastAPI:
 
     logger.info("App log level set to %s.", log_level_name)
 
+    app.add_middleware(PrefixPathMiddleware, base_path=SETTINGS.APP_BASE_PATH)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=SETTINGS.cors_origin_list,
@@ -276,7 +281,7 @@ def create_app() -> FastAPI:
             "app_mode": SETTINGS.APP_MODE,
             "demo_enabled": SETTINGS.DEMO_ENABLED,
             "login_enabled": SETTINGS.LOGIN_ENABLED,
-            "frontend_base_path": "",
+            "frontend_base_path": SETTINGS.APP_BASE_PATH,
             "email_enabled": SETTINGS.EMAIL_ENABLED,
             "oauth_enabled": SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED,
             "billing_enabled": SETTINGS.STRIPE_ENABLED,
@@ -305,13 +310,14 @@ def create_app() -> FastAPI:
         @app.exception_handler(404)
         async def spa_fallback(request: Request, exc):
             accepts_html = "text/html" in request.headers.get("accept", "")
-            is_api_path = request.url.path.startswith("/api/")
+            route_path = get_route_path(request.scope)
+            is_api_path = route_path.startswith("/api/")
             # Missing public documents/assets must remain 404 (including deleted
             # discovery URLs); never disguise them as the application shell.
             is_document_path = (
-                request.url.path == "/about"
-                or request.url.path.startswith("/about/")
-                or bool(Path(request.url.path).suffix)
+                route_path == "/about"
+                or route_path.startswith("/about/")
+                or bool(Path(route_path).suffix)
             )
             if (
                 request.method in {"GET", "HEAD"}

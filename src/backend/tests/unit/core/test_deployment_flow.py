@@ -250,3 +250,55 @@ def test_indexnow_runs_only_after_successful_deployment_smoke(monkeypatch, smoke
         args = send.call_args.args[0]
         assert "--submit" in args
         assert args[args.index("--origin") + 1] == "https://example.test"
+
+
+def test_prefix_preflight_requires_matching_build_and_public_url(project):
+    run, model, env_path, _ = project
+    env_path.write_text("APP_MODE=development\n")
+    app = model["services"]["app"]
+    app["environment"].update(
+        APP_BASE_PATH="/demos/alpha", APP_BASE_URL="https://example.test/demos/alpha"
+    )
+    assert run("check").returncode != 0
+    app["build"] = {"args": {"APP_BASE_PATH": "/demos/alpha"}}
+    assert run("check").returncode == 0
+    app["environment"]["APP_BASE_URL"] = "https://example.test"
+    assert run("check").returncode != 0
+
+
+def test_prefix_smoke_fetches_stripped_upstream_asset(monkeypatch):
+    instance = object.__new__(deployment.Deployment)
+    instance.model = {
+        "services": {
+            "app": {"environment": {"APP_MODE": "development", "APP_BASE_PATH": "/demos/alpha"}}
+        }
+    }
+    responses = iter(
+        [
+            '{"status":"ok"}',
+            '{"app_mode":"development"}',
+            '<html><script src="/demos/alpha/assets/app.js"></script></html>',
+            "window.loaded=true;",
+        ]
+    )
+    requests = []
+
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def read(self, size):
+            return next(responses).encode()
+
+    def fetch(request, **kwargs):
+        requests.append(request.full_url)
+        return Response()
+
+    monkeypatch.setattr(deployment, "urlopen", fetch)
+    instance.probe("http://127.0.0.1:8001")
+    assert requests[-1] == "http://127.0.0.1:8001/assets/app.js"

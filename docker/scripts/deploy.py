@@ -159,6 +159,30 @@ class Deployment:
 
     def check(self):
         settings = self.settings()
+        from urllib.parse import urlsplit
+
+        raw_base_path = str(settings.get("APP_BASE_PATH", "") or "")
+        require(
+            raw_base_path in ("", "/")
+            or re.fullmatch(r"/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*/?", raw_base_path),
+            "Invalid APP_BASE_PATH.",
+        )
+        base_path = raw_base_path.rstrip("/")
+        require(
+            not base_path
+            or urlsplit(str(settings.get("APP_BASE_URL", ""))).path.rstrip("/")
+            == base_path,
+            "APP_BASE_URL must include APP_BASE_PATH.",
+        )
+        require(
+            not base_path or "caddy" not in self.resolve()["services"],
+            "Prefix deployments use an external reverse proxy; disable the root-only Caddy overlay.",
+        )
+        build_args = self.resolve()["services"]["app"].get("build", {}).get("args", {})
+        require(
+            str(build_args.get("APP_BASE_PATH", "") or "").rstrip("/") == base_path,
+            "Frontend build APP_BASE_PATH must match runtime APP_BASE_PATH.",
+        )
         driver = settings.get("DB_DRIVER", "")
         if driver.startswith("sqlite"):
             path = PurePosixPath(settings.get("DB_NAME", ""))
@@ -352,10 +376,17 @@ print("Image application settings passed.")"""
             "Runtime mode mismatch",
         )
         html = fetch("/login", "text/html")
-        asset = re.search(r'<script[^>]+src="(/assets/[^"<>]+\.js)"', html)
+        base_path = str(self.settings().get("APP_BASE_PATH", "") or "").rstrip("/")
+        asset = re.search(
+            r'<script[^>]+src="(' + re.escape(base_path) + r'/assets/[^"<>]+\.js)"',
+            html,
+        )
         require(asset is not None, "Packaged frontend missing")
         require(
-            "<html" not in fetch(asset.group(1), "application/javascript").lower(),
+            "<html"
+            not in fetch(
+                asset.group(1)[len(base_path) :], "application/javascript"
+            ).lower(),
             "JavaScript asset returned SPA fallback",
         )
         if "caddy" in self.resolve()["services"]:
