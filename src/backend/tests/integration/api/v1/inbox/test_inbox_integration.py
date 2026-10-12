@@ -178,3 +178,75 @@ def test_confirmed_billing_inbox_without_email_is_deduplicated(integration_clien
         assert publish.await_count == 1
 
     asyncio.run(scenario())
+
+
+def test_selected_actions_are_private_and_deleted_delivery_stays_deduplicated(
+    integration_client, monkeypatch
+):
+    from app.models.inbox import INBOX
+    from app.models.user import Users
+
+    client = integration_client
+    monkeypatch.setattr("app.services.inbox.RealtimeService.publish_user_notification", AsyncMock())
+    headers = []
+    for email in ["delete-owner@example.com", "delete-other@example.com"]:
+        client.post("/api/v1/auth/signup", json=build_signup_payload(email=email))
+        token = client.post("/api/v1/auth/login", json=build_login_payload(email=email)).json()[
+            "access_token"
+        ]
+        headers.append({"Authorization": f"Bearer {token}"})
+
+    async def seed():
+        owner = await Users.get_auth_user_by_email("delete-owner@example.com")
+        await INBOX.deliver(
+            key="billing-fixture",
+            user_id=owner.id,
+            kind="plan_changed",
+            title="Plan changed",
+            body="Private content",
+            action_path="/settings?section=billing",
+        )
+        return owner.id
+
+    owner_id = asyncio.run(seed())
+    own = client.get("/api/v1/inbox", headers=headers[0]).json()["items"][0]["id"]
+    other = client.get("/api/v1/inbox", headers=headers[1]).json()["items"][0]["id"]
+    payload = {"notification_ids": [own, other]}
+    assert (
+        client.post("/api/v1/inbox/read-selected", headers=headers[0], json=payload).status_code
+        == 200
+    )
+    assert client.get("/api/v1/inbox", headers=headers[1]).json()["items"][0]["read_at"] is None
+    deleted = client.request("DELETE", "/api/v1/inbox/selected", headers=headers[0], json=payload)
+    assert deleted.status_code == 200 and deleted.headers["cache-control"] == "no-store"
+    assert client.post(f"/api/v1/inbox/{own}/read", headers=headers[0]).status_code == 404
+    assert client.get("/api/v1/inbox", headers=headers[1]).json()["total"] == 1
+    assert (
+        client.request(
+            "DELETE", "/api/v1/inbox/selected", headers=headers[0], json=payload
+        ).status_code
+        == 200
+    )
+    assert (
+        client.request(
+            "DELETE", "/api/v1/inbox/selected", headers=headers[0], json={"notification_ids": []}
+        ).status_code
+        == 422
+    )
+    assert client.request("DELETE", "/api/v1/inbox/selected", json=payload).status_code == 401
+
+    async def retained_key():
+        async with get_db() as db:
+            row = await db.get(InboxNotification, own)
+            assert row.deleted_at is not None
+            assert row.title == row.body == "" and row.action_path is None
+        assert not await INBOX.deliver(
+            key="billing-fixture",
+            user_id=owner_id,
+            kind="plan_changed",
+            title="Replay",
+            body="Do not recreate",
+            action_path="/settings?section=billing",
+        )
+
+    asyncio.run(retained_key())

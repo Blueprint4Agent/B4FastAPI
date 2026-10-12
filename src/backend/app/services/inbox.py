@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from app.core.error.inbox_exception import InboxErrorCode, InboxException
 from app.core.observability.service import observe_service
 from app.core.realtime.domain_events.inbox import InboxRealtimeEventType
@@ -25,6 +27,14 @@ class InboxService:
     @observe_service("inbox.read_all")
     async def read_all(self, user_id: int, through_id: int) -> InboxSummary:
         await INBOX.read_all(user_id, through_id)
+        await self.changed(user_id)
+        return await INBOX.summary(user_id)
+
+    @observe_service("inbox.update_selected")
+    async def update_selected(
+        self, user_id: int, notification_ids: list[int], *, remove: bool
+    ) -> InboxSummary:
+        await INBOX.update_selected(user_id, notification_ids, remove=remove)
         await self.changed(user_id)
         return await INBOX.summary(user_id)
 
