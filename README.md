@@ -603,3 +603,5 @@ Notification inbox: [English](notes/notification-inbox.md) · [한국어](notes/
 Blueprint4Agent (B4A) is the umbrella project; Blueprint4FastAPI (B4FastAPI) combines this backend with the independently versioned B4React frontend. Public search pages and deployment: [English](notes/search-discovery.md) · [한국어](notes/ko/search-discovery.md).
 
 Path-based monolithic hosting: [basePath deployment](notes/base-path-deployment.md) · [한국어](notes/ko/base-path-deployment.md).
+
+Service layout modes: [English](src/frontend/notes/layout-modes.md) · [한국어](src/frontend/notes/ko/layout-modes.md). Development-only Appearance previews do not change the deployed service default.
