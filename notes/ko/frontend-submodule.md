@@ -49,12 +49,14 @@ Docker는 다단계 빌드에서 직접 복사합니다. 별도 웹 호스팅도
 ## 서비스 레이아웃
 
 고정된 프론트엔드는 `sidebar`(기본), `topnav`, `focused`(미니멀형)를 지원합니다.
-서비스 기본값은 B4React 변경에서 `src/frontend/src/service.config.ts`를 수정한 뒤 다시 빌드합니다.
+서비스 기본값은 백엔드 `APP_LAYOUT`으로 설정하며 `/config.app_layout`으로 프론트엔드에 전달합니다.
+환경 변경 후 배포 컨테이너를 다시 생성하고 브라우저를 새로고침하면 같은 이미지로 세 레이아웃을 사용할 수 있습니다.
+`src/frontend/src/service.config.ts`는 이전·사용 불가 공급자나 잘못된 원격 값에 대한 대체 기본값입니다.
 서버 `APP_MODE=development`일 때만 설정 → 모양 → 레이아웃에서 브라우저 미리보기를 제공하며
 운영 모드는 저장된 미리보기를 무시합니다. 사이드바 없는 설정·관리자 화면의 하위 메뉴는
 상단 전체 메뉴 대신 본문 옆 박스로 표시합니다. [한국어](../../src/frontend/notes/ko/layout-modes.md)와
-[English](../../src/frontend/notes/layout-modes.md)를 참고하세요. 백엔드 API나 Docker 빌드 인자는
-추가하지 않으며 GHCR 빌드는 고정된 프론트엔드 소스 기본값을 사용합니다.
+[English](../../src/frontend/notes/layout-modes.md)를 참고하세요. 배포 레이아웃 변경에는
+Docker 빌드 인자나 프론트엔드 재빌드가 필요하지 않습니다.
 
 ## 홈 랜딩
 
