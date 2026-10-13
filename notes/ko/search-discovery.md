@@ -107,3 +107,5 @@ ChatGPT·Claude·Perplexity 점검은 검색 활성화 여부, 날짜, 정확한
 - [IndexNow](https://www.indexnow.org/documentation)
 - [네이버 Sitemap·RSS](https://searchadvisor.naver.com/guide/request-feed)
 - [Show HN](https://news.ycombinator.com/showhn.html)
+
+홈과 한글·영문 정적 About에서 프롬프트 만들기를 소개하고 `/prompt-builder`로 연결합니다. 소개는 자바스크립트 없이 읽을 수 있으며 작성기는 자바스크립트와 기존 앱 연결 확인이 필요합니다. 로컬 프롬프트 작성 기능이며 실제 저장소 분석·배포를 수행하지 않습니다.
