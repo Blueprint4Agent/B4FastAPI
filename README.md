@@ -605,3 +605,5 @@ Blueprint4Agent (B4A) is the umbrella project; Blueprint4FastAPI (B4FastAPI) com
 Path-based monolithic hosting: [basePath deployment](notes/base-path-deployment.md) · [한국어](notes/ko/base-path-deployment.md).
 
 Service layout modes: [English](src/frontend/notes/layout-modes.md) · [한국어](src/frontend/notes/ko/layout-modes.md). Development-only Appearance previews do not change the deployed service default.
+
+Guided service prompts: [Prompt builder](notes/prompt-builder.md) · [한국어](notes/ko/prompt-builder.md). Available below Home in development and production.
