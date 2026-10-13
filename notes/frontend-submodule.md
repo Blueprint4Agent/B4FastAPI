@@ -63,9 +63,11 @@ build-argument changes; GHCR uses the source default of its pinned frontend revi
 ## Home landing
 
 The home route uses a dedicated landing composition: a responsive introduction and
-real demo screenshot preview, plain feature groups, source/guide links and compact
+real demo screenshot preview, feature cards, workflow/use-case sections, persistent section links and grouped
 account shortcuts. The selected service layout and auth/role filtering still apply.
 The generic MainPageTemplate remains available for settings-style menu pages.
 See the child [page-family rules](../src/frontend/notes/page-families.md#home-landing)
 and [home/template guide](../src/frontend/notes/main-page-template.md). No new API,
 external asset host or deployment variable is required; /about/ remains static.
+
+Topnav and minimal layouts center plain section links in the header; sidebar retains a capsule. Preview images crossfade every six seconds with a visible progress line, including while hovered or focused. Explicit pause, enlargement, offscreen/hidden state and reduced motion suspend rotation. The footer surface spans the main width.
