@@ -45,3 +45,13 @@ Spring Boot도 같은 계약과 자체 dist 패키징 어댑터를 구현해야 
 `make frontend-build`는 자식 dist만 생성합니다. `make frontend-package`는 빌드 결과를
 `src/backend/app/static/dist`에 복사하고 `make build`도 이 패키징을 포함합니다.
 Docker는 다단계 빌드에서 직접 복사합니다. 별도 웹 호스팅도 가능하며 API URL·CORS·쿠키 설정이 필요합니다.
+
+## 서비스 레이아웃
+
+고정된 프론트엔드는 `sidebar`(기본), `topnav`, `focused`(미니멀형)를 지원합니다.
+서비스 기본값은 B4React 변경에서 `src/frontend/src/service.config.ts`를 수정한 뒤 다시 빌드합니다.
+서버 `APP_MODE=development`일 때만 설정 → 모양 → 레이아웃에서 브라우저 미리보기를 제공하며
+운영 모드는 저장된 미리보기를 무시합니다. 사이드바 없는 설정·관리자 화면의 하위 메뉴는
+상단 전체 메뉴 대신 본문 옆 박스로 표시합니다. [한국어](../../src/frontend/notes/ko/layout-modes.md)와
+[English](../../src/frontend/notes/layout-modes.md)를 참고하세요. 백엔드 API나 Docker 빌드 인자는
+추가하지 않으며 GHCR 빌드는 고정된 프론트엔드 소스 기본값을 사용합니다.

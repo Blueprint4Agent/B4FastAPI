@@ -48,3 +48,14 @@ For Spring Boot, implement the same contract and own its own dist packaging adap
 it to `src/backend/app/static/dist`; `make build` includes this integrated packaging.
 Docker multi-stage builds perform their own copy. Separate static hosting may deploy
 child dist directly with an appropriate API URL and backend CORS/cookie configuration.
+
+## Service layouts
+
+The pinned frontend supports `sidebar` (default), `topnav`, and `focused` (minimal).
+Set `src/frontend/src/service.config.ts` in the B4React change and rebuild to publish
+a service default. Only server `APP_MODE=development` exposes Settings → Appearance →
+Layout as a browser-local preview; production ignores saved previews. Settings/admin
+submenus use a boxed contextual column outside the global header when no sidebar is
+present. See [English](../src/frontend/notes/layout-modes.md) and
+[한국어](../src/frontend/notes/ko/layout-modes.md). There are no backend API or Docker
+build-argument changes; GHCR uses the source default of its pinned frontend revision.
