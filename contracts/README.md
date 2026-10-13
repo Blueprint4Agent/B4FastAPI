@@ -163,3 +163,7 @@ endpoints together with the client. New failures include 413 size, 422 image val
 must not replace confirmed client state; binary reads need bearer/API-key headers.
 
 Domain error descriptions for HTTP 413 and 422 use the pinned phrases `Content Too Large` and `Unprocessable Content`. Python standard-library wording differs between 3.12 and 3.13; these differences must not change the shared OpenAPI baseline.
+
+## Runtime layout
+
+`GET /config` includes optional `app_layout: sidebar | topnav | focused` with a `sidebar` default. The provider reads APP_LAYOUT at process start and returns it with Cache-Control: no-store. Older providers may omit it; clients use their source fallback. Production ignores browser layout previews. No new endpoint, account preference or data migration is involved.

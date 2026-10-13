@@ -29,6 +29,9 @@ class Settings(BaseModel):
 
     APP_NAME: str = os.getenv("APP_NAME", "Blueprint4FastAPI API")
     APP_MODE: Literal["development", "production"] = os.getenv("APP_MODE", "development")
+    APP_LAYOUT: Literal["sidebar", "topnav", "focused"] = Field(
+        default=os.getenv("APP_LAYOUT", "sidebar"), validate_default=True
+    )
     APP_ENV: str = os.getenv("APP_ENV", "local")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
     STARTUP_DISPLAY: Literal["auto", "plain", "off"] = Field(
