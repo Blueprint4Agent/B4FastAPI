@@ -59,3 +59,13 @@ submenus use a boxed contextual column outside the global header when no sidebar
 present. See [English](../src/frontend/notes/layout-modes.md) and
 [한국어](../src/frontend/notes/ko/layout-modes.md). There are no backend API or Docker
 build-argument changes; GHCR uses the source default of its pinned frontend revision.
+
+## Home landing
+
+The home route uses a dedicated landing composition: a responsive introduction and
+real demo screenshot preview, plain feature groups, source/guide links and compact
+account shortcuts. The selected service layout and auth/role filtering still apply.
+The generic MainPageTemplate remains available for settings-style menu pages.
+See the child [page-family rules](../src/frontend/notes/page-families.md#home-landing)
+and [home/template guide](../src/frontend/notes/main-page-template.md). No new API,
+external asset host or deployment variable is required; /about/ remains static.
