@@ -119,3 +119,5 @@ measure. Keep crawler access, indexing, recommendation, click and adoption disti
 - [IndexNow protocol](https://www.indexnow.org/documentation)
 - [Naver sitemap/RSS](https://searchadvisor.naver.com/guide/request-feed)
 - [Show HN](https://news.ycombinator.com/showhn.html)
+
+Home and both static About languages introduce the guided prompt builder and link to `/prompt-builder`. The localized introduction remains readable without JavaScript; the wizard itself requires JavaScript and existing app readiness. This is local prompt composition, not repository analysis or deployment.
