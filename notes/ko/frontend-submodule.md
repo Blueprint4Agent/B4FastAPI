@@ -55,3 +55,12 @@ Docker는 다단계 빌드에서 직접 복사합니다. 별도 웹 호스팅도
 상단 전체 메뉴 대신 본문 옆 박스로 표시합니다. [한국어](../../src/frontend/notes/ko/layout-modes.md)와
 [English](../../src/frontend/notes/layout-modes.md)를 참고하세요. 백엔드 API나 Docker 빌드 인자는
 추가하지 않으며 GHCR 빌드는 고정된 프론트엔드 소스 기본값을 사용합니다.
+
+## 홈 랜딩
+
+홈은 반응형 소개와 실제 데모 화면 미리보기, 박스 없는 기능 그룹, 저장소·가이드 링크,
+작은 계정 바로가기로 구성됩니다. 선택한 서비스 레이아웃과 로그인·역할별 경로는 유지합니다.
+MainPageTemplate은 설정 형태의 메뉴 화면을 위해 계속 제공됩니다.
+자식의 [페이지 계열 규칙](../../src/frontend/notes/ko/page-families.md#홈-랜딩)과
+[홈·템플릿 가이드](../../src/frontend/notes/ko/main-page-template.md)를 참고하세요.
+새 API·외부 이미지 호스트·배포 변수는 필요하지 않으며 /about/은 정적 페이지로 유지합니다.
