@@ -696,6 +696,16 @@
             "title": "Api Base Path",
             "type": "string"
           },
+          "app_layout": {
+            "default": "sidebar",
+            "enum": [
+              "sidebar",
+              "topnav",
+              "focused"
+            ],
+            "title": "App Layout",
+            "type": "string"
+          },
           "app_mode": {
             "enum": [
               "development",

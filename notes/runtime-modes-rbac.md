@@ -25,12 +25,12 @@ keys, including tokens issued before switching modes. It does not delete their
 data or silently convert them to ordinary accounts. Review linked data before
 retiring old development identities; use a separate real account in production.
 
-| Permission | User | Manager | Admin |
-| --- | --- | --- | --- |
-| Own account, API keys and billing | Yes | Yes | Yes |
-| Read user directory and role statistics | No | Yes | Yes |
-| Implicit access to admin-only guards | No | No | Yes |
-| Change another user's role/profile/billing over HTTP | No | No | No |
+| Permission                                           | User | Manager | Admin |
+| ---------------------------------------------------- | ---- | ------- | ----- |
+| Own account, API keys and billing                    | Yes  | Yes     | Yes   |
+| Read user directory and role statistics              | No   | Yes     | Yes   |
+| Implicit access to admin-only guards                 | No   | No      | Yes   |
+| Change another user's role/profile/billing over HTTP | No   | No      | No    |
 
 Roles are explicit allowlists, not an automatic inheritance hierarchy. Managers
 can read names, email addresses and the existing directory metadata, but cannot
@@ -134,7 +134,6 @@ configuration before consuming state or exchanging a code. Password login/signup
 working with email and OAuth disabled; new email accounts are already verified in that mode.
 Feature settings are process configuration, so changing environment values requires restart.
 
-
 ## Mail recovery access
 
 No application role (user, manager or admin) grants cross-account lifecycle-mail HTTP access. The metadata-only inspection/retry CLI requires trusted deployment-operator shell/DB access, like the role CLI. See [mail operations](lifecycle-mail.md).
@@ -153,3 +152,15 @@ JWTs and key-derived API credentials/verification data, and can affect encrypted
 mail recovery data. Plan rotation separately.
 
 Admins see the real admin menu without the redundant demo entry. Home includes profile, inbox, support and realtime capabilities and signed-in shortcuts. The public inquiry demo at /demo/admin/inquiries uses synthetic localized records only, with no inquiry HTTP requests or mutations; DEMO_ENABLED still controls access.
+
+## Deployment layout
+
+`APP_LAYOUT=sidebar|topnav|focused` selects the shell at runtime with the same image. Default is `sidebar`; `topnav` is the navbar and `focused` is minimal. The existing `/config.app_layout` carries it without a database or new endpoint. Unknown values fail startup validation.
+
+For Docker, edit `APP_LAYOUT` in `docker/.env`, recreate the container, then reload the browser. Images already containing this feature need no rebuild. A plain `docker restart` does not change the container's creation-time environment.
+
+```sh
+docker compose --env-file docker/.env -f docker/docker-compose.yml up -d --no-build --force-recreate app
+```
+
+For local development, edit `src/backend/.env` and restart the backend process. Saved development browser previews take precedence over the deployment default; use Settings → Appearance → Use service default to clear one. Production ignores browser previews. Runtime config changes are not pushed to already-open clients.

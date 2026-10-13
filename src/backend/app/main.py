@@ -89,6 +89,7 @@ def register_exception_handlers(app: FastAPI) -> None:
 class AppConfigResponse(BaseModel):
     api_base_path: str
     app_mode: Literal["development", "production"]
+    app_layout: Literal["sidebar", "topnav", "focused"] = "sidebar"
     demo_enabled: bool = False
     login_enabled: bool
     frontend_base_path: str
@@ -279,6 +280,7 @@ def create_app() -> FastAPI:
         return {
             "api_base_path": "/api/v1",
             "app_mode": SETTINGS.APP_MODE,
+            "app_layout": SETTINGS.APP_LAYOUT,
             "demo_enabled": SETTINGS.DEMO_ENABLED,
             "login_enabled": SETTINGS.LOGIN_ENABLED,
             "frontend_base_path": SETTINGS.APP_BASE_PATH,
