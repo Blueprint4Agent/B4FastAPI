@@ -52,13 +52,16 @@ child dist directly with an appropriate API URL and backend CORS/cookie configur
 ## Service layouts
 
 The pinned frontend supports `sidebar` (default), `topnav`, and `focused` (minimal).
-Set `src/frontend/src/service.config.ts` in the B4React change and rebuild to publish
-a service default. Only server `APP_MODE=development` exposes Settings → Appearance →
+Set backend `APP_LAYOUT` to choose the deployment default; `/config.app_layout`
+exposes it to the frontend. Recreate the deployed container after an environment
+change and reload the browser; the same image supports all three layouts.
+`src/frontend/src/service.config.ts` is only a fallback for older/unavailable providers
+or invalid remote values. Only server `APP_MODE=development` exposes Settings → Appearance →
 Layout as a browser-local preview; production ignores saved previews. Settings/admin
 submenus use a boxed contextual column outside the global header when no sidebar is
 present. See [English](../src/frontend/notes/layout-modes.md) and
-[한국어](../src/frontend/notes/ko/layout-modes.md). There are no backend API or Docker
-build-argument changes; GHCR uses the source default of its pinned frontend revision.
+[한국어](../src/frontend/notes/ko/layout-modes.md). No Docker build argument or
+frontend rebuild is needed to change the deployment layout.
 
 ## Home landing
 
