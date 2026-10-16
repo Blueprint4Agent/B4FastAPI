@@ -7,10 +7,10 @@ from pathlib import Path
 import re
 import subprocess
 import sys
-import time
 
-from verification_cache import Receipt
-from verification_scope import frontend_impact
+from verification_scope import css_impact, frontend_impact
+from verification_areas import FRONTEND_AREAS, PARENT_AREAS, owned_areas
+from verification_runner import execute
 
 LEVELS = {"none": 0, "docs": 1, "copy": 2, "behavior": 3, "ui": 4, "full": 5}
 
@@ -52,13 +52,7 @@ def parse_json(text):
 
 
 def classify(root, base, head, path, parent):
-    if path == "AGENTS.md" or path.endswith("/AGENTS.md"):
-        return "full"
-    if path.endswith(".md") and (
-        "/" not in path
-        or path.startswith(("notes/", "worklog/"))
-        or path in ("src/backend/BACKEND.md", "src/backend/TEST.md")
-    ):
+    if path.endswith(".md"):
         return "docs"
     if not parent and re.fullmatch(r"src/locales/[\w.-]+\.json", path):
         try:
@@ -127,15 +121,16 @@ def plan(root, base="HEAD", head=None, force_full=False):
         "backend": False,
         "frontend": "none",
         "files": [],
-        "reason": "Changed-file classification",
+        "areas": [],
+        "ownership": {},
+        "reason": "Changed-file ownership",
     }
+    areas, levels, app_files = set(), [], []
     try:
         paths = changed(root, base, head)
         result["files"] = paths
-        levels = []
         for path in paths:
             if parent and path == "src/frontend":
-                # Inspect the pinned child's commits, including dirty child files locally.
                 old = git(root, "rev-parse", f"{base}:src/frontend").decode().strip()
                 new = (
                     git(root, "rev-parse", f"{head}:src/frontend").decode().strip()
@@ -143,36 +138,95 @@ def plan(root, base="HEAD", head=None, force_full=False):
                     else None
                 )
                 child = plan(root / path, old, new)
-                levels.append(child["frontend"])
                 result["child"] = child
+                areas.update(child["areas"])
+                levels.append(child["frontend"])
+                result["ownership"][path] = child["areas"]
                 continue
-            level = classify(root, base, head, path, parent)
-            if parent and level == "behavior":
-                result["backend"] = True
-            else:
-                levels.append(level)
-                if parent and level == "full":
-                    result["backend"] = True
-        result["frontend"] = max(levels, key=LEVELS.get, default="none")
+            owner = owned_areas(path, parent)
+            if owner is None:
+                owner = PARENT_AREAS if parent else FRONTEND_AREAS
+                result["reason"] += f"; shared/unknown path: {path}"
+            if not parent and path == "src/styles/app.css":
+                try:
+                    css_domains = css_impact(
+                        content(root, base, path), content(root, head, path)
+                    )
+                except (OSError, ValueError, subprocess.CalledProcessError):
+                    css_domains = None
+                if css_domains is None:
+                    owner = owner | {"style-studio", "discovery"}
+            if (
+                not parent
+                and re.fullmatch(r"src/locales/[\w.-]+\.json", path)
+                and classify(root, base, head, path, False) != "copy"
+            ):
+                if path.startswith("src/locales/styleStudio."):
+                    owner = owner | {"style-studio"}
+                if path in {"src/locales/en.json", "src/locales/ko.json"}:
+                    try:
+                        before = parse_json(content(root, base, path))
+                        after = parse_json(content(root, head, path))
+
+                        def relevant(value):
+                            return (
+                                value.get("discovery"),
+                                value.get("home", {}).get("project"),
+                            )
+
+                        discovery_changed = relevant(before) != relevant(after)
+                    except (
+                        OSError,
+                        ValueError,
+                        AttributeError,
+                        subprocess.CalledProcessError,
+                    ):
+                        discovery_changed = True
+                    if discovery_changed:
+                        owner = owner | {"discovery"}
+            result["ownership"][path] = sorted(owner)
+            areas.update(owner)
+            if "frontend-app" in owner:
+                levels.append(
+                    "full" if parent else classify(root, base, head, path, False)
+                )
+                app_files.append(path)
+            elif path.endswith(".md"):
+                levels.append("docs")
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         force_full = True
-        result["reason"] = (
-            f"Cannot establish scope ({type(error).__name__}); full verification"
-        )
+        result["reason"] = f"Cannot establish scope ({type(error).__name__})"
     if force_full:
-        result["backend"] = parent
-        result["frontend"] = "full"
+        areas = set(PARENT_AREAS if parent else FRONTEND_AREAS)
+        levels = ["full"]
         result["reason"] = "Full verification requested or scope unavailable"
-    if result["frontend"] in ("behavior", "ui"):
-        if parent and "child" in result:
+    result["areas"] = sorted(areas)
+    result["forced"] = force_full
+    result["backend"] = parent and bool(areas & {"backend", "deployment"})
+    result["frontend"] = max(levels, key=LEVELS.get, default="none")
+    if "frontend-app" in areas and result["frontend"] in ("behavior", "ui"):
+        if parent and "child" in result and not app_files:
             result["impact"] = result["child"].get("impact")
         elif not parent:
-            result["impact"] = frontend_impact(root, base, head, result["files"], content)
+            result["impact"] = frontend_impact(root, base, head, app_files, content)
         result["reason"] += "; " + (
-            "affected suites selected" if result.get("impact") else "shared/unknown impact; broad suites retained"
+            "affected suites selected"
+            if result.get("impact")
+            else "shared/unknown app impact; broad app suites retained"
         )
-    result["node"] = LEVELS[result["frontend"]] >= LEVELS["behavior"]
-    result["browser"] = LEVELS[result["frontend"]] >= LEVELS["ui"]
+    app_runtime = (
+        "frontend-app" in areas and LEVELS[result["frontend"]] >= LEVELS["behavior"]
+    )
+    result["node"] = (
+        app_runtime
+        or bool(areas & {"contracts", "branding", "style-studio"})
+        or ("discovery" in areas)
+    )
+    result["browser"] = (
+        (app_runtime and LEVELS[result["frontend"]] >= LEVELS["ui"])
+        or bool(areas & {"contracts", "style-studio", "branding"})
+        or ("discovery" in areas)
+    )
     return result
 
 
@@ -198,53 +252,96 @@ def lightweight(root, base, head):
 
 
 def targets(scope, parent, domain):
-    commands = [["make", "hooks-test"]] if scope["frontend"] == "full" else []
-    if parent and domain in ("all", "backend") and scope["backend"]:
-        commands.append(
-            [
-                "make",
-                "project-init-check",
-                "project-init-test",
-                "backend-architecture-check",
-                "env-contract-check",
-                "backend-check",
-                "backend-test",
-                "contract-check",
-            ]
-        )
-    level = scope["frontend"]
-    if domain == "backend" or LEVELS[level] < LEVELS["behavior"]:
-        return commands
-    if parent:
-        commands.append(["make", "project-brand"])
+    # Legacy callers can still supply a frontend depth; plans always include areas.
+    areas = set(scope.get("areas", PARENT_AREAS if parent else FRONTEND_AREAS))
+    if LEVELS[scope["frontend"]] < LEVELS["behavior"]:
+        areas.discard("frontend-app")
+    commands = []
     prefix = ["make", "-C", "src/frontend"] if parent else ["make"]
-    impact = scope.get("impact")
-    if impact and impact.get("checks"):
-        commands.append(prefix + ["check-affected", "CHECK_FILES=" + " ".join(impact["checks"])])
-    else:
-        commands.append(prefix + ["check"])
-    if impact:
-        if impact["unit"]:
-            commands.append(prefix + ["test-selected", "TEST_FILES=" + " ".join(impact["unit"])])
-        if impact["browser"]:
-            commands.append(prefix + ["test-ui-selected", "TEST_FILES=" + " ".join(impact["browser"])])
-    else:
-        commands.append(prefix + ["test"])
-        if level in ("ui", "full"):
-            commands.append(prefix + ["test-ui"])
-    if level == "full":
-        commands.append(
-            prefix + ["test-routes"]
-        )
-        commands.append(prefix + ["test-style-studio"])
-    if parent:
-        if level != "full":
-            commands.append(prefix + ["build"])
-        commands.append(["make", "frontend-contract-check", "frontend-package-verified"])
+    if areas & {"governance", "harness"}:
+        commands.append(["make", "verification-harness-test"])
+        if parent and (
+            ("frontend-app" in areas and "harness" in areas)
+            or set(scope.get("child", {}).get("areas", [])) & {"harness", "governance"}
+        ):
+            commands.append(prefix + ["verification-harness-test"])
+    if parent and domain in ("all", "backend"):
+        if "backend" in areas and scope["backend"]:
+            commands.append(
+                [
+                    "make",
+                    "project-init-check",
+                    "project-init-test",
+                    "backend-architecture-check",
+                    "env-contract-check",
+                    "backend-check",
+                    "backend-test",
+                    "contract-check",
+                ]
+            )
+        elif "deployment" in areas:
+            commands.append(["make", "deployment-check"])
+        if "contracts" in areas and "backend" not in areas:
+            commands.append(["make", "contract-check"])
+        if "publication" in areas:
+            commands.append(["make", "discovery-check"])
+    if domain == "backend":
+        return commands
+    if parent and areas & {"frontend-app", "branding"}:
+        commands.append(["make", "project-brand"])
+    if "frontend-app" in areas:
+        level, impact = scope["frontend"], scope.get("impact")
+        if impact and impact.get("checks"):
+            commands.append(
+                prefix + ["check-affected", "CHECK_FILES=" + " ".join(impact["checks"])]
+            )
+        else:
+            commands.append(prefix + ["check-app"])
+        if impact:
+            if impact["unit"]:
+                commands.append(
+                    prefix + ["test-selected", "TEST_FILES=" + " ".join(impact["unit"])]
+                )
+            if impact["browser"]:
+                commands.append(
+                    prefix
+                    + ["test-ui-selected", "TEST_FILES=" + " ".join(impact["browser"])]
+                )
+        else:
+            commands.append(prefix + ["test"])
+            if level in ("ui", "full"):
+                commands.append(prefix + ["test-ui"])
         if level == "full":
-            commands.append(["make", "project-build-test"])
-    elif level != "full":
-        commands.append(prefix + ["build"])
+            commands.append(prefix + ["test-production"])
+        else:
+            commands.append(prefix + ["build"])
+    elif "contracts" in areas:
+        commands.append(prefix + ["api-check", "check-app", "test", "test-production"])
+    if "frontend-app" in areas and areas & {"harness", "governance"}:
+        commands.append(prefix + ["app-tooling-test"])
+    if "style-studio" in areas:
+        commands.append(prefix + ["test-style-studio"])
+    if "discovery" in areas and not parent:
+        commands.append(prefix + ["discovery-check", "test-discovery"])
+    elif parent and "discovery" in areas:
+        commands.append(prefix + ["discovery-check", "test-discovery"])
+    if "branding" in areas:
+        commands.append(prefix + ["project-config-check"])
+        if "frontend-app" not in areas:
+            commands.append(prefix + ["test-production"])
+        if parent:
+            commands.append(
+                [
+                    "make",
+                    "project-init-check",
+                    "project-init-test",
+                    "project-build-test",
+                ]
+            )
+    if parent and areas & {"frontend-app", "contracts", "branding"}:
+        commands.append(
+            ["make", "frontend-contract-check", "frontend-package-verified"]
+        )
     return commands
 
 
@@ -254,7 +351,9 @@ def main():
     parser.add_argument("--base", default=(os.environ.get("VERIFY_BASE") or "HEAD"))
     parser.add_argument("--head", default=os.environ.get("VERIFY_HEAD") or None)
     parser.add_argument(
-        "--full", action="store_true", default=os.environ.get("VERIFY_FULL") == "1" or bool(os.environ.get("CI"))
+        "--full",
+        action="store_true",
+        default=os.environ.get("VERIFY_FULL") == "1" or bool(os.environ.get("CI")),
     )
     parser.add_argument(
         "--domain", choices=("all", "backend", "frontend"), default="all"
@@ -263,18 +362,30 @@ def main():
     parser.add_argument(
         "--json", action="store_true", help="Print full machine-readable plan"
     )
+    parser.add_argument(
+        "--jobs",
+        type=int,
+        default=int(os.environ.get("VERIFY_JOBS") or "2"),
+        help="Maximum concurrent command lanes (default: 2; 1 is sequential)",
+    )
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error("--jobs must be positive")
     root = Path(__file__).resolve().parent.parent
     scope = plan(root, args.base, args.head, args.full)
     commands = targets(scope, (root / "src/backend").is_dir(), args.domain)
     if args.json:
         print(
-            json.dumps({**scope, "commands": commands}, ensure_ascii=False, indent=2),
+            json.dumps(
+                {**scope, "commands": commands, "jobs": args.jobs},
+                ensure_ascii=False,
+                indent=2,
+            ),
             flush=True,
         )
     else:
         print(
-            f"Verification: backend={scope['backend']}, frontend={scope['frontend']}, changed files={len(scope['files'])}. {scope['reason']}",
+            f"Verification: backend={scope['backend']}, frontend={scope['frontend']}, areas={','.join(scope['areas']) or 'text'}, jobs={args.jobs}, changed files={len(scope['files'])}. {scope['reason']}",
             flush=True,
         )
         if args.action == "plan":
@@ -300,36 +411,7 @@ def main():
             )
             lightweight(root / "src/frontend", old, new)
         if args.action == "run":
-            for command in commands:
-                receipt = Receipt(root, command)
-                if not args.full and receipt.reusable():
-                    print("Reused matching local verification: " + " ".join(command), flush=True)
-                    continue
-                print("Receipt: " + receipt.miss_reason(), flush=True)
-                receipt.invalidate()
-                print("Running: " + " ".join(command), flush=True)
-                logs = (
-                    Path(git(root, "rev-parse", "--absolute-git-dir").decode().strip())
-                    / "verification-logs"
-                )
-                logs.mkdir(exist_ok=True)
-                log = logs / (str(commands.index(command)) + ".log")
-                started = time.monotonic()
-                with log.open("w") as output:
-                    completed = subprocess.run(
-                        command, cwd=root, stdout=output, stderr=subprocess.STDOUT
-                    )
-                if completed.returncode:
-                    print(
-                        "\n".join(log.read_text(errors="replace").splitlines()[-80:]),
-                        file=sys.stderr,
-                    )
-                    raise subprocess.CalledProcessError(completed.returncode, command)
-                receipt.save()
-                print(
-                    f"Passed ({time.monotonic() - started:.1f}s). Log: {log}",
-                    flush=True,
-                )
+            execute(root, commands, jobs=args.jobs, forced=scope["forced"])
 
 
 if __name__ == "__main__":

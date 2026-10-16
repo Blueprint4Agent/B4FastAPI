@@ -1,57 +1,113 @@
 # Change-scoped verification
 
-Use `make verify-plan` to inspect the plan and `make verify` to execute it. Local hooks and manual Actions use `scripts/verification.py`; Git governance remains independent and mandatory. This policy supersedes unconditional pre-commit check/test/build lists for low-risk edits.
+`make verify-plan` shows affected **areas**, application regression depth, and selected
+commands. `python3 scripts/verification.py plan --json` also exposes each changed
+file's ownership. `make verify` runs that plan. Git governance remains mandatory.
 
-| Scope | Classification | Verification |
-| --- | --- | --- |
-| Docs | Known Markdown documentation/worklog paths, excluding AGENTS.md | Changed text, whitespace and UTF-8 validation |
-| Copy | Existing locale JSON string values only; identical keys, placeholders, nesting references and markup | Text/JSON validation including duplicate-key rejection |
-| Behavior | Non-protected runtime utilities/hooks/tests; backend application/tests | Affected domain checks and tests; frontend build |
-| UI | Components/pages/styles/assets/browser tests | Frontend checks/tests/build and browser UI suite |
-| Full | Auth/session/API/connectivity, contracts, dependencies, configuration, CI/tooling, unknown paths or unavailable history | Full affected checks, production routes and style editor; parent integration/packaging checks |
+## Ownership and regression depth
 
-Mixed changes take the strongest scope. Backend application changes retain the entire backend suite, including security/data paths; security/data paths are not narrowed by filename guessing. Frontend checks/types remain global; mapped billing/admin changes select their registered unit/integration and browser suites. Shared or unmapped changes retain broad suites. No downgrade flag or PR label bypass exists. Locale additions/deletions, renamed keys, altered interpolation/markup, arrays and non-string values require full verification. The classifier is conservative; agent judgment can escalate validation and add a focused visual check when copy affects wrapping.
+Area and depth are independent: an authentication change keeps broad application
+regressions without automatically running unrelated editor or discovery tooling.
+Plans compose the union of all changed areas, including pinned and dirty child changes.
 
-Default comparison is HEAD to the current working tree (including staged and untracked files). For a whole branch use `VERIFY_BASE=$(git merge-base origin/main HEAD) make verify`. The push hook compares remote main merge-base to the exact clean pushed HEAD, so follow-up commits cannot conceal earlier runtime changes. Manual Actions use full verification. `VERIFY_FULL=1 make verify` forces full checks; `make verification-test` exercises actual Git fixtures.
+| Changed area                                                             | Selected checks                                                                                                     |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Markdown documentation anywhere                                          | UTF-8, whitespace and JSON checks; no runtime dependencies                                                          |
+| AGENTS/domain/test guides, worklog template, Git hooks                   | Governance/harness fixtures plus text validation                                                                    |
+| Existing locale string values with identical shape/placeholders/markup   | Text/JSON only                                                                                                      |
+| Locale key/shape changes                                                 | Broad frontend application checks, unit/UI and production-route tests                                               |
+| Backend application/tests/migrations/dependencies                        | Backend lint, architecture, complete security/data suite and contract checks                                        |
+| Frontend application/auth/API/shared state                               | Application static/type/API/format checks, unit tests; UI/browser and production routes according to depth          |
+| Contracts                                                                | Provider/consumer baseline checks, frontend types/application/unit/production routes                                |
+| Docker/deployment                                                        | Env/initializer checks and fake-Docker orchestration tests; no live deployment                                      |
+| Public discovery tooling                                                 | Discovery fixtures and isolated static build/browser checks; parent IndexNow tools have separate publication checks |
+| Style studio                                                             | Application regression checks, editor file-access fixtures and editor browser suite                                 |
+| Branding                                                                 | Public identity fixtures, production build/routes; parent adds isolated customized build                            |
+| Verification harness                                                     | Classifier, scheduler, receipts and governance fixtures                                                             |
+| Shared build inputs (Makefile/Vite/dependencies/CI) or unknown ownership | All repository areas                                                                                                |
 
-The parent inspects both frontend gitlink endpoints and local dirty child changes. A copy-only child pin update can avoid runtime checks; missing child history selects full frontend verification. The repositories carry the same classifier/test source intentionally to keep the child independent; keep these copies synchronized when changing policy. Parent runtime pins still receive contract/package checks. Lightweight validation does not require npm/uv or read local environment secrets.
+The application risk levels remain `none/docs/copy/behavior/ui/full` for existing
+consumers. `full` depth means broad application coverage; `VERIFY_FULL=1` means
+**all areas**. Root and nested AGENTS guides are governance, other Markdown is
+text only. A missing comparison revision expands to all areas. Invalid/deleted
+locale data expands application checks; malformed JSON also fails lightweight validation.
+Shared CSS retains broad app checks; shared app.css changes additionally select style studio and discovery because both
+consume its tokens/styles. Reviewed billing/admin-only CSS keeps its scoped selection.
+Structural changes to discovery/home.project locale data and editor API/locales select
+their actual tool consumers too. Unknown impact within the app retains
+broad app suites. No manual skip/downgrade flag is provided.
 
-GitHub workflows are manual-only; required status checks are removed. PRs, resolved conversations, deletion/force-push protection and zero required approvals remain. See [local hooks](local-hooks.md).
+Existing reviewed billing/admin selections remain supported. Expanding page-level
+coverage and backend domain selection are follow-ups (#94/#152); this change does
+not infer safe backend subsets from filenames. Backend auth/security/data tests
+remain complete. A new locale key does not imply that browser tests can be skipped.
 
-Do not rerun a successful delegated check for the same relevant content. Record the command, compared revision/scope and skipped checks in the worklog. New runtime edits invalidate prior runtime evidence; copy-only follow-ups need only their selected checks locally. The push hook validates the complete branch. Keep related edits in one task PR, merge the child once, then update the parent pin. Read local log summaries and failure excerpts. Content-bound command receipts can reuse unchanged successful local checks for up to 24 hours; source/config/tool/output changes or failures invalidate them. Text and governance checks always run. Worklog-only result updates do not invalidate expensive checks. VERIFY_FULL=1 and manual Actions disable reuse.
+## Commands and compatibility
 
-The runner prints a concise scope/command summary and timing. Full command output is stored in the repository Git directory under `verification-logs/`; on failure it prints the last 80 lines and exits nonzero. `python3 scripts/verification.py plan --json` exposes the complete machine-readable plan. Full parent verification packages the production-route-tested dist without rebuilding it; custom-branding isolation remains a separate check.
+```sh
+make verify-plan
+make verify
+VERIFY_BASE=$(git merge-base origin/main HEAD) make verify
+VERIFY_FULL=1 make verify
+VERIFY_FULL=1 VERIFY_JOBS=1 make verify # identical checks, sequential command lanes
+python3 scripts/verification.py plan --json
+```
 
-## Affected suites and local reuse
+The default comparison includes staged, unstaged and untracked changes against HEAD.
+Use VERIFY_HEAD for an immutable endpoint. Manual Actions/CI keep all areas and
+ignore receipts. `--domain backend|frontend` retains separate manual CI jobs;
+root governance is validated independently of application-domain filtering.
 
-`make verify-plan` (or `python3 scripts/verification.py plan --json`) reports affected suites.
-Billing/admin page, feature and domain-hook edits select registered domain coverage. CSS is
-narrowed only when every changed rule is scoped to those domains; shared selectors, variables,
-keyframes or unsupported syntax retain all UI tests. Test-body-only browser edits select the
-whole generated test group by source line; setup changes/deletions select the full spec.
-Missing coverage, protected auth/API/config changes and unknown impact fail broad. Backend
-application changes still run the backend suite because authorization/data coupling is shared.
+`check-app` runs static application policy, types, formatting and generated API drift
+without unrelated harness fixtures. `verification-harness-test` runs isolated Python
+fixtures; `app-tooling-test` runs static-checker fixtures. `test-production` builds and
+checks production routes. Existing `check`, `hooks-test`, `test-routes` and other
+standalone Make commands remain available; `test-routes` still includes discovery.
 
-Static checks/types, contracts, builds and Git governance are retained. Unit/browser selection
-is visible in the plan and encoded in each receipt command, so one subset cannot authorize another.
-Full/CI verification ignores scoped selection and receipts. Use `VERIFY_FULL=1 make verify`.
+## Bounded parallel execution
 
-Use one shell/toolchain throughout a task: from the parent run `make -C src/frontend verify`
-and `git -C src/frontend push`, then root integration. Equivalent PATH duplicate entries and
-Git's injected helper path no longer invalidate receipts. Real PATH precedence/tool versions,
-resolved executables, config, source, expired receipts and changed build outputs still invalidate.
-Different Python installations between shells correctly require new checks. Cache misses print
-which key changed without exposing configuration values. Branding is generated before child
-checks; parent integration reuses child build/routes receipts and always validates contracts/packages.
+The runner defaults to `VERIFY_JOBS=2`. Independent backend checks can overlap the
+ordered frontend pipeline. `VERIFY_JOBS=1` / `--jobs 1` keeps sequential scheduling
+for comparison or constrained machines. This controls command lanes, not individual
+test worker counts. Backend pytest remains sequential: no xdist dependency or
+unverified DB/process isolation change is introduced.
 
-For registered components, edits confined to the JSX return region (unchanged setup/helpers
-and trailing code) select reviewed render scenarios by stable title markers. CSS owner lookup
-must resolve every changed selector to registered components; otherwise the domain suite remains.
-Missing/renamed markers fail back to the complete domain suite. Hook logic edits keep domain-wide
-coverage. Scoped browser cases run in isolated contexts with the configured worker limit and
-fully-parallel scheduling. Mapped changes use `check-affected`: global type/architecture/UI/state
-policy checks plus changed-file formatting, without rerunning unchanged tooling self-tests or
-regenerating an unchanged API contract. Tooling/config changes still select full `check`.
+Frontend generators, checks, builds, browser suites and isolated custom-brand builds
+retain order. Browser suites share report output/fixed ports; they must not run as
+separate concurrent commands. Packaging waits for all preceding checks, including
+backend static-serving tests, before replacing backend dist. The app Playwright
+config enables `fullyParallel` for independent browser contexts while retaining the
+existing worker budget (CLI `--workers` remains supported). Production/editor/
+discovery suites retain their existing scheduling.
+
+On failure, no new commands start; already-running commands finish before the runner
+returns nonzero. Downstream packaging cannot run after failure. Each invocation has
+its own log directory in `.git/verification-logs/run-*`; concise progress prints
+command durations and the final wall time, with failure excerpts and complete logs.
+Do not start two verification runners concurrently against the same checkout.
+
+Playwright's independent-case scheduling follows its [parallelism documentation](https://playwright.dev/docs/test-parallel).
+Browser fixtures use per-test contexts and request mocks; no suite-level shared
+page, ordered workflow across tests or developer backend is used by app E2E tests.
+
+## Receipts and integration
+
+Successful unchanged local commands may reuse content-bound receipts for up to 24h.
+Source/configuration/tool/environment/output changes invalidate them; command scope
+is part of the key. Text/Git governance always run. Worklog-only result edits still
+receive text and governance validation. Forced full and CI neither reuse nor save
+receipts. Failed commands invalidate their prior receipt.
+
+Follow child-first integration: merge the B4React task PR, then update the parent
+pin. Parent contracts and packaging still run. Keep related edits in one task PR,
+record selected/omitted checks and reasons, and do not repeat successful unchanged
+checks as separate check/test/ci rituals. See [local hooks](local-hooks.md).
+
+## Historical measurements
+
+The measurements below describe the 2026-10-07 implementation and revision range,
+not current universal timing guarantees. For this ownership/parallel change, use
+the observed results and scope recorded in the matching worklog.
 
 ## Measured results — 2026-10-07
 
@@ -59,13 +115,13 @@ The existing billing/admin UI change was used as the benchmark: B4React
 `ca3f83f..57a67d5`, B4FastAPI `06e55ba..7c4922e`. Timings are single local
 wall-clock samples from `/usr/bin/time -p`, not a guarantee for every change.
 
-| Scenario | Before | After |
-| --- | ---: | ---: |
-| First UI verification | 121.01 s | **30.72 s** |
-| Identical UI verification repeated | Expensive checks were repeated in hooks/integration | **1.08 s** |
-| Parent integration of the same UI change | 122.36 s | **1.65 s** |
-| Unit/component/integration cases selected | 140 | **39** |
-| Browser cases selected | 164 | **32** |
+| Scenario                                  |                                              Before |       After |
+| ----------------------------------------- | --------------------------------------------------: | ----------: |
+| First UI verification                     |                                            121.01 s | **30.72 s** |
+| Identical UI verification repeated        | Expensive checks were repeated in hooks/integration |  **1.08 s** |
+| Parent integration of the same UI change  |                                            122.36 s |  **1.65 s** |
+| Unit/component/integration cases selected |                                                 140 |      **39** |
+| Browser cases selected                    |                                                 164 |      **32** |
 
 The final first run spent 9.3 s on static policy/types/changed-file formatting,
 2.2 s on related unit/integration tests, 13.2 s on browser scenarios and 4.9 s
@@ -102,17 +158,24 @@ The verification-tool changes themselves are separately checked at full branch s
 
 ### Before/after by change scenario
 
-| Scenario | Before | After | Previous time | New time | Evidence |
-| --- | --- | --- | ---: | ---: | --- |
-| Registered billing/admin rendering edit | All unit/browser cases | Affected components/render scenarios and related tests | 121.01 s | 30.72 s | Measured UI revision range |
-| Unchanged repeated verification | Hooks/integration could repeat expensive checks | Reuse matching successful receipts | No separate identical-command baseline | 1.08 s | New behavior measured |
-| Parent integration of that UI edit | Repeat child checks/build | Reuse child proof; retain contracts/packaging | 122.36 s | 1.65 s | Measured |
-| Backend only | Backend suite | Backend suite retained | About 45 s | About 45 s | Estimate from roughly 44 s backend stage |
-| That UI edit plus backend changes | Broad UI plus backend | Affected UI plus backend | About 165 s | About 75 s | Sum-of-stages estimate |
-| Verification scripts, auth or shared config | Broad/full checks | Broad/full checks retained | Roughly 200 s | Roughly 200 s | Full-run reference, not a controlled before/after comparison |
+| Scenario                                    | Before                                          | After                                                  |                          Previous time |      New time | Evidence                                                     |
+| ------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------ | -------------------------------------: | ------------: | ------------------------------------------------------------ |
+| Registered billing/admin rendering edit     | All unit/browser cases                          | Affected components/render scenarios and related tests |                               121.01 s |       30.72 s | Measured UI revision range                                   |
+| Unchanged repeated verification             | Hooks/integration could repeat expensive checks | Reuse matching successful receipts                     | No separate identical-command baseline |        1.08 s | New behavior measured                                        |
+| Parent integration of that UI edit          | Repeat child checks/build                       | Reuse child proof; retain contracts/packaging          |                               122.36 s |        1.65 s | Measured                                                     |
+| Backend only                                | Backend suite                                   | Backend suite retained                                 |                             About 45 s |    About 45 s | Estimate from roughly 44 s backend stage                     |
+| That UI edit plus backend changes           | Broad UI plus backend                           | Affected UI plus backend                               |                            About 165 s |    About 75 s | Sum-of-stages estimate                                       |
+| Verification scripts, auth or shared config | Broad/full checks                               | Broad/full checks retained                             |                          Roughly 200 s | Roughly 200 s | Full-run reference, not a controlled before/after comparison |
 
 The 30 s UI figure applies to this registered render-only case, not arbitrary shared CSS,
 global state or dependency changes. Backend tests are not blindly selected by changed filenames.
 The 45 s/75 s values are estimates rather than separately measured end-to-end totals. Reuse
 requires matching source/configuration/toolchain/selected suites, valid age and build outputs;
 it never carries old successful proof across a changed implementation.
+
+## Backend test environment
+
+Root `backend-test` and `deployment-check` set `TRACING_ENABLED=false` for pytest.
+This isolates tests from developer OTLP exporters and avoids native gRPC fork crashes
+in macOS subprocess fixtures. Runtime `.env` is unchanged; tracing-specific tests may
+explicitly opt in with a mocked exporter. See the backend test guide.

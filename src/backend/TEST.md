@@ -387,3 +387,12 @@ Tests for an interactive Rich console explicitly set TERM with monkeypatch befor
 constructing the console. `force_terminal=True` alone does not override a dumb
 terminal. Restore the caller environment automatically; do not require a global
 terminal setting or change runtime fallback behavior to satisfy a fixture.
+
+## Local tracing isolation
+
+Run backend tests through root `make backend-test` (or `make verify`). These commands
+set `TRACING_ENABLED=false` for the test process, independently of developer `.env`.
+Tests must not start a real OTLP exporter; tracing-specific tests can opt in with a
+mocked exporter. For direct pytest use `TRACING_ENABLED=false uv run python -m pytest`.
+This also avoids forking a native gRPC exporter thread in subprocess-based deployment
+fixtures on macOS. Production/runtime tracing settings are unchanged.

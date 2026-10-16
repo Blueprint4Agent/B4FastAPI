@@ -78,7 +78,7 @@ backend-dev: ## Run backend development server
 	cd $(BACKEND_DIR) && $(UV) run uvicorn app.main:app --reload --host $(BACKEND_HOST) --port $(BACKEND_PORT)
 
 .PHONY: backend-check
-backend-check: discovery-check ## Run backend lint and format checks
+backend-check: ## Run backend lint and format checks
 	cd $(BACKEND_DIR) && $(UV) run ruff check . && $(UV) run ruff format . --check
 
 .PHONY: backend-format
@@ -87,7 +87,7 @@ backend-format: ## Format backend code
 
 .PHONY: backend-test
 backend-test: ## Run backend tests
-	cd $(BACKEND_DIR) && $(UV) run python -m pytest $(PYTEST_ARGS)
+	cd $(BACKEND_DIR) && TRACING_ENABLED=false $(UV) run python -m pytest $(PYTEST_ARGS)
 
 .PHONY: frontend-install
 frontend-install: frontend-init ## Install frontend dependencies
@@ -249,7 +249,7 @@ project-build-test: ## Verify custom branding in an isolated production frontend
 frontend-style-studio: ## Run local style editor for FRONTEND_DIR (default src/frontend)
 	$(MAKE) -C "$(FRONTEND_DIR)" style-studio
 
-export VERIFY_BASE VERIFY_HEAD VERIFY_FULL
+export VERIFY_BASE VERIFY_HEAD VERIFY_FULL VERIFY_JOBS
 .PHONY: verify-plan verify verify-light verification-test
 verify-plan: ## Show change-scoped checks (VERIFY_BASE defaults to HEAD)
 	python3 scripts/verification.py plan
@@ -315,3 +315,10 @@ discovery-check: ## Validate changed-URL publication tooling without external su
 .PHONY: base-path-deployment-test
 base-path-deployment-test: ## Verify two isolated monolithic apps behind real Nginx (requires Docker)
 	python3 scripts/test_base_path_deployment.py
+
+.PHONY: verification-harness-test deployment-check
+verification-harness-test: ## Verify classifier, scheduler, receipts and Git governance in isolation
+	python3 -m unittest discover -s scripts -p 'test_verification*.py'
+	python3 -m unittest discover -s scripts -p 'test_git_hooks.py'
+deployment-check: env-contract-check project-init-check project-init-test ## Test deployment orchestration with fake Docker; no deployment
+	cd $(BACKEND_DIR) && TRACING_ENABLED=false $(UV) run python -m pytest tests/unit/core/test_deployment_flow.py tests/unit/core/test_docker_mail.py
