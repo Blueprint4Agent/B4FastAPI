@@ -71,8 +71,8 @@ class VerificationTests(unittest.TestCase):
             ("src/styles/app.css", "ui"),
             ("src/pages/settings/SettingsPage.tsx", "ui"),
             ("src/hooks/useAuth.tsx", "full"),
-            ("AGENTS.md", "full"),
-            ("scripts/verification.py", "full"),
+            ("AGENTS.md", "docs"),
+            ("scripts/verification.py", "none"),
             ("package-lock.json", "full"),
             ("unknown", "full"),
         ]:
@@ -101,7 +101,7 @@ class VerificationTests(unittest.TestCase):
         scope = {"backend": True, "frontend": "full"}
         commands = v.targets(scope, True, "frontend")
         self.assertIn(["make", "project-brand"], commands)
-        self.assertIn(["make", "-C", "src/frontend", "test-routes"], commands)
+        self.assertIn(["make", "-C", "src/frontend", "test-production"], commands)
         self.assertIn(
             ["make", "frontend-contract-check", "frontend-package-verified"], commands
         )
