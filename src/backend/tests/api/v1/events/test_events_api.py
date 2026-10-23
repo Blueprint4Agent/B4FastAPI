@@ -62,6 +62,7 @@ def test_events_stream_returns_sse_contract(sample_user: UserResponse):
     # Then: SSE transport headers and event framing are returned.
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
+    assert response.headers["cache-control"] == "no-store"
     assert "event: connected" in response.text
     assert "data:" in response.text
 

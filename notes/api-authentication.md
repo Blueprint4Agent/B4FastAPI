@@ -6,21 +6,21 @@ This inventory describes this repository's current policy, not an industry requi
 An application API key (`X-API-Key`) and the backend's Stripe key are different credentials.
 Stripe keys belong only in backend configuration and do not authenticate callers to this API.
 
-| Operation (under `/api/v1`) | App API key | Additional requirement |
-| --- | --- | --- |
-| `GET /billing/config` | Accepted | Active owner |
-| `POST /billing/setup-sessions` | Accepted | Active owner |
-| `GET /billing/setup-sessions/{session_id}` | Accepted | Owned Stripe session |
-| `GET /billing/payment-methods` | Accepted | Only own methods |
+| Operation (under `/api/v1`)                             | App API key    | Additional requirement                                             |
+| ------------------------------------------------------- | -------------- | ------------------------------------------------------------------ |
+| `GET /billing/config`                                   | Accepted       | Active owner                                                       |
+| `POST /billing/setup-sessions`                          | Accepted       | Active owner                                                       |
+| `GET /billing/setup-sessions/{session_id}`              | Accepted       | Owned Stripe session                                               |
+| `GET /billing/payment-methods`                          | Accepted       | Only own methods                                                   |
 | `POST /auth/me/password/code`, `POST /auth/me/password` | Rejected (401) | Bearer session, enabled login/email, purpose-bound code and limits |
-| `POST /auth/me/deletion-code` | Rejected (401) | Bearer session, enabled login/email, issuance limits |
-| `DELETE /auth/me` | Rejected (401) | Bearer, matching email, one-time code, last-admin protection |
-| `GET /auth/admin/users` | Accepted | Key owner must currently have admin or manager role; otherwise 403 |
-| `GET /auth/admin/user-role-stats` | Accepted | Key owner must currently have admin or manager role; otherwise 403 |
-| `GET/PATCH /auth/me` | Accepted | Active owner |
-| API-key create/list/delete/status | Accepted | Only own keys |
-| `GET /events/stream` | Accepted | Only own event channel |
-| `POST /auth/logout` | Accepted | Clears owner's refresh sessions; access JWTs expire normally |
+| `POST /auth/me/deletion-code`                           | Rejected (401) | Bearer session, enabled login/email, issuance limits               |
+| `DELETE /auth/me`                                       | Rejected (401) | Bearer, matching email, one-time code, last-admin protection       |
+| `GET /auth/admin/users`                                 | Accepted       | Key owner must currently have admin or manager role; otherwise 403 |
+| `GET /auth/admin/user-role-stats`                       | Accepted       | Key owner must currently have admin or manager role; otherwise 403 |
+| `GET/PATCH /auth/me`                                    | Accepted       | Active owner                                                       |
+| API-key create/list/delete/status                       | Accepted       | Only own keys                                                      |
+| `GET /events/stream`                                    | Accepted       | Only own event channel                                             |
+| `POST /auth/logout`                                     | Accepted       | Clears owner's refresh sessions; access JWTs expire normally       |
 
 Exactly six operations are bearer-only; the two read-only directory operations accept keys and independently
 check the owner's current database role. Keys do not have billing or other endpoint scopes.
@@ -54,3 +54,7 @@ No production user or real account is changed by these tests. Billing key access
 Production mode rejects development bootstrap identities for both bearer and API-key authentication. See [runtime modes and RBAC](runtime-modes-rbac.md).
 
 Bearer-only code checks: POST /auth/me/password/code/verify and POST /auth/me/deletion-code/verify. These check the active code without consuming it or extending its expiry; the final action revalidates and consumes it.
+
+`GET /events/stream` returns `Cache-Control: no-store` for authenticated per-user SSE payloads.
+The stream remains `text/event-stream`, proxy buffering remains disabled, and authentication,
+event framing and reconnect/replay behavior are unchanged. The events API contract test owns this header assertion.

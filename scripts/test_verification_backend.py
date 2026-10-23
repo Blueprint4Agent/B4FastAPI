@@ -1,12 +1,12 @@
 """Real Git layouts protect independent API selection and shared fallbacks."""
 
-from pathlib import Path
-import tempfile
 import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import verification as v
-from verification_backend import backend_impact, registration_only
+from verification_backend import backend_impact, registration_only, response_header_only
 
 
 class BackendSelectionTests(unittest.TestCase):
@@ -64,6 +64,100 @@ class BackendSelectionTests(unittest.TestCase):
         return backend_impact(
             self.root, "HEAD", None, v.changed(self.root, "HEAD", None), v.content
         )
+
+    def response_router_fixture(self):
+        self.write("app/core/db/session.py", "def get_db(): pass\n")
+        self.write(
+            "app/models/user.py",
+            "from app.core.db.session import get_db\nclass UserResponse: pass\n",
+        )
+        router = (
+            "from fastapi.responses import StreamingResponse as Stream\n"
+            "from app.models.user import UserResponse\n"
+            "from app.services.catalog import result\n"
+            "def endpoint(user: UserResponse):\n"
+            '    return Stream(result(), headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})\n'
+        )
+        self.write("app/routers/v1/catalog.py", router)
+        self.commit()
+        return router
+
+    def test_response_header_only_avoids_false_schema_persistence(self):
+        old = self.response_router_fixture()
+        new = old.replace('"no-cache"', '"no-store"')
+        self.write("app/routers/v1/catalog.py", new)
+        selected = self.impact()
+        self.assertEqual(selected["domains"], ["catalog"])
+        self.assertEqual(selected["response_header_only"], ["app.routers.v1.catalog"])
+        self.assertIn("tests/api/v1/catalog/test_catalog_api.py", selected["tests"])
+        self.assertIn("tests/test_smoke.py", selected["tests"])
+        self.assertIn("tests/test_openapi_contract.py", selected["tests"])
+        self.assertNotIn("tests/unit/services/test_unrelated.py", selected["tests"])
+        forced = v.plan(self.root, force_full=True)
+        self.assertNotIn("backend_impact", forced)
+        # Service data access is not hidden by a simultaneous header edit.
+        self.write(
+            "app/services/catalog.py",
+            "from app.core.db.session import get_db\ndef result(): return get_db()\n",
+        )
+        self.assertIsNone(self.impact())
+        self.write(
+            "tests/integration/api/v1/catalog/test_catalog_integration.py",
+            "from app.services.catalog import result\n",
+        )
+        self.assertIn(
+            "tests/integration/api/v1/catalog/test_catalog_integration.py",
+            self.impact()["tests"],
+        )
+
+    def test_nontransport_or_protected_edits_keep_persistence_fallback(self):
+        old = self.response_router_fixture()
+        for new in (
+            old.replace("result()", "different()"),
+            old.replace("result()", "result(user.id)"),
+            old.replace('"no-cache"', "runtime_header()"),
+            old.replace("user: UserResponse", "user: OtherIdentity"),
+        ):
+            self.write("app/routers/v1/catalog.py", new)
+            self.assertIsNone(self.impact(), new)
+        self.write("app/routers/v1/catalog.py", old.replace('"no-cache"', '"no-store"'))
+        self.write("app/models/user.py", "class UserResponse: changed = True\n")
+        self.assertIsNone(self.impact())
+        self.write(
+            "app/models/user.py",
+            "from app.core.db.session import get_db\nclass UserResponse: pass\n",
+        )
+        self.write("app/routers/v1/catalog.py", old)
+        self.write("app/routers/v1/auth.py", old)
+        self.commit()
+        self.write("app/routers/v1/auth.py", old.replace('"no-cache"', '"no-store"'))
+        self.assertIsNone(self.impact())
+
+    def test_header_guard_rejects_shadowing_unpack_and_other_semantics(self):
+        old = (
+            "from fastapi.responses import StreamingResponse as Stream\n"
+            "def endpoint(user=Depends(current_user)):\n"
+            '    return Stream(body(), headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})\n'
+        )
+        changed = old.replace('"no-cache"', '"no-store"')
+        self.assertTrue(response_header_only(old, changed))
+        for new in (
+            changed.replace("body()", "other_body()"),
+            changed.replace("current_user", "anonymous_user"),
+            changed.replace('"no-store"', "settings.cache"),
+            changed.replace('"X-Accel-Buffering": "no"', '"X-Accel-Buffering": "yes"'),
+            changed.replace(
+                '"Cache-Control": "no-store"',
+                '"Cache-Control": "no-store", **other_headers',
+            ),
+            changed + "Stream = custom_response\n",
+            changed.replace("def endpoint(user=", "def endpoint(Stream, user="),
+            changed.replace("from fastapi.responses", "from other.responses"),
+            old + "# comment only\n",
+        ):
+            self.assertFalse(response_header_only(old, new), new)
+        for shadow in ("Stream = custom_response\n", "def Stream(): pass\n"):
+            self.assertFalse(response_header_only(old + shadow, changed + shadow))
 
     def test_existing_domain_consumers_and_union_exclude_unrelated(self):
         self.write("app/services/catalog.py", 'def result(): return "changed"\n')

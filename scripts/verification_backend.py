@@ -1,10 +1,10 @@
 """Static backend impact selection. Shared or unresolved effects retain the suite."""
 
 import ast
-from collections import defaultdict
-from pathlib import PurePosixPath
 import re
 import subprocess
+from collections import defaultdict
+from pathlib import PurePosixPath
 
 PREFIX = "src/backend/"
 PROTECTED = {"auth", "api_key", "user", "oauth", "admin", "billing", "billing_webhook"}
@@ -38,11 +38,12 @@ def imports(tree, module, known, package=False):
                 )
             targets.add(base)
             targets.update(base + "." + alias.name for alias in node.names)
-        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-            if node.value.startswith(("app.", "tests.")):
-                targets.add(
-                    node.value
-                )  # Mock/patch string references are consumers too.
+        elif (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and node.value.startswith(("app.", "tests."))
+        ):
+            targets.add(node.value)  # Mock/patch string references are consumers too.
     result = set()
     for name in targets:
         parts = name.split(".")
@@ -124,6 +125,85 @@ def registration_only(before, after, added):
     return wired == set(aliases) and ast.dump(
         old, include_attributes=False
     ) == ast.dump(new, include_attributes=False)
+
+
+def response_header_only(before, after):
+    """Prove only a literal cache header changed; never infer arbitrary type purity."""
+
+    def normalized(source):
+        tree = ast.parse(source)
+        aliases = set()
+        constructors = {
+            "Response",
+            "JSONResponse",
+            "PlainTextResponse",
+            "HTMLResponse",
+            "StreamingResponse",
+            "FileResponse",
+            "RedirectResponse",
+        }
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module in {
+                "fastapi",
+                "fastapi.responses",
+                "starlette.responses",
+            }:
+                aliases.update(
+                    alias.asname or alias.name
+                    for alias in node.names
+                    if alias.name in constructors
+                )
+        original = ast.dump(tree, include_attributes=False)
+        bindings = defaultdict(int)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.alias):
+                bindings[node.asname or node.name.split(".")[0]] += 1
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                bindings[node.id] += 1
+            elif isinstance(node, ast.arg):
+                bindings[node.arg] += 1
+            elif (
+                isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+                or isinstance(node, ast.ExceptHandler)
+                and node.name
+            ):
+                bindings[node.name] += 1
+        aliases = {name for name in aliases if bindings[name] == 1}
+        masked = 0
+        for node in ast.walk(tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id in aliases
+            ):
+                continue
+            for keyword in node.keywords:
+                headers = keyword.value
+                if keyword.arg != "headers" or not isinstance(headers, ast.Dict):
+                    continue
+                if not all(
+                    isinstance(key, ast.Constant) and isinstance(key.value, str)
+                    for key in headers.keys
+                ):
+                    continue
+                for key, value in zip(headers.keys, headers.values):
+                    if (
+                        key.value.lower() == "cache-control"
+                        and isinstance(value, ast.Constant)
+                        and isinstance(value.value, str)
+                    ):
+                        value.value = "__verification_cache_header__"
+                        masked += 1
+        return ast.dump(tree, include_attributes=False), masked, original
+
+    old, old_count, old_original = normalized(before)
+    new, new_count, new_original = normalized(after)
+    return (
+        old_count > 0
+        and old_count == new_count
+        and old == new
+        and old_original != new_original
+    )
 
 
 def backend_impact(root, base, head, paths, read):
@@ -239,12 +319,16 @@ def backend_impact(root, base, head, paths, read):
         ):
             return None
         added_routers = set()
+        transport_only = set()
         for path in changed:
             if path.startswith("app/routers/v1/"):
                 try:
-                    read(root, base, PREFIX + path)
+                    before = read(root, base, PREFIX + path)
                 except (OSError, subprocess.CalledProcessError):
                     added_routers.add(PurePosixPath(path).stem)
+                else:
+                    if response_header_only(before, read(root, head, PREFIX + path)):
+                        transport_only.add(module_name(path))
         if "app/main.py" in changed and not registration_only(
             read(root, base, PREFIX + "app/main.py"),
             read(root, head, PREFIX + "app/main.py"),
@@ -318,15 +402,18 @@ def backend_impact(root, base, head, paths, read):
             domains.add(domain)
             if name.startswith("app.routers.v1."):
                 router_domains.add(domain)
-            if any(
-                target.startswith("app.core.db")
-                or target.startswith("app.models.")
-                and persistent_model(target)
-                for target in dependencies[name]
-            ) or any(
-                isinstance(node, ast.ImportFrom)
-                and (node.module or "").startswith("sqlalchemy")
-                for node in ast.walk(tree)
+            if name not in transport_only and (
+                any(
+                    target.startswith("app.core.db")
+                    or target.startswith("app.models.")
+                    and persistent_model(target)
+                    for target in dependencies[name]
+                )
+                or any(
+                    isinstance(node, ast.ImportFrom)
+                    and (node.module or "").startswith("sqlalchemy")
+                    for node in ast.walk(tree)
+                )
             ):
                 needs_integration.add(domain)
         tests = local_tests | {
@@ -371,6 +458,7 @@ def backend_impact(root, base, head, paths, read):
             "tests": sorted(tests),
             "domains": sorted(domains),
             "reason": "Static import consumers and existing domain test files; smoke/OpenAPI retained",
+            "response_header_only": sorted(transport_only),
         }
     except (OSError, ValueError, SyntaxError, subprocess.CalledProcessError):
         return None

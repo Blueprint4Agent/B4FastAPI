@@ -266,3 +266,20 @@ domains, sibling combinators and unsupported selector syntax retain broad checks
 Unknown/shared `app.css` changes also retain editor/discovery checks. `VERIFY_FULL=1`
 and CI retain all areas. This policy does not change repository-wide receipt binding;
 dependency-specific receipts remain a separate follow-up (#149).
+
+## Literal response cache-header changes
+
+A bounded exception handles existing router edits that change only a literal
+`Cache-Control` value in an explicitly imported FastAPI/Starlette response constructor.
+The classifier compares complete ASTs after masking that value; imports, authentication,
+service calls, response body and every other header must remain identical. Constructor
+aliases are accepted only when unshadowed. Dynamic values, dictionary unpacking and
+unresolved constructors do not qualify.
+
+This proven transport-only edit does not require a new persistence integration test just
+because an unchanged response schema shares a module with ORM entities. It still runs the
+domain's existing tests plus common smoke/OpenAPI, architecture, lint and contract checks.
+Shared/protected domains, model/DB/migration changes, missing coverage, simultaneous service
+persistence changes and explicit full/CI retain their existing broader requirements.
+This is not general symbol-level Pydantic/ORM inference: other changes that merely import
+response schemas may still conservatively broaden. No fake DB test is added to unlock scope.

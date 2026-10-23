@@ -6,21 +6,21 @@
 앱 API 키(`X-API-Key`)와 백엔드의 Stripe 비밀 키는 별개입니다.
 Stripe 키는 서버 환경설정에 사용하며 우리 API에 요청하는 사용자 인증용이 아닙니다.
 
-| API (`/api/v1` 기준) | 앱 API 키 | 추가 조건 |
-| --- | --- | --- |
-| `GET /billing/config` | 가능 | 활성 계정 |
-| `POST /billing/setup-sessions` | 가능 | 활성 계정 |
-| `GET /billing/setup-sessions/{session_id}` | 가능 | 본인 등록 세션 |
-| `GET /billing/payment-methods` | 가능 | 본인 결제수단만 |
+| API (`/api/v1` 기준)                                    | 앱 API 키 | 추가 조건                                                           |
+| ------------------------------------------------------- | --------- | ------------------------------------------------------------------- |
+| `GET /billing/config`                                   | 가능      | 활성 계정                                                           |
+| `POST /billing/setup-sessions`                          | 가능      | 활성 계정                                                           |
+| `GET /billing/setup-sessions/{session_id}`              | 가능      | 본인 등록 세션                                                      |
+| `GET /billing/payment-methods`                          | 가능      | 본인 결제수단만                                                     |
 | `POST /auth/me/password/code`, `POST /auth/me/password` | 불가, 401 | 로그인 세션, 이메일 활성화, 비밀번호 전용 인증번호와 발송/시도 제한 |
-| `POST /auth/me/deletion-code` | 불가, 401 | 로그인 세션, 로그인/이메일 활성화, 발송 제한 |
-| `DELETE /auth/me` | 불가, 401 | 로그인, 이메일 일치, 일회용 코드, 마지막 관리자 보호 |
-| `GET /auth/admin/users` | 가능 | 키 소유자가 현재 관리자 또는 매니저여야 함, 아니면 403 |
-| `GET /auth/admin/user-role-stats` | 가능 | 키 소유자가 현재 관리자 또는 매니저여야 함, 아니면 403 |
-| `GET/PATCH /auth/me` | 가능 | 활성 계정 |
-| API 키 생성/조회/삭제/상태 변경 | 가능 | 본인 키만 |
-| `GET /events/stream` | 가능 | 본인 이벤트 채널만 |
-| `POST /auth/logout` | 가능 | 본인 갱신 세션 종료, 이미 발급된 access JWT는 정상 만료까지 유지 |
+| `POST /auth/me/deletion-code`                           | 불가, 401 | 로그인 세션, 로그인/이메일 활성화, 발송 제한                        |
+| `DELETE /auth/me`                                       | 불가, 401 | 로그인, 이메일 일치, 일회용 코드, 마지막 관리자 보호                |
+| `GET /auth/admin/users`                                 | 가능      | 키 소유자가 현재 관리자 또는 매니저여야 함, 아니면 403              |
+| `GET /auth/admin/user-role-stats`                       | 가능      | 키 소유자가 현재 관리자 또는 매니저여야 함, 아니면 403              |
+| `GET/PATCH /auth/me`                                    | 가능      | 활성 계정                                                           |
+| API 키 생성/조회/삭제/상태 변경                         | 가능      | 본인 키만                                                           |
+| `GET /events/stream`                                    | 가능      | 본인 이벤트 채널만                                                  |
+| `POST /auth/logout`                                     | 가능      | 본인 갱신 세션 종료, 이미 발급된 access JWT는 정상 만료까지 유지    |
 
 로그인 세션만 허용하는 API는 총 6개입니다. 읽기 전용 사용자 목록·통계 API 2개는 키도 받지만 DB의 최신
 사용자 역할을 별도로 검사합니다. 현재 키에는 `billing:read` 같은 API별 scope가 없습니다.
@@ -50,4 +50,8 @@ bearer 전용 API가 자동 인증되지는 않습니다. Swagger의 인증 방�
 
 운영 모드에서는 개발용 bootstrap 계정의 bearer와 API 키 인증을 모두 차단합니다. [실행 모드와 RBAC](runtime-modes-rbac.md)를 참고하세요.
 
-Bearer-only code checks: POST /auth/me/password/code/verify and POST /auth/me/deletion-code/verify. These check the active code without consuming it or extending its expiry; the final action revalidates and consumes it.
+bearer 전용 코드 확인 API는 `POST /auth/me/password/code/verify`와 `POST /auth/me/deletion-code/verify`입니다. 유효한 코드를 소비하거나 만료 시간을 연장하지 않고 확인하며, 최종 동작에서 다시 검증하고 소비합니다.
+
+`GET /events/stream`은 인증된 사용자별 SSE 응답에 `Cache-Control: no-store`를 반환합니다.
+`text/event-stream` 형식과 프록시 버퍼링 비활성화, 인증·이벤트 프레임·재연결/재생 동작은
+그대로 유지합니다. 이 헤더의 회귀 검증은 events API 계약 테스트가 담당합니다.
