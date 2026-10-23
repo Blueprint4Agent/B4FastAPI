@@ -1,6 +1,11 @@
 # 새 프로젝트 초기화
 
-블루프린트를 복사하고 `make frontend-init`으로 프론트엔드 서브모듈을 준비한 뒤 사용합니다. 의존성은 `make install`로 설치합니다. 기존 `make init`은 env 파일만 초기화하는 동작을 유지합니다.
+대화형 설정은 저장소 에이전트에게 **“프로젝트 초기화하기”**라고 요청합니다.
+[에이전트 온보딩](PROJECT_ONBOARDING.md)에 따라 프로젝트 개요·예시 화면·브랜드·
+UI/개발 문서 언어·기능을 단계별로 수집한 뒤 구현과 검증을 진행합니다.
+별도 스킬 설치가 필요하지 않으며 아래 명령으로 직접 설정할 수도 있습니다.
+
+블루프린트를 복사하고 `make frontend-init`으로 프론트엔드 서브모듈을 준비한 뒤 사용합니다. 의존성은 `make install`로 설치합니다. 기존 `make init`은 고정된 프론트엔드 서브모듈·로컬 Git 훅을 준비하고 없는 env 파일을 생성하며 프로젝트 이름/브랜드를 적용하지 않습니다.
 
 ```sh
 cp project.example.json project.json
@@ -19,6 +24,7 @@ make project-check
 | `name` | 브라우저 제목, 공개 내비게이션, 이메일 브랜드, API 앱 이름, 데스크톱 제품/창 제목 |
 | `short_name` | 내비게이션/사이드바 공통 브랜드 문구 |
 | `identifier` | Tauri 앱 식별자, 예: `com.example.myapp` |
+| `default_language` | 선택적 UI 기본 언어 `en` 또는 `ko`. 저장한 선택이 우선하며 생략 시 브라우저 감지를 유지 |
 | `features.login` | 기존 백엔드 `LOGIN_ENABLED` 설정 |
 | `features.email` | 기존 백엔드 `EMAIL_ENABLED` 설정 |
 | `features.oauth` | 기존 백엔드 `OAUTH_ENABLED` 설정 |
@@ -50,3 +56,5 @@ make project-check
 B4React 단독 사용은 자체 README를 참고하세요. 자식 빌드 도구는 부모 파일을 읽지 않습니다. 데스크톱 브랜드 적용은 npm/Make Tauri 실행기를 사용합니다. 원시 Tauri 바이너리를 직접 실행하면 이 설정 병합을 거치지 않습니다.
 
 검증: `make project-init-check project-init-test`는 초기화와 기존 값 보존을 확인합니다. `make project-build-test`는 임시 디렉터리에서 사용자 지정 한글/영문 브랜드와 로고를 빌드하고 실제 브라우저 렌더링을 확인합니다. 프론트엔드 의존성과 Playwright Chromium이 필요합니다. 네이티브 패키징은 별도의 플랫폼 도구가 필요하며 이 브라우저 검증에 포함되지 않습니다.
+
+초기화 완료 전 [표면·복구 감사](PROJECT_ONBOARDING_AUDIT.md)로 설정/fallback 브랜드, 콘솔·알림·문서·언어 동작과 원본 자산을 확인합니다. 트리거 리허설은 격리 복제본에서 진행합니다.

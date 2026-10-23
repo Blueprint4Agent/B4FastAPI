@@ -545,6 +545,8 @@ Frontend state management and React optimization policy: [English](src/frontend/
 
 ## New project identity
 
+Tell the repository agent **“initialize this project”** or **“프로젝트 초기화하기”** to start [conversational onboarding](PROJECT_ONBOARDING.md). It collects the name, overview, screen references, icon, UI/document languages and features before applying setup, UI changes and documentation localization. No installed skill is required. [한국어 안내](notes/ko/PROJECT_ONBOARDING.md).
+
 Use [project initialization](PROJECT_SETUP.md) to configure a copied blueprint from `project.json`: service name, brand, desktop identifier and login/email/OAuth switches. Preview with `make project-plan`, apply with `make project-init`, and verify with `make project-check`. Korean guide: [새 프로젝트 초기화](notes/ko/PROJECT_SETUP.md).
 
 ## Local showcase style editing
@@ -607,3 +609,5 @@ Path-based monolithic hosting: [basePath deployment](notes/base-path-deployment.
 Service layout modes: [English](src/frontend/notes/layout-modes.md) · [한국어](src/frontend/notes/ko/layout-modes.md). Development-only Appearance previews do not change the deployed service default.
 
 Guided service prompts: [Prompt builder](notes/prompt-builder.md) · [한국어](notes/ko/prompt-builder.md). Available below Home in development and production.
+
+Initialization completion requires the [surface and rollback audit](PROJECT_ONBOARDING_AUDIT.md), covering configured/fallback identity, console/messages, documentation, language behavior and original assets. Trigger rehearsals use an isolated clone.

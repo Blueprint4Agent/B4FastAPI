@@ -45,9 +45,10 @@ def main() -> None:
         manifest = json.loads((ROOT / "project.example.json").read_text())
         manifest.update(
             name="테스트 & Acme",
-            short_name="ACME",
+            short_name="테스트 & Acme",
             identifier="com.acme.desktop",
             logo="branding/logo.svg",
+            default_language="ko",
         )
         (root / "project.json").write_text(json.dumps(manifest))
         (root / "branding").mkdir()

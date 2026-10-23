@@ -129,6 +129,9 @@ class ProjectInitializationTests(unittest.TestCase):
             {"features": {"login": "false", "email": False, "oauth": False}},
             {"features": {"login": False, "email": True, "oauth": False}},
             {"secret": "do-not-display"},
+            {"default_language": "fr"},
+            {"default_language": None},
+            {"default_language": True},
             {"logo": "../logo.svg"},
             {"logo": "branding/missing.png"},
         ]
@@ -142,6 +145,18 @@ class ProjectInitializationTests(unittest.TestCase):
                 self.assertFalse(
                     (self.root / "src/frontend/project.local.json").exists()
                 )
+
+    def test_optional_default_language_is_public_and_removable(self):
+        self.data["default_language"] = "ko"
+        self.save()
+        self.run_command("apply")
+        path = self.root / "src/frontend/project.local.json"
+        self.assertEqual(json.loads(path.read_text())["default_language"], "ko")
+        self.assertEqual(self.run_command("check")[0], 0)
+        self.data.pop("default_language")
+        self.save()
+        self.run_command("apply")
+        self.assertNotIn("default_language", json.loads(path.read_text()))
 
     def test_malformed_existing_environment_blocks_branding_writes(self):
         (self.root / "docker/.env").write_text("APP_NAME=one\nAPP_NAME=two\n")

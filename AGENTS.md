@@ -8,6 +8,21 @@ Read this file first, then move to the domain guide for your task.
 2. Backend task: `src/backend/BACKEND.md`
 3. Frontend task: `src/frontend/FRONTEND.md`
 
+## Project Initialization Trigger
+
+When the developer requests initialization of this project (for example,
+`프로젝트 초기화하기`, `새 프로젝트 시작`, or `initialize this project`), read
+[the project onboarding flow](PROJECT_ONBOARDING.md) and start its staged intake.
+This repository instruction is the trigger; no installed skill, slash command,
+GitHub event or application startup hook is required. Reuse answers already given,
+ask only the next missing stage, and apply the collected setup when intake is complete.
+Requests to explain initialization or edit this workflow do not initialize the project.
+For a resumed session, read `PROJECT_BRIEF.md` if present before asking questions.
+Distinguish actual setup from a rehearsal; use an independent disposable clone for
+trigger checks. Before applying or declaring completion, follow the mandatory
+[surface and rollback audit](PROJECT_ONBOARDING_AUDIT.md), including UI/console/document
+brand remnants, language behavior and evidence for every applicable surface.
+
 ## Documentation Sync
 
 If implementation changes behavior, structure, or rules, update related docs in the same work cycle.

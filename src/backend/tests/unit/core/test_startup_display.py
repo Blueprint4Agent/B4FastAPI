@@ -20,6 +20,7 @@ from app.core.observability.startup_display import (
 @pytest.fixture
 def settings():
     return Settings(
+        EMAIL_BRAND_NAME="B4A",
         APP_MODE="development",
         LOGIN_ENABLED=True,
         DB_DRIVER="postgresql+asyncpg",
@@ -34,6 +35,29 @@ def settings():
         STRIPE_ENABLED=False,
         DATABASE_URL="postgresql+asyncpg://user:secret@private-host/db",
     )
+
+
+@pytest.mark.parametrize("mode", ["plain", "auto"])
+def test_configured_brand_replaces_logo_and_farewell(settings, console_logs, monkeypatch, mode):
+    # Given: a configured project instead of the template's default brand.
+    from app.core.observability import startup_display as presentation
+
+    settings.EMAIL_BRAND_NAME = "Acme"
+    settings.STARTUP_DISPLAY = mode
+    monkeypatch.setenv("TERM", "xterm-256color")
+    monkeypatch.setattr(Settings, "has_multiple_server_workers", lambda _: False)
+    output = io.StringIO()
+    console = Console(file=output, force_terminal=False, width=100)
+    # When: startup and successful shutdown render in either console mode.
+    with StartupDisplay(settings, console=console).activate():
+        pass
+    monkeypatch.setattr(presentation, "Console", lambda **_: console)
+    presentation.show_shutdown_farewell(settings)
+    # Then: the text and ASCII logo no longer advertise the template identity.
+    rendered = output.getvalue() + console_logs[0].getvalue()
+    assert "Acme" in rendered and "Acme · Bye!!" in rendered
+    assert "B4A" not in rendered and "Blueprint" not in rendered
+    assert "██████" not in rendered
 
 
 @pytest.fixture
