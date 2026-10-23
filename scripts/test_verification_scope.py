@@ -16,6 +16,16 @@ from verification_scope import (
 
 class ScopeTests(unittest.TestCase):
     def test_css_domains_and_shared_fallback(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        for path, classes in (
+            ("src/pages/billing/BillingSettingsPage.tsx", "billing-records billing-a"),
+            ("src/pages/admin/AdminPage.tsx", "admin-table"),
+        ):
+            owner = root / path
+            owner.parent.mkdir(parents=True, exist_ok=True)
+            owner.write_text(f'<section className="{classes}" />')
         for before, after, expected in [
             (
                 ".billing-records {height:1px}",
@@ -38,7 +48,77 @@ class ScopeTests(unittest.TestCase):
             ),
             ("", '.billing-a { content:"}"; }', None),
         ]:
-            self.assertEqual(css_impact(before, after), expected, (before, after))
+            self.assertEqual(css_impact(before, after, root), expected, (before, after))
+
+    def test_css_uses_actual_domain_consumers_and_coverage(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            owners = {
+                "home": "src/pages/main/ProjectOverview.tsx",
+                "profile": "src/pages/profile/ProfilePage.tsx",
+                "inbox": "src/pages/inbox/InboxPage.tsx",
+            }
+            for domain, path in owners.items():
+                owner = root / path
+                owner.parent.mkdir(parents=True, exist_ok=True)
+                # Deliberately no domain prefix: ownership comes from use, not naming.
+                owner.write_text(f'<section className="local-{domain}" />')
+                for test_path in DOMAINS[domain]["unit"] + DOMAINS[domain]["browser"]:
+                    target = root / test_path
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.touch()
+            for domain in owners:
+                before = f".local-{domain} {{padding:1px}}"
+                after = f"@media (max-width:600px) {{.local-{domain} a:hover {{padding:2px}}}}"
+                self.assertEqual(css_impact(before, after, root), {domain})
+                selected = frontend_impact(
+                    root,
+                    "HEAD",
+                    None,
+                    ["src/styles/app.css"],
+                    lambda _, ref, path: before if ref else after,
+                )
+                self.assertEqual(selected["domains"], [domain])
+                self.assertEqual(
+                    set(selected["browser"]), set(DOMAINS[domain]["browser"])
+                )
+            multi = ".local-home, .local-inbox {padding:2px}"
+            self.assertEqual(css_impact("", multi, root), {"home", "inbox"})
+            for unsafe in (
+                ":root {--color:red}",
+                "body {color:red}",
+                ".ui-button {color:red}",
+                ".local-home + main {color:red}",
+                ".local-home ~ * {color:red}",
+                ".local-home:has(+ main) {color:red}",
+                ".local-home, .missing {color:red}",
+                "@keyframes spin {to {opacity:0}}",
+            ):
+                self.assertIsNone(css_impact("", unsafe, root), unsafe)
+            self.assertIsNone(
+                css_impact(
+                    ".local-home {color:red} .local-home {color:blue}",
+                    ".local-home {color:blue} .local-home {color:red}",
+                    root,
+                )
+            )
+            # A shared or script/static producer cannot silently lose coverage.
+            for path in ("src/components/ui/Panel.tsx", "scripts/discovery.mjs"):
+                shared = root / path
+                shared.parent.mkdir(parents=True, exist_ok=True)
+                shared.write_text('const markup = "local-home";')
+                self.assertIsNone(css_impact("", ".local-home {color:red}", root))
+                shared.unlink()
+            (root / DOMAINS["home"]["browser"][0]).unlink()
+            self.assertIsNone(
+                frontend_impact(
+                    root,
+                    "HEAD",
+                    None,
+                    ["src/styles/app.css"],
+                    lambda _, ref, path: "" if ref else ".local-home {color:red}",
+                )
+            )
 
     def test_actual_case_lines_and_setup_fallback(self):
         with tempfile.TemporaryDirectory() as temp:

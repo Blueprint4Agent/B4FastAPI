@@ -114,11 +114,56 @@ class AreaTests(unittest.TestCase):
         v.git(root, "commit", "-qm", "discovery")
         self.change(root, "src/locales/en.json", '{"discovery":{}}')
         self.assertIn("discovery", v.plan(root)["areas"])
+        self.change(
+            root,
+            "src/pages/billing/BillingSettingsPage.tsx",
+            'const row = "billing-row";',
+        )
         self.change(root, "src/styles/app.css", ".billing-row {height:1px}")
         v.git(root, "add", ".")
         v.git(root, "commit", "-qm", "css")
         self.change(root, "src/styles/app.css", ".billing-row {height:2px}")
         self.assertEqual(v.plan(root)["areas"], ["frontend-app"])
+
+    def test_page_css_resolves_coverage_without_unrelated_tools(self):
+        from verification_scope import DOMAINS
+
+        root = self.fixture()
+        self.change(
+            root,
+            "src/pages/main/ProjectOverview.tsx",
+            '<footer className="local-footer" />',
+        )
+        for path in DOMAINS["home"]["unit"] + DOMAINS["home"]["browser"]:
+            self.change(root, path, "")
+        self.change(root, "src/styles/app.css", ".local-footer {padding:3rem}")
+        v.git(root, "add", ".")
+        v.git(root, "commit", "-qm", "baseline")
+        self.change(
+            root,
+            "src/styles/app.css",
+            "@media (max-width:600px) {.local-footer nav {padding:2rem}}",
+        )
+        scope = v.plan(root)
+        self.assertEqual(scope["areas"], ["frontend-app"])
+        self.assertEqual(scope["impact"]["domains"], ["home"])
+        commands = v.targets(scope, False, "all")
+        self.assertNotIn(["make", "test-ui"], commands)
+        self.assertIn("test-ui-selected", str(commands))
+        self.assertNotIn("test-style-studio", str(commands))
+        self.assertNotIn("test-discovery", str(commands))
+        forced = v.plan(root, force_full=True)
+        self.assertEqual(set(forced["areas"]), FRONTEND_AREAS)
+        self.assertIn(["make", "test-ui"], v.targets(forced, False, "all"))
+        self.change(
+            root,
+            "src/styles/app.css",
+            ".local-footer {padding:2rem} :root {--color:red}",
+        )
+        shared = v.plan(root)
+        self.assertIn("style-studio", shared["areas"])
+        self.assertIn("discovery", shared["areas"])
+        self.assertIsNone(shared.get("impact"))
 
     def test_unknown_force_full_and_missing_history_keep_all_areas(self):
         for parent in (False, True):
