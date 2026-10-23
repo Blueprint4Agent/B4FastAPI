@@ -65,7 +65,7 @@ class ReceiptTests(unittest.TestCase):
         (self.root / ".gitignore").write_text("dist/\n")
         output = self.root / "dist/index.html"
         output.write_text("built")
-        command = ["make", "test-routes"]
+        command = ["make", "test-production"]
         self.receipt(command).save()
         self.assertTrue(self.receipt(command).reusable())
         output.write_text("modified")
