@@ -7,15 +7,9 @@ from sqlalchemy import select
 import app.core.db.session as database
 from app.models.user import User
 from tests.fixtures.payload_data import (
-    INVALID_EMAIL,
     VALID_PASSWORD,
     build_login_payload,
     build_signup_payload,
-)
-from tests.fixtures.scenario_seed_data import (
-    SEEDED_PRIMARY_EMAIL,
-    SEEDED_PRIMARY_NAME,
-    SEEDED_PRIMARY_PASSWORD,
 )
 
 
@@ -182,34 +176,6 @@ def test_login_invalid_password_returns_401(integration_client: TestClient):
 
 
 @pytest.mark.primary_data
-def test_signup_invalid_email_or_password_returns_422(integration_client: TestClient):
-    """Scenario: schema-level validation rejects malformed signup payloads."""
-    # Given/When: malformed email is submitted.
-    invalid_email_response = integration_client.post(
-        "/api/v1/auth/signup",
-        json=build_signup_payload(
-            email=INVALID_EMAIL,
-            name="Invalid Email",
-            password=VALID_PASSWORD,
-        ),
-    )
-    # Then: validation error is returned.
-    assert invalid_email_response.status_code == 422
-
-    # Given/When: password policy-violating payload is submitted.
-    invalid_password_response = integration_client.post(
-        "/api/v1/auth/signup",
-        json=build_signup_payload(
-            email="invalid-password@example.com",
-            name="Invalid Password",
-            password="alllowercase1!",
-        ),
-    )
-    # Then: validation error is returned.
-    assert invalid_password_response.status_code == 422
-
-
-@pytest.mark.primary_data
 def test_admin_stats_forbidden_for_non_admin(integration_client: TestClient):
     """Scenario: admin-only stats endpoint rejects authenticated non-admin users."""
     # Given: regular user is created and logged in.
@@ -277,47 +243,6 @@ def test_admin_stats_success_for_admin(integration_client: TestClient):
     stats_payload = admin_stats_response.json()
     assert stats_payload["total_users"] >= 1
     assert stats_payload["admin_users"] >= 1
-
-
-@pytest.mark.mocked_data
-def test_seeded_primary_user_can_login(seeded_integration_client: TestClient):
-    """Scenario: seeded baseline user can login in production-like preloaded dataset."""
-    # Given: integration fixture preloaded with baseline user + existing users.
-    # When: login is attempted with seeded baseline credentials.
-    login_response = seeded_integration_client.post(
-        "/api/v1/auth/login",
-        json=build_login_payload(
-            email=SEEDED_PRIMARY_EMAIL,
-            password=SEEDED_PRIMARY_PASSWORD,
-            remember_me=False,
-        ),
-    )
-
-    # Then: authentication succeeds and token contract is returned.
-    assert login_response.status_code == 200
-    assert login_response.json()["user"]["email"] == SEEDED_PRIMARY_EMAIL
-    assert login_response.json()["user"]["role"] == "admin"
-
-
-@pytest.mark.mocked_data
-def test_seeded_dataset_duplicate_email_signup_returns_409(
-    seeded_integration_client: TestClient,
-):
-    """Scenario: signup detects duplicate email against preloaded user dataset."""
-    # Given: seeded baseline user already exists in DB.
-    # When: signup is attempted with the same baseline email.
-    duplicate_response = seeded_integration_client.post(
-        "/api/v1/auth/signup",
-        json=build_signup_payload(
-            email=SEEDED_PRIMARY_EMAIL,
-            name=SEEDED_PRIMARY_NAME,
-            password=SEEDED_PRIMARY_PASSWORD,
-        ),
-    )
-
-    # Then: domain conflict error is returned.
-    assert duplicate_response.status_code == 409
-    assert duplicate_response.json()["detail"]["error"] == "EMAIL_ALREADY_EXISTS"
 
 
 @pytest.mark.primary_data

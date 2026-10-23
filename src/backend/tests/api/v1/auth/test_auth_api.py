@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -340,3 +342,47 @@ def test_admin_user_role_stats_requires_admin_role(sample_user: UserResponse):
     # Then: insufficient-role domain error is returned.
     assert response.status_code == 403
     assert response.json()["detail"]["error"] == "INSUFFICIENT_ROLE"
+
+
+@pytest.mark.parametrize(
+    "keys",
+    [
+        {"toggleSidebar": [], "openSettings": ["b"]},
+        {"toggleSidebar": ["shift"], "openSettings": ["b"]},
+        {"toggleSidebar": ["b"], "openSettings": ["b"]},
+        {"toggleSidebar": ["b"], "openSettings": [","], "openProfile": ["b"]},
+        {"toggleSidebar": ["b"], "openSettings": ["mod", "p"], "openProfile": ["ctrl", "p"]},
+        {"toggleSidebar": ["mod", "b"], "openSettings": ["ctrl", "b"]},
+        {"toggleSidebar": ["mod", "ctrl", "b"], "openSettings": [","]},
+        {"toggleSidebar": ["b"]},
+        {"toggleSidebar": ["b"], "openSettings": [","], "other": ["x"]},
+        {"toggleSidebar": ["x" * 33], "openSettings": [","]},
+    ],
+)
+def test_keyboard_shortcut_validation_stops_before_service(sample_user, keys):
+    """All invalid maps fail at the real router/schema boundary without a database."""
+    client = create_auth_test_client(sample_user, with_user_auth=True)
+    service = FakeAuthService(sample_user)
+    service.update_profile = AsyncMock()
+    client.app.dependency_overrides[AuthService] = lambda: service
+    response = client.patch("/api/v1/auth/me", json={"keyboard_shortcuts": keys})
+    assert response.status_code == 422
+    assert response.json()["detail"]
+    service.update_profile.assert_not_awaited()
+
+
+def test_keyboard_shortcuts_reject_anonymous_updates(sample_user):
+    """The PATCH route keeps its authentication boundary with a valid payload."""
+    client = create_auth_test_client(sample_user)
+    response = client.patch(
+        "/api/v1/auth/me",
+        json={
+            "keyboard_shortcuts": {
+                "toggleSidebar": ["b"],
+                "openSettings": ["mod", ","],
+                "openProfile": ["mod", "shift", "p"],
+            }
+        },
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"]["error"] == "INVALID_TOKEN"

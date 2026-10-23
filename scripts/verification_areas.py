@@ -27,6 +27,10 @@ HARNESS = {
     "verification_areas.py",
     "verification_runner.py",
     "verification_cache.py",
+    "verification_backend.py",
+    "verification_contract.py",
+    "test_verification_backend.py",
+    "test_verification_contract.py",
     "git_hooks.py",
     "validate_git_governance.py",
     "validate-git-governance.sh",
@@ -76,10 +80,9 @@ def owned_areas(path, parent):
             "test_backend_architecture.py",
         } and path.startswith("scripts/"):
             return {"backend"}
-        if path in {
-            "scripts/check-frontend-contract.mjs",
-            "scripts/package-frontend.mjs",
-        }:
+        if path == "scripts/check-frontend-contract.mjs":
+            return {"contracts", "harness"}
+        if path == "scripts/package-frontend.mjs":
             return {"contracts", "frontend-app"}
         if path in {"scripts/indexnow.py", "scripts/test_indexnow.py"}:
             return {"publication"}

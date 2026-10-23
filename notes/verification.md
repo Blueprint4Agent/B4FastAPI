@@ -16,7 +16,7 @@ Plans compose the union of all changed areas, including pinned and dirty child c
 | AGENTS/domain/test guides, worklog template, Git hooks                   | Governance/harness fixtures plus text validation                                                                    |
 | Existing locale string values with identical shape/placeholders/markup   | Text/JSON only                                                                                                      |
 | Locale key/shape changes                                                 | Broad frontend application checks, unit/UI and production-route tests                                               |
-| Backend application/tests/migrations/dependencies                        | Backend lint, architecture, complete security/data suite and contract checks                                        |
+| Backend application/tests/migrations/dependencies                        | Independent domain lint/architecture/tests/contracts; shared security/data changes retain complete backend suite    |
 | Frontend application/auth/API/shared state                               | Application static/type/API/format checks, unit tests; UI/browser and production routes according to depth          |
 | Contracts                                                                | Provider/consumer baseline checks, frontend types/application/unit/production routes                                |
 | Docker/deployment                                                        | Env/initializer checks and fake-Docker orchestration tests; no live deployment                                      |
@@ -37,9 +37,7 @@ Structural changes to discovery/home.project locale data and editor API/locales 
 their actual tool consumers too. Unknown impact within the app retains
 broad app suites. No manual skip/downgrade flag is provided.
 
-Existing reviewed billing/admin selections remain supported. Backend domain selection remains a follow-up (#152); this change does
-not infer safe backend subsets from filenames. Backend auth/security/data tests
-remain complete. A new locale key does not imply that browser tests can be skipped.
+Existing reviewed billing/admin selections remain supported. Backend domain selection follows the strict #152 policy below; shared auth/security/data regressions remain complete. A new locale key does not imply that browser tests can be skipped.
 
 ## Commands and compatibility
 
@@ -208,4 +206,45 @@ captures failures; use `B4F_CAPTURE_VISUALS=1 make test-ui` for optional success
 images (also supported by discovery/editor suites). Direct screenshot assertions added in
 future remain independent of this artifact helper. No tests are skipped by this flag.
 Small-page first/repeat/parent timings are recorded in the matching worklog, not enforced
-as a wall-time gate. Backend domain selection remains a separate #152 task.
+as a wall-time gate. Backend domain selection follows #152 below.
+
+## Independent backend domains and provider additions (#152)
+
+The parent selects static import consumers and existing domain test files, not filenames
+alone. Router/service/model names match `tests/api/v1/<domain>/`, optional integration
+folders, and `test_<domain>*.py`; no per-feature registry is required. Multiple domains
+form a union. Runtime changes retain smoke/OpenAPI checks; test-only changes select the
+changed files. A router needs real API/integration coverage, and persistence imports need
+owned integration coverage. Missing/deleted/unsafe paths, dynamic/star imports or unknown
+ownership broaden. Shared auth/API-key/users/admin/billing, core settings/infrastructure,
+ORM/model/migration/shared root fixture changes keep the complete backend suite. Domain-local conftest changes select their actual pytest subtree. Pytest remains sequential.
+
+The narrow entry-point exception only accepts new router imports and constant API-prefix
+registrations immediately after existing include_router calls and before mounts/returns.
+Other startup, transport, lifecycle or existing route registration edits stay broad. Static
+selection is not proof that a new feature's tests cover every behavior: review auth/ownership,
+errors and real side effects where applicable. `make backend-test PYTEST_ARGS='tests/...'`
+is the existing executable interface; the planner puts its selected paths in the command
+and receipt key. Explicit full/CI ignores scoped selection and local receipts.
+
+Provider compatibility allows only new paths/methods/components while every existing
+operation/component and global field stays exact. Changes to existing schemas (even optional
+fields), inherited parameters/servers, security or removed operations are not assumed safe.
+`contract-check` checks export freshness and this pinned-consumer relation; type drift is
+checked from the child's own baseline. An unused provider addition does not regenerate or
+rewrite the child and does not run frontend UI/build/editor/branding. A frontend adopting
+that API still owns a coordinated child baseline/provenance/type/caller PR. Contract checker
+implementation changes run its fixtures/provider guard/consumer type check; actual consumer
+or breaking contract changes retain broader checks. The parent-only helper modules are not
+read by standalone B4React; absent helpers keep legacy broad backend behavior.
+
+Schema rejection belongs at the router/model boundary without DB/signup/login per input.
+A representative invalid-after-valid persisted-state test remains. Full-system scenarios
+own seeded login/duplicate-email behavior; billing identity adoption uses one seeded principal,
+while aggregate scenarios keep their 50-record dataset. Stateless input-free GETs do not need
+artificial integration/422/seeded cases or boilerplate comments. See the backend test guide.
+
+The deliberately strict compatibility rule follows the OpenAPI
+[Paths/Components model](https://spec.openapis.org/oas/v3.1.0.html); it does not claim to
+prove all semantic backward compatibility. Probe first/repeat timings and omitted checks
+are recorded in the task worklog, without a timing gate.

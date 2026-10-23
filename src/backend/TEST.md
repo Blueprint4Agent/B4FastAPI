@@ -89,7 +89,7 @@ For each API domain:
 Mandatory coverage per domain (minimum):
 1. Success case (200/201)
 2. Auth failure case (401 when protected)
-3. Request validation failure (422 when input invalid)
+3. Request validation failure (422) when the endpoint accepts constrained input; do not invent inputs for an input-free GET.
 
 Notes for this codebase:
 1. Router tests use fake services, not real repositories.
@@ -99,7 +99,7 @@ Notes for this codebase:
 ## 6) Fixtures and Reuse
 
 - Shared fixtures belong in `tests/conftest.py`.
-- API contract payload constants belong in `tests/fixtures/api_contract_data.py`.
+- Shared API contract payload constants belong in `tests/fixtures/api_contract_data.py`; small domain-local payloads/fixtures may remain beside their tests.
 - Shared payload builders (`signup/login`) belong in `tests/fixtures/payload_data.py`.
 - Production-like seed dataset constants belong in `tests/fixtures/scenario_seed_data.py`.
 - Current shared fixture: `sample_user` (`UserResponse`).
@@ -144,7 +144,7 @@ Integration tests:
 2. Isolate data per test (transaction rollback or dedicated reset fixture).
 3. Cover flows where repository/query behavior matters.
 4. Include production-like seeded dataset scenarios when business behavior depends on existing records.
-5. Use `seeded_integration_client` for preloaded-state flows (baseline user + existing users).
+5. Use only the seed size required by assertions: a primary-only fixture for one existing principal, default bulk seeds for aggregate/full-system scenarios.
 6. Maintain full-system scenario flow under `tests/integration/scenarios/`.
 7. Marker boundaries are required:
    - `api_test`: API contract tests only
@@ -163,52 +163,45 @@ Run all backend tests:
 
 ```bash
 cd src/backend
-uv run pytest
+TRACING_ENABLED=false uv run pytest
 ```
 
 Run API contract tests only:
 
 ```bash
 cd src/backend
-uv run pytest -m api_test
+TRACING_ENABLED=false uv run pytest -m api_test
 ```
 
 Run integration tests with clean primary data:
 
 ```bash
 cd src/backend
-uv run pytest -m primary_data
+TRACING_ENABLED=false uv run pytest -m primary_data
 ```
 
 Run seeded production-like scenario/integration tests:
 
 ```bash
 cd src/backend
-uv run pytest -m mocked_data
+TRACING_ENABLED=false uv run pytest -m mocked_data
 ```
 
 Run email-enabled integration tests:
 
 ```bash
 cd src/backend
-uv run pytest -m email_enabled
+TRACING_ENABLED=false uv run pytest -m email_enabled
 ```
 
 Run only full-system seeded scenarios:
 
 ```bash
 cd src/backend
-uv run pytest -m "mocked_data and scenario_flow"
+TRACING_ENABLED=false uv run pytest -m "mocked_data and scenario_flow"
 ```
 
-Quality checks before commit:
-
-```bash
-cd src/backend
-uv run ruff check .
-uv run ruff format . --check
-uv run pytest
-```
+Before commit use root `make verify-plan` / `make verify`; the commands above are explicit standalone scopes, not an unconditional checklist.
 
 ## 8.1) Seeded Full-System Scenario Sequence
 
@@ -282,37 +275,13 @@ Integration seeded dataset (`mocked_data`):
 1. `tests/integration/api/v1/auth/test_auth_integration.py` seeded-state flows
 2. `tests/integration/scenarios/test_full_system_scenario.py`
 
-## 9) Naming and Style Rules
+## 9) Naming and intent
 
-1. File name: `test_<target>.py`
-2. Test function name: `test_<behavior>_<expected_result>`
-3. Each test function must include a one-line scenario docstring.
-4. Multi-step tests must use `Given / When / Then` inline comments.
-5. Use explicit assertions for:
-   - status code
-   - error code/message keys for domain failures
-   - critical response payload fields
-6. Keep each test focused on one behavior.
-
-Required format template:
-
-```python
-def test_<behavior>_<expected_result>(...):
-    """Scenario: <what flow is being verified in one sentence>."""
-    # Given: <initial state or setup condition>
-    # When: <action/request under test>
-    # Then: <expected result/contract>
-```
-
-Example:
-
-```python
-def test_me_requires_authentication(sample_user):
-    """Scenario: protected route denies access without auth dependency."""
-    # Given: client without current-user override.
-    # When: /api/v1/auth/me is requested.
-    # Then: 401 with INVALID_TOKEN error code is returned.
-```
+Use `test_<target>.py` and descriptive `test_<behavior>_<expected_result>` names.
+Assert status, meaningful response fields and relevant domain error codes. Add a short
+scenario docstring or Given/When/Then comments when they explain a non-obvious or
+multi-step flow; trivial tests do not require boilerplate comments. Keep one behavior
+owner per layer rather than copying the same negative case through every layer.
 
 ## 10) Change Checklist
 
@@ -322,35 +291,33 @@ When backend API behavior changes:
 3. If behavior depends on persistence semantics, add integration coverage.
 4. Keep docs synchronized (`BACKEND.md`, `README.md`, this file if needed).
 
-## 11) New Domain Test Onboarding Rules (Required)
+## 11) New domain verification
 
-When a new backend domain/router is added, keep the same testing format.
+Use existing paths so the planner can find coverage without a new registry:
+`tests/api/v1/<domain>/test_<domain>_api.py`, optional
+`tests/integration/api/v1/<domain>/`, and unit tests named `test_<domain>*.py`.
 
-Required directory targets:
-1. API contract tests: `tests/api/v1/<domain>/test_<domain>_api.py`
-2. Integration tests: `tests/integration/api/v1/<domain>/test_<domain>_integration.py`
-3. If domain participates in end-to-end business flow, update/add scenario test under
-   `tests/integration/scenarios/`.
-
-Required minimum test set per new domain:
-1. API contract success case (200/201)
-2. API contract auth failure case (401/403 if protected)
-3. API contract request validation failure (422)
-4. Integration success flow on empty initial state
-5. Integration scenario on seeded state (`seeded_integration_client`) when behavior depends on existing records
-6. If domain is part of core flow, add/adjust cross-domain scenario assertion path.
-
-Fixture/data boundary rules for new domains:
-1. Do not put production-like seeded records in API contract data.
-2. Put API contract constants in `tests/fixtures/api_contract_data.py`.
-3. Put shared request payload builders in `tests/fixtures/payload_data.py`.
-4. Put production-like dataset schemas/profiles in `tests/fixtures/scenario_seed_data.py`.
-5. If a domain needs additional seeded scenarios, add new `SeedProfileSchema` profiles (do not bypass schema with ad-hoc fields).
-
-Review gate before merging new domain tests:
-1. Confirm docstring + Given/When/Then format compliance
-2. Confirm API vs Integration data boundary is preserved
-3. Run `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest`
+- Cover the actual HTTP success contract. Add authentication/role/ownership failures
+  for protected/private resources and validation failures when constrained input exists.
+- A stateless input-free GET can be covered at the API layer; no empty-state DB test,
+  seeded fixture, artificial 422 case or duplicate service test is required.
+- Use integration tests when real persistence/query/transaction behavior matters.
+  Keep representative stored-state/rollback/isolation invariants there; schema rejection
+  belongs at the API/model layer and must not initialize DB/signup/login per invalid value.
+- Existing-record-dependent behavior uses the smallest relevant SeedProfileSchema.
+  `seeded_primary_client` supplies one principal for billing identity adoption;
+  full-system scenarios retain primary+50 users and own seeded login/duplicate-email
+  regression coverage. Auth/runtime changes always retain those broad scenarios.
+- Update cross-domain scenarios only when the feature participates in that flow.
+  Keep payload builders and seed profiles under existing fixture owners; never add real
+  credentials/provider calls or production data to API contract tests.
+- Before commit run root `make verify-plan` then `make verify`; record selected checks
+  and any broad fallback. Static consumers/domain test paths select independent APIs;
+  shared auth/permissions/ORM/migrations/config, unresolved imports or missing coverage
+  keep the full backend suite. Test-only changes select the changed test files.
+- App entry-point narrowing recognizes only constant, appended include_router wiring
+  of newly added modules using the existing `from app.routers.v1 import ...` style.
+  Other startup/lifecycle/registration changes remain broad.
 
 ## Shared Contract Regression Checks
 

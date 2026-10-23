@@ -61,51 +61,6 @@ def test_keyboard_shortcuts_persist_per_account_and_reset(integration_client):
     )
 
 
-@pytest.mark.primary_data
-@pytest.mark.parametrize(
-    "keys",
-    [
-        {"toggleSidebar": [], "openSettings": ["b"]},
-        {"toggleSidebar": ["shift"], "openSettings": ["b"]},
-        {"toggleSidebar": ["b"], "openSettings": ["b"]},
-        {"toggleSidebar": ["b"], "openSettings": [","], "openProfile": ["b"]},
-        {"toggleSidebar": ["b"], "openSettings": ["mod", "p"], "openProfile": ["ctrl", "p"]},
-        {"toggleSidebar": ["mod", "b"], "openSettings": ["ctrl", "b"]},
-        {"toggleSidebar": ["mod", "ctrl", "b"], "openSettings": [","]},
-        {"toggleSidebar": ["b"]},
-        {"toggleSidebar": ["b"], "openSettings": [","], "other": ["x"]},
-        {"toggleSidebar": ["x" * 33], "openSettings": [","]},
-    ],
-)
-def test_keyboard_shortcuts_reject_invalid_payload(integration_client, keys):
-    """Scenario: malformed or cross-platform conflicting bindings never reach the database."""
-    # Given: a real authenticated account.
-    integration_client.post("/api/v1/auth/signup", json=build_signup_payload())
-    login = integration_client.post("/api/v1/auth/login", json=build_login_payload())
-    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    # When: submitting an invalid binding map.
-    response = integration_client.patch(
-        "/api/v1/auth/me", headers=headers, json={"keyboard_shortcuts": keys}
-    )
-    # Then: reject the request and retain defaults.
-    assert response.status_code == 422
-    assert response.json()["detail"]
-    assert (
-        integration_client.get("/api/v1/auth/me", headers=headers).json()["keyboard_shortcuts"]
-        is None
-    )
-
-
-@pytest.mark.primary_data
-def test_keyboard_shortcuts_require_authentication(integration_client):
-    """Scenario: anonymous clients cannot persist shortcut settings."""
-    # Given/When: no authentication headers on a shortcut update.
-    response = integration_client.patch("/api/v1/auth/me", json={"keyboard_shortcuts": BINDINGS})
-    # Then: the normal profile authentication boundary applies.
-    assert response.status_code == 401
-    assert response.json()["detail"]["error"] == "INVALID_TOKEN"
-
-
 def test_legacy_keyboard_binding_model_remains_accepted():
     from app.models.user import KeyboardShortcuts
 
@@ -113,3 +68,27 @@ def test_legacy_keyboard_binding_model_remains_accepted():
         {"toggleSidebar": ["b"], "openSettings": ["mod", "shift", "p"]}
     )
     assert legacy.openProfile is None
+
+
+@pytest.mark.primary_data
+def test_invalid_keyboard_update_preserves_confirmed_bindings(integration_client):
+    """A rejected schema update never overwrites the previously persisted bindings."""
+    integration_client.post("/api/v1/auth/signup", json=build_signup_payload())
+    login = integration_client.post("/api/v1/auth/login", json=build_login_payload())
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    assert (
+        integration_client.patch(
+            "/api/v1/auth/me", headers=headers, json={"keyboard_shortcuts": BINDINGS}
+        ).status_code
+        == 200
+    )
+    rejected = integration_client.patch(
+        "/api/v1/auth/me",
+        headers=headers,
+        json={"keyboard_shortcuts": {"toggleSidebar": [], "openSettings": ["b"]}},
+    )
+    assert rejected.status_code == 422
+    assert (
+        integration_client.get("/api/v1/auth/me", headers=headers).json()["keyboard_shortcuts"]
+        == BINDINGS
+    )

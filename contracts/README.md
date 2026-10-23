@@ -14,12 +14,14 @@ the lifespan, run migrations, or connect to DB/Redis. The exported title is fixe
 to `B4 API` so deployment branding does not alter the baseline.
 
 From the repository root, `make contract-export` updates the provider snapshot.
-Adopt it in a B4React PR with provenance, generated types, and consumer changes;
-then pin the merged child commit here. See [update order](../notes/frontend-submodule.md).
+When a frontend consumer adopts new endpoints, update its snapshot in a B4React PR
+with provenance/generated types/callers, then pin the merged child. A provider may
+add paths, methods and new components without changing the pinned consumer snapshot
+when every existing operation, component and global setting remains identical. See [update order](../notes/frontend-submodule.md).
 `make frontend-api-generate` uses only the child's own snapshot.
 
-Run `make check test build` before committing. `contract-check` validates both the
-backend export and semantic equality with the child snapshot. `frontend-api-check`
+Run `make verify-plan` / `make verify` before committing. `contract-check` validates
+export freshness and strict additive compatibility with the pinned child snapshot. `frontend-api-check`
 detects generated TypeScript drift. These gates do not prove cross-backend runtime compatibility.
 
 Changes to paths, methods, field names, required/null behavior, status codes,
