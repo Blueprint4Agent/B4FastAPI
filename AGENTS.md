@@ -18,6 +18,10 @@ GitHub event or application startup hook is required. Reuse answers already give
 ask only the next missing stage, and apply the collected setup when intake is complete.
 Requests to explain initialization or edit this workflow do not initialize the project.
 For a resumed session, read `PROJECT_BRIEF.md` if present before asking questions.
+Distinguish actual setup from a rehearsal; use an independent disposable clone for
+trigger checks. Before applying or declaring completion, follow the mandatory
+[surface and rollback audit](PROJECT_ONBOARDING_AUDIT.md), including UI/console/document
+brand remnants, language behavior and evidence for every applicable surface.
 
 ## Documentation Sync
 

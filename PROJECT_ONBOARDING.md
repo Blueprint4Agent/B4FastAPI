@@ -9,6 +9,18 @@ An agent must read and follow AGENTS.md for this routing to work; this is not an
 executable listener or an automatic fork/clone event. Do not initialize the blueprint
 when asked only to explain, review or change this procedure.
 
+## Select the target and intent
+
+Determine whether the request is actual downstream initialization or a trigger rehearsal.
+Reuse explicit context: “init trigger check” means rehearsal. Rehearsals run only in an
+independent disposable clone with example env and the pinned child, never in the source
+workspace. Do not apply project-specific changes to upstream or open upstream PRs from
+that rehearsal. If real initialization is requested inside the upstream template and no
+downstream target is known, collect the intended destination before writing product files.
+Follow [the coverage and rollback audit](PROJECT_ONBOARDING_AUDIT.md) before generators
+run. For actual targets, create PROJECT_INITIALIZATION_AUDIT.md with the complete surface
+inventory and rollback record. Do not create a real service merely to demonstrate intake.
+
 ## Intake
 
 Use the developer's conversation language. First read existing public project files
@@ -51,8 +63,8 @@ The brief is the resumable source of truth for intent and progress. Include:
 - Execution checklist with affected paths, completed steps, verification evidence and blockers.
 
 Use `project.json` as the executable identity/features source and the brief for
-intent and workflow state. Do not add overview, references or language fields to
-`project.json`: its current schema rejects those fields. Resolve disagreements with
+intent and workflow state. Keep overview, references and document/conversation languages out of
+`project.json`. UI default language is supported as optional `default_language` (`en` or `ko`). Resolve disagreements with
 the developer instead of silently overwriting an existing project's configuration.
 
 ## Start initialization
@@ -63,6 +75,10 @@ show a concise accepted setup and announce **“프로젝트 초기화를 시작
 blanket permission question. Ask again only for a genuinely unresolved input or an
 action requiring separate authorization. An initialization request does not authorize
 production migration, deployment, purchasing assets or external submission.
+
+Before editing product code, inventory all requested surfaces with the audit guide,
+identify initializer gaps and record their implementation owners. A generated name/logo
+file is not evidence that hardcoded UI/console/document references were handled.
 
 1. **Prepare.** Follow root and applicable domain guides. Initialize the pinned child
    before reading its guides with `make frontend-init`. Set the brief to `applying`,
@@ -113,8 +129,9 @@ production migration, deployment, purchasing assets or external submission.
    Verify document links, language navigation and retained governance rules. Record
    selected/omitted checks and evidence in the worklog and brief; follow commit/PR
    governance. Report completed items, deferrals and unresolved blockers. Set status
-   to `complete` only when the agreed implemented scope and required verification
-   are finished. A blocked check or inaccessible required asset stays visible.
+   to `complete` only when the agreed scope, required verification and every applicable
+   row of PROJECT_INITIALIZATION_AUDIT.md have evidence or an explicit scoped decision.
+   Rerun the old-name inventory and disclose remaining references before completion. A blocked check or inaccessible required asset stays visible.
 
 ## Resume or change direction
 
@@ -140,3 +157,5 @@ identity or Compose namespaces; the new-project initializer is not a migration t
   then resume without overwriting completed or unrelated work.
 - **Explain/change flow:** “How is init triggered?” or “add an initialization flow”
   explains/edits this procedure without collecting a real project name or applying it.
+
+A rehearsal must verify the original source/env/pin remain unchanged. For rollback, follow the recorded pre-application snapshot; never guess which ignored generated files were pre-existing.

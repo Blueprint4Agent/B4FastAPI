@@ -16,6 +16,7 @@ FIELDS = {
     "features",
     "logo",
     "logo_dark",
+    "default_language",
 }
 
 
@@ -26,6 +27,8 @@ def validate_manifest(value: object) -> dict:
         )
     if type(value.get("version")) is not int or value["version"] != 1:
         raise ValueError("Project version must be 1")
+    if "default_language" in value and value["default_language"] not in ("en", "ko"):
+        raise ValueError("Project default_language must be en or ko")
     for key, limit in (("name", 60), ("short_name", 16)):
         text = value.get(key)
         if (
@@ -74,6 +77,8 @@ def brand_plan(data: dict, manifest_dir: Path, child: Path) -> dict[Path, bytes]
     identity = {
         key: data[key] for key in ("version", "name", "short_name", "identifier")
     }
+    if "default_language" in data:
+        identity["default_language"] = data["default_language"]
     for key, url_key in (("logo", "logo_url"), ("logo_dark", "logo_dark_url")):
         if key not in data:
             continue

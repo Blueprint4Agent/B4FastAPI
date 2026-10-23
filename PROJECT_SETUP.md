@@ -25,6 +25,7 @@ make project-check
 | `name` | Browser title, public navigation, email brand, API app name, desktop product/window title |
 | `short_name` | Shared navbar/sidebar brand wordmark |
 | `identifier` | Lowercase reverse-DNS Tauri application ID, e.g. `com.example.myapp` |
+| `default_language` | Optional `en` or `ko` UI default; saved user choice wins; omission retains browser detection |
 | `features.login` | Existing `LOGIN_ENABLED` backend switch |
 | `features.email` | Existing `EMAIL_ENABLED` backend switch |
 | `features.oauth` | Existing `OAUTH_ENABLED` backend switch |
@@ -56,3 +57,5 @@ Commit the public `project.json` and source logos in the copied parent repositor
 B4React can also consume its own local public config independently; see its README. Its Vite/Tauri tooling never reads parent files. Use the npm/Make Tauri launcher for identity overrides; invoking the raw Tauri binary bypasses that wrapper.
 
 Validation: `make project-init-check project-init-test` covers initialization and preservation; `make project-build-test` copies the frontend to a temporary directory and verifies a custom Korean/English brand, logo and production browser rendering with the normal frontend Make hooks. The latter requires installed frontend dependencies and Playwright Chromium. Native packaging requires the normal platform toolchain and is not part of that browser check.
+
+Initialization completion requires the [surface and rollback audit](PROJECT_ONBOARDING_AUDIT.md), covering configured/fallback identity, console/messages, documentation, language behavior and original assets. Trigger rehearsals use an isolated clone.

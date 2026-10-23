@@ -12,6 +12,39 @@ from tests.fixtures.payload_data import build_login_payload, build_signup_payloa
 pytestmark = pytest.mark.primary_data
 
 
+@pytest.mark.parametrize("provider", ["email", "google"])
+def test_account_welcome_uses_configured_brand(integration_client, monkeypatch, provider):
+    # Given: isolated persistence and a configured project identity.
+    from app.core.config.settings import SETTINGS
+    from app.models.user import UserRepository
+
+    monkeypatch.setattr(SETTINGS, "EMAIL_BRAND_NAME", "Acme")
+
+    async def create_and_read():
+        repository = UserRepository()
+        if provider == "email":
+            user = await repository.create_signup_user(
+                email="brand@example.com", name="Example", password_hash="fixture-hash"
+            )
+        else:
+            user = await repository.create_oauth_user(
+                email="brand@example.com",
+                name="Example",
+                provider=provider,
+                identifier="fixture-id",
+            )
+        async with get_db() as db:
+            return await db.scalar(
+                select(InboxNotification).where(InboxNotification.user_id == user.id)
+            )
+
+    # When: either creation path commits its existing welcome notification.
+    welcome = asyncio.run(create_and_read())
+    # Then: raw storage/API text is branded independently of frontend translation.
+    assert welcome.title == "Welcome to Acme"
+    assert welcome.body == "Your account is ready. Welcome to Acme."
+
+
 def test_inbox_ownership_read_idempotency_and_high_water(integration_client, monkeypatch):
     """Scenario: even an admin reads only their inbox and bulk reads spare new arrivals."""
     client = integration_client

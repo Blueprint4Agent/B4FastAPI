@@ -254,15 +254,21 @@ class StartupDisplay:
                         self.filters.append((handler, console_filter))
             if interactive or self.static_panel:
                 if self.title == "Startup":
-                    self.console.print(Text(_LOGO, style="bold cyan"))
-                    self.console.print(Text("Blueprint for Agents\n", style="dim"))
+                    brand = self.settings.EMAIL_BRAND_NAME
+                    self.console.print(Text(_LOGO if brand == "B4A" else brand, style="bold cyan"))
+                    if brand == "B4A":
+                        self.console.print(Text("Blueprint for Agents\n", style="dim"))
                 if interactive:
                     self.live = Live(self.render(), console=self.console, refresh_per_second=8)
                     self.live.start()
                 else:
                     self.console.print(Text(f"{self.outcome}…", style="dim"))
             else:
-                logger.info("B4A · Blueprint for Agents · %s", self.title)
+                brand = self.settings.EMAIL_BRAND_NAME
+                if brand == "B4A":
+                    logger.info("B4A · Blueprint for Agents · %s", self.title)
+                else:
+                    logger.info("%s · %s", brand, self.title)
                 if self.title == "Startup":
                     logger.info("%s", self.runtime_summary().plain)
             yield
@@ -363,6 +369,6 @@ def show_shutdown_farewell(settings: Settings) -> None:
         return
     console = Console(stderr=True)
     if settings.STARTUP_DISPLAY == "auto":
-        console.print(Text("B4A · Bye!!", style="bold cyan"))
+        console.print(Text(f"{settings.EMAIL_BRAND_NAME} · Bye!!", style="bold cyan"))
     else:
-        logger.info("B4A · Bye!!")
+        logger.info("%s · Bye!!", settings.EMAIL_BRAND_NAME)

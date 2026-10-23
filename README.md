@@ -609,3 +609,5 @@ Path-based monolithic hosting: [basePath deployment](notes/base-path-deployment.
 Service layout modes: [English](src/frontend/notes/layout-modes.md) · [한국어](src/frontend/notes/ko/layout-modes.md). Development-only Appearance previews do not change the deployed service default.
 
 Guided service prompts: [Prompt builder](notes/prompt-builder.md) · [한국어](notes/ko/prompt-builder.md). Available below Home in development and production.
+
+Initialization completion requires the [surface and rollback audit](PROJECT_ONBOARDING_AUDIT.md), covering configured/fallback identity, console/messages, documentation, language behavior and original assets. Trigger rehearsals use an isolated clone.

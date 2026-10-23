@@ -108,3 +108,5 @@ Timestamps use medium gray, paths sky blue, and HTTP status classes use their ow
 silver/mint/amber/coral/bright-red shades. All named foreground roles have distinct
 RGB values. This extended palette targets 256-color-capable terminals; NO_COLOR
 and redirected output retain the same uncolored text and original records.
+
+`EMAIL_BRAND_NAME`, set by project initialization, also owns the startup banner, plain logs and successful shutdown farewell. Default B4A keeps its ASCII banner; configured brands render their text name. Service-check order, cleanup and failure semantics are unchanged.

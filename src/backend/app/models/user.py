@@ -21,6 +21,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship, selectinload
 
+from app.core.config.settings import SETTINGS
 from app.core.db.session import Base, get_db
 from app.core.error import AuthErrorCode, AuthException
 from app.models.pagination import PageResponse
@@ -436,8 +437,8 @@ class UserRepository:
                     db,
                     user_id=user.id,
                     kind="welcome",
-                    title="Welcome to B4A",
-                    body="Your account is ready. Welcome to B4A.",
+                    title=f"Welcome to {SETTINGS.EMAIL_BRAND_NAME}",
+                    body=f"Your account is ready. Welcome to {SETTINGS.EMAIL_BRAND_NAME}.",
                     action_path="/home",
                 )
                 await db.commit()
@@ -474,8 +475,8 @@ class UserRepository:
                     db,
                     user_id=user.id,
                     kind="welcome",
-                    title="Welcome to B4A",
-                    body="Your account is ready. Welcome to B4A.",
+                    title=f"Welcome to {SETTINGS.EMAIL_BRAND_NAME}",
+                    body=f"Your account is ready. Welcome to {SETTINGS.EMAIL_BRAND_NAME}.",
                     action_path="/home",
                 )
                 await db.commit()
