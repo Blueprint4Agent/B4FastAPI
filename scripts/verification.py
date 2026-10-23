@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 
-from verification_scope import css_impact, frontend_impact
+from verification_scope import SHARED_RUNTIME, css_impact, frontend_impact
 from verification_areas import FRONTEND_AREAS, PARENT_AREAS, owned_areas
 from verification_runner import execute
 
@@ -52,6 +52,8 @@ def parse_json(text):
 
 
 def classify(root, base, head, path, parent):
+    if not parent and path in SHARED_RUNTIME:
+        return "full"
     if path.endswith(".md"):
         return "docs"
     if not parent and re.fullmatch(r"src/locales/[\w.-]+\.json", path):

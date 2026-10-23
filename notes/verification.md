@@ -37,8 +37,7 @@ Structural changes to discovery/home.project locale data and editor API/locales 
 their actual tool consumers too. Unknown impact within the app retains
 broad app suites. No manual skip/downgrade flag is provided.
 
-Existing reviewed billing/admin selections remain supported. Expanding page-level
-coverage and backend domain selection are follow-ups (#94/#152); this change does
+Existing reviewed billing/admin selections remain supported. Backend domain selection remains a follow-up (#152); this change does
 not infer safe backend subsets from filenames. Backend auth/security/data tests
 remain complete. A new locale key does not imply that browser tests can be skipped.
 
@@ -179,3 +178,34 @@ Root `backend-test` and `deployment-check` set `TRACING_ENABLED=false` for pytes
 This isolates tests from developer OTLP exporters and avoids native gRPC fork crashes
 in macOS subprocess fixtures. Runtime `.env` is unchanged; tracing-specific tests may
 explicitly opt in with a mocked exporter. See the backend test guide.
+
+## Reviewed page ownership (#94)
+
+The file-level registry now covers home (HomePage/ProjectOverview/legacy LandingPage),
+profile, support, inbox and prompt-builder as well as billing/admin. Home owns
+`home.spec.ts`; runtime/auth/shared-shell checks stay in `runtime-modes.spec.ts`.
+Profile retains account/profile-photo browser cases and related component/hook tests;
+prompt-builder retains its component and pure-logic tests. Support/inbox currently
+have browser coverage rather than dedicated Vitest files: selecting their complete
+browser files does not invent unrelated unit work. Multiple owners form a deduplicated
+union. Unknown/shared components, auth/recovery/API transport, shared CSS and the
+app-wide InboxProvider still broaden. Missing mapped coverage also broadens.
+The new pages use test-file ownership, not per-JSX title registration. Selected paths
+appear in the plan and command-bound receipt keys. Production-route receipts bind dist
+contents too; missing/changed builds cannot authorize packaging.
+
+Support mutations run once per role, inbox mutation/retry/reload once, and viewport/theme
+cases start with prepared populated/closed/empty state. Billing paid/manual mutations
+and error recovery have representative business owners; their geometry matrices retain
+responsive/theme checks. Home repeats business navigation once and keeps the shell/footer
+matrix. Provider/security cases and actual geometry/color assertions remain. The old
+fixed marketing-card count and private danger/text CSS class spellings are not product
+contracts. Legacy loginEnabled variants share one parameterized assertion body, and retry
+still asserts no window drag both before and after clicking.
+
+Successful screenshots are review artifacts, not pixel assertions. Playwright automatically
+captures failures; use `B4F_CAPTURE_VISUALS=1 make test-ui` for optional successful review
+images (also supported by discovery/editor suites). Direct screenshot assertions added in
+future remain independent of this artifact helper. No tests are skipped by this flag.
+Small-page first/repeat/parent timings are recorded in the matching worklog, not enforced
+as a wall-time gate. Backend domain selection remains a separate #152 task.

@@ -36,8 +36,7 @@
 편집기 API/번역 구조 변경도 실제 소비 도구를 함께 선택합니다. 앱 내부의 영향을
 확정할 수 없으면 앱 검사를 넓힙니다. 수동 생략·강등 플래그는 제공하지 않습니다.
 
-기존 billing/admin 관련 검사 선택은 유지합니다. 페이지 매핑 확대와 백엔드 도메인 선택은
-후속 #94/#152 범위입니다. 이번 변경에서 파일명만 보고 백엔드 테스트를 줄이지 않으며,
+기존 billing/admin 관련 검사 선택은 유지합니다. 페이지 매핑은 아래 #94 절을 따르며 백엔드 도메인 선택은 후속 #152 범위입니다. 이번 변경에서 파일명만 보고 백엔드 테스트를 줄이지 않으며,
 인증·권한·데이터 테스트는 전체 유지합니다. 번역 키 추가가 브라우저 검사 생략을 뜻하지 않습니다.
 
 ## 실행 명령과 호환성
@@ -168,3 +167,29 @@ VERIFY_BASE=06e55ba VERIFY_HEAD=7c4922e make verify
 개발자 OTLP exporter로부터 테스트를 격리하고 macOS 하위 프로세스 fixture의 gRPC fork 충돌을
 방지하기 위한 설정입니다. 런타임 `.env`는 바꾸지 않으며 tracing 전용 테스트는 mocked exporter로
 명시적으로 활성화할 수 있습니다. 백엔드 테스트 가이드도 참고하세요.
+
+## 페이지별 검증 소유 범위 (#94)
+
+파일 단위 매핑을 기존 billing/admin에서 home(HomePage·ProjectOverview·기존 LandingPage),
+profile, support, inbox, prompt-builder로 확대했습니다. Home은 home.spec.ts가 소유하고,
+런타임·인증·공통 shell 검사는 runtime-modes.spec.ts에 유지합니다. Profile은 계정/사진 브라우저와
+관련 컴포넌트/훅 검사를, prompt-builder는 컴포넌트와 순수 로직 검사를 유지합니다.
+Support/inbox에는 전용 Vitest 파일이 없으므로 기존 브라우저 파일 전체를 선택하며 무관한 단위
+검사를 만들지 않습니다. 복수 영역은 중복 없는 합집합으로 선택합니다. 공유 컴포넌트·인증/복구·
+API transport·공유 CSS·앱 전체 InboxProvider와 미등록 영향, 누락된 커버리지는 넓게 검사합니다.
+새 페이지는 JSX마다 제목을 등록하지 않고 테스트 파일에 연결합니다. 선택 경로는 계획과 명령별
+캐시 키에 포함합니다. 프로덕션 라우트 검사 결과도 dist 내용에 결합해 누락/변경된 빌드를 재사용하지 않습니다.
+
+Support 변경 업무는 역할별 1회, inbox 변경/오류/재시도/reload는 1회 검증하고 폭·테마 조합은
+준비된 populated/closed/empty 상태에서 확인합니다. Billing 결제 변경·정보 수정·오류 복구는
+대표 업무 케이스가 소유하고 반응형/테마 geometry 조합은 유지합니다. Home의 업무 탐색은
+대표 1회로 줄이고 shell/footer 조합은 보존합니다. Provider/보안 분기와 실제 geometry/색상
+assertion은 유지합니다. 마케팅 카드 개수와 내부 danger/text CSS 클래스 이름은 제품 계약으로
+고정하지 않습니다. 기존 loginEnabled 호환성은 하나의 매개변수화된 assertion으로 유지하고,
+재시도 버튼은 클릭 전후 모두 창 드래그를 시작하지 않는지 확인합니다.
+
+성공 스크린샷은 픽셀 비교가 아닌 검토 자료입니다. 실패 캡처는 Playwright가 자동 저장하며,
+성공 이미지가 필요하면 `B4F_CAPTURE_VISUALS=1 make test-ui`를 사용합니다(discovery/editor도 지원).
+이 플래그로 테스트를 생략하지 않으며 향후 실제 이미지 assertion은 자료 저장 helper와 별개입니다.
+페이지 최초/반복/부모 통합 시간은 작업 기록에 남기고 시간 자체를 실패 게이트로 만들지 않습니다.
+백엔드 도메인 선택은 별도 #152 작업입니다.

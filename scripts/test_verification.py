@@ -71,6 +71,7 @@ class VerificationTests(unittest.TestCase):
             ("src/styles/app.css", "ui"),
             ("src/pages/settings/SettingsPage.tsx", "ui"),
             ("src/hooks/useAuth.tsx", "full"),
+            ("src/hooks/api/inbox/InboxProvider.tsx", "full"),
             ("AGENTS.md", "docs"),
             ("scripts/verification.py", "none"),
             ("package-lock.json", "full"),

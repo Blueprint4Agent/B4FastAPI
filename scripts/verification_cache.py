@@ -87,7 +87,7 @@ def command_root(root, command):
 
 def artifacts(root, command):
     # Build-producing receipts are reusable only while their outputs still exist unchanged.
-    if not any(target in command for target in ("build", "test-routes", "frontend-test-routes", "frontend-package", "frontend-package-verified")):
+    if not any(target in command for target in ("build", "test-routes", "test-production", "frontend-test-routes", "frontend-package", "frontend-package-verified")):
         return "none"
     directory = root / ("src/frontend/dist" if (root / "src/backend").is_dir() else "dist")
     if not (directory / "index.html").is_file():
