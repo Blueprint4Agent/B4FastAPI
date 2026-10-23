@@ -10,21 +10,21 @@ Area and depth are independent: an authentication change keeps broad application
 regressions without automatically running unrelated editor or discovery tooling.
 Plans compose the union of all changed areas, including pinned and dirty child changes.
 
-| Changed area                                                             | Selected checks                                                                                                     |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| Markdown documentation anywhere                                          | UTF-8, whitespace and JSON checks; no runtime dependencies                                                          |
-| AGENTS/domain/test guides, worklog template, Git hooks                   | Governance/harness fixtures plus text validation                                                                    |
-| Existing locale string values with identical shape/placeholders/markup   | Text/JSON only                                                                                                      |
-| Locale key/shape changes                                                 | Broad frontend application checks, unit/UI and production-route tests                                               |
-| Backend application/tests/migrations/dependencies                        | Independent domain lint/architecture/tests/contracts; shared security/data changes retain complete backend suite    |
-| Frontend application/auth/API/shared state                               | Application static/type/API/format checks, unit tests; UI/browser and production routes according to depth          |
-| Contracts                                                                | Provider/consumer baseline checks, frontend types/application/unit/production routes                                |
-| Docker/deployment                                                        | Env/initializer checks and fake-Docker orchestration tests; no live deployment                                      |
-| Public discovery tooling                                                 | Discovery fixtures and isolated static build/browser checks; parent IndexNow tools have separate publication checks |
-| Style studio                                                             | Application regression checks, editor file-access fixtures and editor browser suite                                 |
-| Branding                                                                 | Public identity fixtures, production build/routes; parent adds isolated customized build                            |
-| Verification harness                                                     | Classifier, scheduler, receipts and governance fixtures                                                             |
-| Shared build inputs (Makefile/Vite/dependencies/CI) or unknown ownership | All repository areas                                                                                                |
+| Changed area                                                             | Selected checks                                                                                                                                   |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary Markdown documentation (excluding governance guides)            | UTF-8, whitespace and JSON checks; no runtime dependencies                                                                                        |
+| AGENTS/domain/test guides, worklog template, Git hooks                   | Governance/harness fixtures plus text validation                                                                                                  |
+| Existing locale string values with identical shape/placeholders/markup   | Text/JSON only                                                                                                                                    |
+| Locale key/shape changes                                                 | Broad frontend application checks, unit/UI and production-route tests                                                                             |
+| Backend application/tests/migrations/dependencies                        | Independent domain lint/architecture/tests/contracts; shared security/data changes retain complete backend suite                                  |
+| Frontend application/auth/API/shared state                               | Application static/type/API/format checks, unit tests; UI/browser and production routes according to depth                                        |
+| Contracts                                                                | Consumer baseline/breaking changes: contract/types/app/unit/production routes; parent-verified additive provider-only changes: consumer api-check |
+| Docker/deployment                                                        | Env/initializer checks and fake-Docker orchestration tests; no live deployment                                                                    |
+| Public discovery tooling                                                 | Discovery fixtures and isolated static build/browser checks; parent IndexNow tools have separate publication checks                               |
+| Style studio                                                             | Application regression checks, editor file-access fixtures and editor browser suite                                                               |
+| Branding                                                                 | Public identity fixtures, production build/routes; parent adds isolated customized build                                                          |
+| Verification harness                                                     | Classifier, scheduler, receipts and governance fixtures                                                                                           |
+| Shared build inputs (Makefile/Vite/dependencies/CI) or unknown ownership | All repository areas                                                                                                                              |
 
 The application risk levels remain `none/docs/copy/behavior/ui/full` for existing
 consumers. `full` depth means broad application coverage; `VERIFY_FULL=1` means

@@ -4,6 +4,26 @@
 
 기능 영역을 감싸고 `enabled`, 계정/세션별 `sessionKey`, useCallback으로 유지하는 `getConnection(signal)`, 필요하면 `onMessage`를 전달합니다. 연결 함수는 `{ url, protocols? }`를 반환해야 합니다. `useWebSocket()`은 연결 상태, `send(string)`의 성공 여부, 수동 `reconnect()`를 제공합니다. 실패한 메시지를 임의로 저장하거나 재전송하지 않습니다.
 
-서버 연결 시 wss를 사용하고 연결·메시지별 인증 및 권한 검증을 구현해야 합니다. 브라우저 WebSocket 생성자는 임의 Authorization 헤더를 설정할 수 없으므로 쿠키와 Origin 검증 또는 수명이 짧은 티켓 방식 등을 서버와 함께 결정해야 합니다. URL에 장기 bearer 토큰을 넣지 마세요. 프로바이더 자체는 인증 정보를 만들거나 저장하지 않습니다. 연결 예시는 [영문 문서](../websocket-provider.md)에 있습니다.
+```tsx
+const connection = useCallback(async (signal: AbortSignal) => {
+    // 도메인 API에서 권한이 확인된 연결 정보를 가져옵니다.
+    // 서버는 연결과 각 메시지 모두에서 인증·권한을 검증해야 합니다.
+    return getAuthorizedSocketConnection(signal);
+}, []);
+
+<WebSocketProvider
+    enabled={featureEnabled && Boolean(user)}
+    sessionKey={user?.id ?? null}
+    getConnection={connection}
+    onMessage={handleDomainMessage}
+>
+    <Feature />
+</WebSocketProvider>;
+```
+
+이 코드는 연결 조합 예시입니다. `getAuthorizedSocketConnection`과 도메인 메시지 처리는
+서비스가 구현해야 하며, 프로바이더가 서버 프로토콜을 자동으로 제공하지 않습니다.
+
+서버 연결 시 wss를 사용하고 연결·메시지별 인증 및 권한 검증을 구현해야 합니다. 브라우저 WebSocket 생성자는 임의 Authorization 헤더를 설정할 수 없으므로 쿠키와 Origin 검증 또는 수명이 짧은 티켓 방식 등을 서버와 함께 결정해야 합니다. URL에 장기 bearer 토큰을 넣지 마세요. 프로바이더 자체는 인증 정보를 만들거나 저장하지 않습니다. 사용자 이름/비밀번호가 포함되지 않은 ws/wss URL만 허용합니다.
 
 수신 데이터는 unknown으로 콜백에 전달하며 파싱·검증·도메인 구독·HTTP 재조회는 기능 측에서 처리합니다. 메시지를 공용 React 상태에 계속 쌓지 않습니다. 콜백만 바뀌면 재접속하지 않습니다. 계정 변경·비활성화·오프라인·언마운트 시 이전 비동기 연결과 소켓, 타이머를 정리합니다. 데스크톱 연결 복구 및 브라우저 온라인 복귀 시 연결합니다. 네트워크 실패는 1/2/4/8/16초 간격으로 최대 5회 재시도하며, 수동 reconnect로 초기화합니다. 정상 종료(1000)·정책 거부(1008)는 자동 재시도하지 않습니다. 전송 버퍼가 64KiB를 넘으면 새 전송을 거부하며 별도 메시지 큐는 없습니다.
