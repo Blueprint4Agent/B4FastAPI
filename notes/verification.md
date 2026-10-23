@@ -32,7 +32,7 @@ consumers. `full` depth means broad application coverage; `VERIFY_FULL=1` means
 text only. A missing comparison revision expands to all areas. Invalid/deleted
 locale data expands application checks; malformed JSON also fails lightweight validation.
 Shared CSS retains broad app checks; shared app.css changes additionally select style studio and discovery because both
-consume its tokens/styles. Reviewed billing/admin-only CSS keeps its scoped selection.
+consume its tokens/styles. Domain-owned CSS uses actual runtime consumers and existing coverage, as described below.
 Structural changes to discovery/home.project locale data and editor API/locales select
 their actual tool consumers too. Unknown impact within the app retains
 broad app suites. No manual skip/downgrade flag is provided.
@@ -248,3 +248,21 @@ The deliberately strict compatibility rule follows the OpenAPI
 [Paths/Components model](https://spec.openapis.org/oas/v3.1.0.html); it does not claim to
 prove all semantic backward compatibility. Probe first/repeat timings and omitted checks
 are recorded in the task worklog, without a timing gate.
+
+## CSS ownership from runtime consumers
+
+CSS-only edits are not shared merely because they live in `app.css`. For each changed
+rule, the classifier requires a leading class anchor and finds its runtime consumers
+under `src`, `scripts` and `public` (excluding tests/generated outputs). Every consumer
+must belong to a registered domain with existing mapped coverage. Home, profile,
+support, inbox and prompt-builder follow the same rule as billing/admin; class names
+need no domain prefix or per-selector registry. Multiple owners select the union.
+
+A domain-owned class and its descendants, child selectors and ordinary pseudo states
+can select that domain's static/unit/browser/build checks. Existing reviewed render-case
+selection remains available when all owners qualify. Shared controls, global selectors or
+tokens, keyframes, missing consumers/coverage, script/static producers outside mapped
+domains, sibling combinators and unsupported selector syntax retain broad checks.
+Unknown/shared `app.css` changes also retain editor/discovery checks. `VERIFY_FULL=1`
+and CI retain all areas. This policy does not change repository-wide receipt binding;
+dependency-specific receipts remain a separate follow-up (#149).

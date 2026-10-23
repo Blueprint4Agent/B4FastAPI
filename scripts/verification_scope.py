@@ -176,21 +176,55 @@ def render_cases(root, owners, read, head):
     return result
 
 
+def css_selector_class(selector):
+    """Only selectors bounded by their leading class can select domain checks."""
+    selector = selector.strip()
+    # Siblings can escape the anchor; nesting/functions/escapes need a real parser.
+    if re.search(r"[+~|\\&]|:(?:is|where|not|has|global|host)\(", selector):
+        return None
+    match = re.match(r"\.([A-Za-z_][\w-]*)(?=[.#:\s\[>]|$)", selector)
+    return match[1] if match else None
+
+
+def css_consumers(root, name):
+    """Find every textual runtime consumer; unresolved/non-domain hits stay broad."""
+    hits = set()
+    pattern = re.compile(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])")
+    for folder in ("src", "scripts", "public"):
+        for path in (root / folder).rglob("*"):
+            if path.suffix not in {
+                ".tsx",
+                ".ts",
+                ".jsx",
+                ".js",
+                ".mjs",
+                ".html",
+                ".py",
+            }:
+                continue
+            relative = path.relative_to(root)
+            if (
+                "tests" in relative.parts
+                or "__tests__" in relative.parts
+                or "generated" in relative.parts
+                or path.name.startswith("test_")
+                or ".test." in path.name
+                or ".spec." in path.name
+            ):
+                continue
+            if pattern.search(path.read_text()):
+                hits.add(str(relative))
+    return hits
+
+
 def css_owners(root, before, after):
     owners = set()
     for _, selector, _ in css_rules(before) ^ css_rules(after):
         for part in selector.split(","):
-            match = re.search(r"\.((?:billing|admin)-[\w-]+)", part)
-            if not match:
+            name = css_selector_class(part)
+            if name is None:
                 return None
-            name = match[1]
-            hits = {
-                str(path.relative_to(root))
-                for path in (root / "src").rglob("*.tsx")
-                if re.search(
-                    r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", path.read_text()
-                )
-            }
+            hits = css_consumers(root, name)
             if not hits or any(hit not in RENDER_CASES for hit in hits):
                 return None
             owners.update(hits)
@@ -231,11 +265,15 @@ def css_rules(text):
     return records
 
 
-def css_impact(before, after):
+def css_impact(before, after, root):
     try:
         modified = css_rules(before) ^ css_rules(after)
     except ValueError:
         return None
+    if not modified and before != after:
+        return (
+            None  # Rule-order-only changes cannot be proven safe from set differences.
+        )
     domains = set()
     for parents, selector, _ in modified:
         if any(
@@ -244,15 +282,26 @@ def css_impact(before, after):
         ):
             return None
         for part in selector.split(","):
-            part = part.strip()
-            if re.match(r"\.billing-[\w-]+(?:\b|:)", part) or part.startswith(
-                '[aria-labelledby="billing-'
-            ):
-                domains.add("billing")
-            elif re.match(r"\.admin-[\w-]+(?:\b|:)", part):
-                domains.add("admin")
-            else:
+            name = css_selector_class(part)
+            if name is None:
                 return None
+            hits = css_consumers(root, name)
+            if not hits:
+                return None
+            for hit in hits:
+                if hit in SHARED_RUNTIME:
+                    return None
+                domain = next(
+                    (
+                        key
+                        for key, spec in DOMAINS.items()
+                        if hit.startswith(spec["prefixes"])
+                    ),
+                    None,
+                )
+                if domain is None:
+                    return None
+                domains.add(domain)
     return domains
 
 
@@ -311,7 +360,9 @@ def frontend_impact(root, base, head, paths, read):
             continue
         if path == "src/styles/app.css":
             try:
-                affected = css_impact(read(root, base, path), read(root, head, path))
+                affected = css_impact(
+                    read(root, base, path), read(root, head, path), root
+                )
             except (OSError, ValueError, subprocess.CalledProcessError):
                 return None
             if affected is None:

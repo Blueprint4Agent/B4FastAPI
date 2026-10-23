@@ -152,12 +152,19 @@ def plan(root, base="HEAD", head=None, force_full=False):
             if not parent and path == "src/styles/app.css":
                 try:
                     css_domains = css_impact(
-                        content(root, base, path), content(root, head, path)
+                        content(root, base, path), content(root, head, path), root
                     )
                 except (OSError, ValueError, subprocess.CalledProcessError):
                     css_domains = None
                 if css_domains is None:
                     owner = owner | {"style-studio", "discovery"}
+                    result["reason"] += (
+                        "; CSS ownership unresolved; app/tool suites retained"
+                    )
+                elif css_domains:
+                    result["reason"] += "; CSS consumers: " + ",".join(
+                        sorted(css_domains)
+                    )
             if (
                 not parent
                 and re.fullmatch(r"src/locales/[\w.-]+\.json", path)
