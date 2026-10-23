@@ -545,6 +545,8 @@ Frontend state management and React optimization policy: [English](src/frontend/
 
 ## New project identity
 
+Tell the repository agent **“initialize this project”** or **“프로젝트 초기화하기”** to start [conversational onboarding](PROJECT_ONBOARDING.md). It collects the name, overview, screen references, icon, UI/document languages and features before applying setup, UI changes and documentation localization. No installed skill is required. [한국어 안내](notes/ko/PROJECT_ONBOARDING.md).
+
 Use [project initialization](PROJECT_SETUP.md) to configure a copied blueprint from `project.json`: service name, brand, desktop identifier and login/email/OAuth switches. Preview with `make project-plan`, apply with `make project-init`, and verify with `make project-check`. Korean guide: [새 프로젝트 초기화](notes/ko/PROJECT_SETUP.md).
 
 ## Local showcase style editing

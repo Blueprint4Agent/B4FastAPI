@@ -1,6 +1,12 @@
 # Initialize a new project
 
-Use this opt-in workflow after copying the blueprint and initializing its frontend submodule (`make frontend-init`). Install the locked dependencies with `make install`. Existing `make init` remains an env-only workflow.
+For conversational setup, tell the repository agent **“initialize this project”** or
+**“프로젝트 초기화하기”**. Follow [agent-led onboarding](PROJECT_ONBOARDING.md) for
+staged intake of project intent, screen references, branding, UI/document languages
+and feature choices, followed by implementation and verification. No skill installation
+is needed. The commands below remain available for direct configuration.
+
+Use this opt-in workflow after copying the blueprint and initializing its frontend submodule (`make frontend-init`). Install the locked dependencies with `make install`. Existing `make init` prepares the pinned frontend submodule and local Git hooks, then creates missing env files; it does not apply project identity.
 
 ```sh
 cp project.example.json project.json
