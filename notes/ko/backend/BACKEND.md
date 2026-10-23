@@ -474,8 +474,8 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 
 ## API 계약 기준 관리
 
-- 라우터·모델 변경 시 루트 `make contract-export`로 `contracts/openapi.json`을 갱신하고 `make frontend-api-generate`로 프론트 타입을 생성합니다.
-- `make contract-check`는 백엔드와 기준 파일의 일치를 검사합니다. 동작 계약은 `contracts/README.md`, 한국어는 `notes/ko/contracts/README.md`를 따릅니다.
+- 라우터·모델 변경 시 루트 `make contract-export`로 제공자 기준 파일을 갱신합니다. 프론트가 새 API를 도입할 때 자식 PR에서 자체 기준 파일·출처·타입을 갱신하며, 사용하지 않는 추가 API 때문에 자식을 강제로 다시 생성하지 않습니다.
+- `make contract-check`는 내보내기 최신 여부와 고정 소비자 계약의 엄격한 추가 호환성을 검사합니다. 동작 계약은 `contracts/README.md`, 한국어는 `notes/ko/contracts/README.md`를 따릅니다.
 - `get_current_user` 사용 라우터는 `current_user_error_responses(...)`로 인증·API Key 오류와 도메인 오류를 병합합니다. 동일 상태 코드의 응답 모델을 덮어쓰지 않습니다.
 - `app/core/openapi.py`는 SSE 데이터 스키마와 기존 INTERNAL_ERROR 응답을 문서화합니다. SSE 본문은 문자열 스트림이며 JSON data 모델은 `x-sse-event-schema`로 연결합니다.
 - 오류 형식·쿠키·refresh 동작을 바꾸려면 문서 변경과 별도의 동작 호환성 검토가 필요합니다.

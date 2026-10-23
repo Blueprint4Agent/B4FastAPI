@@ -206,6 +206,48 @@ def plan(root, base="HEAD", head=None, force_full=False):
     result["forced"] = force_full
     result["backend"] = parent and bool(areas & {"backend", "deployment"})
     result["frontend"] = max(levels, key=LEVELS.get, default="none")
+
+    if parent and not force_full:
+        if (
+            result["backend"]
+            and (Path(__file__).with_name("verification_backend.py")).is_file()
+        ):
+            from verification_backend import backend_impact
+
+            selected = backend_impact(root, base, head, result["files"], content)
+            if selected:
+                result["backend_impact"] = selected
+                result["reason"] += "; backend domain/test consumers selected"
+            else:
+                result["reason"] += (
+                    "; shared/unresolved backend impact; complete suite retained"
+                )
+        contract_inputs = [
+            path
+            for path, owners in result["ownership"].items()
+            if path != "src/frontend" and "contracts" in owners
+        ]
+        if (
+            contract_inputs
+            and not set(result.get("child", {}).get("areas", []))
+            & {"contracts", "frontend-app", "branding"}
+            and Path(__file__).with_name("verification_contract.py").is_file()
+        ):
+            from verification_contract import additive_contract
+
+            try:
+                result["consumer_check_only"] = all(
+                    path == "scripts/check-frontend-contract.mjs"
+                    or path == "contracts/openapi.json"
+                    and additive_contract(
+                        parse_json(content(root, base, path)),
+                        parse_json(content(root, head, path)),
+                    )
+                    for path in contract_inputs
+                )
+            except (ValueError, OSError, subprocess.CalledProcessError):
+                result["consumer_check_only"] = False
+
     if "frontend-app" in areas and result["frontend"] in ("behavior", "ui"):
         if parent and "child" in result and not app_files:
             result["impact"] = result["child"].get("impact")
@@ -226,7 +268,8 @@ def plan(root, base="HEAD", head=None, force_full=False):
     )
     result["browser"] = (
         (app_runtime and LEVELS[result["frontend"]] >= LEVELS["ui"])
-        or bool(areas & {"contracts", "style-studio", "branding"})
+        or bool(areas & {"style-studio", "branding"})
+        or ("contracts" in areas and not result.get("consumer_check_only"))
         or ("discovery" in areas)
     )
     return result
@@ -269,18 +312,31 @@ def targets(scope, parent, domain):
             commands.append(prefix + ["verification-harness-test"])
     if parent and domain in ("all", "backend"):
         if "backend" in areas and scope["backend"]:
-            commands.append(
-                [
-                    "make",
-                    "project-init-check",
-                    "project-init-test",
-                    "backend-architecture-check",
-                    "env-contract-check",
-                    "backend-check",
-                    "backend-test",
-                    "contract-check",
-                ]
-            )
+            backend = scope.get("backend_impact")
+            if backend:
+                commands.append(
+                    [
+                        "make",
+                        "backend-architecture-check",
+                        "backend-check",
+                        "backend-test",
+                        "contract-check",
+                        "PYTEST_ARGS=" + " ".join(backend["tests"]),
+                    ]
+                )
+            else:
+                commands.append(
+                    [
+                        "make",
+                        "project-init-check",
+                        "project-init-test",
+                        "backend-architecture-check",
+                        "env-contract-check",
+                        "backend-check",
+                        "backend-test",
+                        "contract-check",
+                    ]
+                )
         elif "deployment" in areas:
             commands.append(["make", "deployment-check"])
         if "contracts" in areas and "backend" not in areas:
@@ -318,7 +374,12 @@ def targets(scope, parent, domain):
         else:
             commands.append(prefix + ["build"])
     elif "contracts" in areas:
-        commands.append(prefix + ["api-check", "check-app", "test", "test-production"])
+        if scope.get("consumer_check_only"):
+            commands.append(prefix + ["api-check"])
+        else:
+            commands.append(
+                prefix + ["api-check", "check-app", "test", "test-production"]
+            )
     if "frontend-app" in areas and areas & {"harness", "governance"}:
         commands.append(prefix + ["app-tooling-test"])
     if "style-studio" in areas:
@@ -340,7 +401,11 @@ def targets(scope, parent, domain):
                     "project-build-test",
                 ]
             )
-    if parent and areas & {"frontend-app", "contracts", "branding"}:
+    if parent and (
+        areas & {"frontend-app", "branding"}
+        or "contracts" in areas
+        and not scope.get("consumer_check_only")
+    ):
         commands.append(
             ["make", "frontend-contract-check", "frontend-package-verified"]
         )

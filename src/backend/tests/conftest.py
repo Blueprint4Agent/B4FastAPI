@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock
@@ -202,4 +203,13 @@ async def _seed_default_users(
 @pytest.fixture
 def seeded_integration_client(integration_client: TestClient):
     asyncio.run(_seed_default_users())
+    yield integration_client
+
+
+@pytest.fixture
+def seeded_primary_client(integration_client: TestClient):
+    """An existing principal without unrelated bulk records; full scenarios keep the default profile."""
+    asyncio.run(
+        _seed_default_users(seed_profile=replace(DEFAULT_SEED_PROFILE, existing_user_count=0))
+    )
     yield integration_client

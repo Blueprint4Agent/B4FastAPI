@@ -89,7 +89,7 @@ src/backend/tests/
 도메인별 필수 최소 커버리지:
 1. 성공 케이스 (200/201)
 2. 인증 실패 케이스 (보호 라우트일 때 401)
-3. 요청 검증 실패 (입력 불일치 시 422)
+3. 제약이 있는 입력을 받는 API의 요청 검증 실패(422); 입력 없는 GET에 인위적인 입력을 만들지 않음
 
 이 코드베이스 참고:
 1. router 테스트는 실제 repository가 아닌 fake service 사용
@@ -99,7 +99,7 @@ src/backend/tests/
 ## 6) Fixture와 재사용
 
 - 공통 fixture는 `tests/conftest.py`에 배치
-- API contract payload 상수는 `tests/fixtures/api_contract_data.py`에 배치
+- 공용 API contract payload 상수는 `tests/fixtures/api_contract_data.py`에 배치하고, 작은 도메인 전용 payload/fixture는 해당 테스트 옆에 둘 수 있음
 - 공통 payload builder (`signup/login`)는 `tests/fixtures/payload_data.py`에 배치
 - 운영 유사 시드 데이터 상수는 `tests/fixtures/scenario_seed_data.py`에 배치
 - 현재 공통 fixture: `sample_user` (`UserResponse`)
@@ -144,7 +144,7 @@ Integration 테스트:
 2. 테스트별 데이터 격리 (트랜잭션 롤백 또는 전용 reset fixture)
 3. repository/query 동작이 중요한 플로우 커버
 4. 기존 레코드 의존 비즈니스에는 운영 유사 시드 시나리오 포함
-5. 사전 로드 상태 플로우에는 `seeded_integration_client` 사용 (기준 사용자 + 기존 사용자)
+5. assertion에 필요한 seed 크기만 사용: 기존 사용자 1명은 primary-only, 집계/종합 시나리오는 기본 bulk profile
 6. full-system 시나리오 플로우는 `tests/integration/scenarios/`에 유지
 7. marker 경계 필수:
    - `api_test`: API 계약 테스트 전용
@@ -163,52 +163,45 @@ E2E 테스트:
 
 ```bash
 cd src/backend
-uv run pytest
+TRACING_ENABLED=false uv run pytest
 ```
 
 API 계약 테스트만 실행:
 
 ```bash
 cd src/backend
-uv run pytest -m api_test
+TRACING_ENABLED=false uv run pytest -m api_test
 ```
 
 클린 프라이머리 데이터 통합 테스트만 실행:
 
 ```bash
 cd src/backend
-uv run pytest -m primary_data
+TRACING_ENABLED=false uv run pytest -m primary_data
 ```
 
 운영 유사 시드 시나리오/통합 테스트 실행:
 
 ```bash
 cd src/backend
-uv run pytest -m mocked_data
+TRACING_ENABLED=false uv run pytest -m mocked_data
 ```
 
 이메일 활성화 플로우 통합 테스트 실행:
 
 ```bash
 cd src/backend
-uv run pytest -m email_enabled
+TRACING_ENABLED=false uv run pytest -m email_enabled
 ```
 
 full-system 시드 시나리오만 실행:
 
 ```bash
 cd src/backend
-uv run pytest -m "mocked_data and scenario_flow"
+TRACING_ENABLED=false uv run pytest -m "mocked_data and scenario_flow"
 ```
 
-커밋 전 품질 체크:
-
-```bash
-cd src/backend
-uv run ruff check .
-uv run ruff format . --check
-uv run pytest
-```
+커밋 전에는 루트 `make verify-plan` / `make verify`를 사용합니다. 위 명령은 요청한 범위를 독립 실행하기 위한 예시이며 매번 모두 실행하는 체크리스트가 아닙니다.
 
 ## 8.1) 시드 기반 Full-System 시나리오 순서
 
@@ -282,37 +275,13 @@ Integration 시드 데이터셋 (`mocked_data`):
 Integration 이메일 활성 데이터셋 (`email_enabled`):
 1. `tests/integration/api/v1/auth/test_auth_integration.py`의 이메일 인증 필수 로그인 분기 + 비밀번호 재설정 토큰 소비 플로우
 
-## 9) 네이밍 및 스타일 규칙
+## 9) 이름과 검증 의도
 
-1. 파일명: `test_<target>.py`
-2. 테스트 함수명: `test_<behavior>_<expected_result>`
-3. 각 테스트 함수에는 한 줄 시나리오 docstring 필수
-4. 다단계 테스트는 `Given / When / Then` 인라인 주석 사용
-5. 명시적 assertion 필수 대상:
-   - status code
-   - 도메인 실패의 error code/message key
-   - 핵심 응답 payload 필드
-6. 테스트 하나는 하나의 동작에 집중
-
-필수 형식 템플릿:
-
-```python
-def test_<behavior>_<expected_result>(...):
-    """Scenario: <what flow is being verified in one sentence>."""
-    # Given: <initial state or setup condition>
-    # When: <action/request under test>
-    # Then: <expected result/contract>
-```
-
-예시:
-
-```python
-def test_me_requires_authentication(sample_user):
-    """Scenario: protected route denies access without auth dependency."""
-    # Given: client without current-user override.
-    # When: /api/v1/auth/me is requested.
-    # Then: 401 with INVALID_TOKEN error code is returned.
-```
+파일은 `test_<target>.py`, 함수는 동작과 결과를 드러내는 `test_<behavior>_<expected_result>`를
+사용합니다. 상태 코드·중요 응답 필드·해당 도메인 오류를 명시적으로 확인합니다.
+복잡한 다단계 흐름이나 이름만으로 설명되지 않는 의도에는 짧은 docstring 또는
+Given/When/Then 설명을 추가합니다. 단순 테스트에 형식적인 주석을 강제하지 않으며,
+같은 실패 조건을 모든 계층에 복사하지 않습니다.
 
 ## 10) 변경 체크리스트
 
@@ -322,35 +291,30 @@ def test_me_requires_authentication(sample_user):
 3. 영속성 의미론이 중요한 동작이면 integration 커버리지 추가
 4. 문서 동기화 유지 (`BACKEND.md`, `README.md`, 필요 시 이 문서)
 
-## 11) 신규 도메인 테스트 온보딩 규칙 (필수)
+## 11) 신규 도메인 검증
 
-새 백엔드 도메인/라우터 추가 시 동일한 테스트 형식을 유지합니다.
+기존 `tests/api/v1/<domain>/test_<domain>_api.py`, 필요한 경우의
+`tests/integration/api/v1/<domain>/`, `test_<domain>*.py` 단위 테스트 이름을 사용합니다.
+별도 도메인 하네스 등록 없이 이 경로와 실제 import 소비 관계로 검사를 선택합니다.
 
-필수 디렉터리 대상:
-1. API 계약 테스트: `tests/api/v1/<domain>/test_<domain>_api.py`
-2. Integration 테스트: `tests/integration/api/v1/<domain>/test_<domain>_integration.py`
-3. 도메인이 end-to-end 비즈니스 플로우에 참여하면
-   `tests/integration/scenarios/` 아래 시나리오 테스트를 추가/수정
-
-신규 도메인 필수 최소 테스트셋:
-1. API 계약 성공 케이스 (200/201)
-2. API 계약 인증 실패 케이스 (보호 라우트면 401/403)
-3. API 계약 요청 검증 실패 (422)
-4. 빈 초기 상태에서의 integration 성공 플로우
-5. 기존 레코드 의존 동작이면 시드 상태(`seeded_integration_client`) integration 시나리오 포함
-6. 핵심 플로우 도메인이면 크로스도메인 시나리오 assertion 경로 추가/수정
-
-신규 도메인 Fixture/데이터 경계 규칙:
-1. 운영 유사 시드 레코드를 API 계약 데이터에 넣지 않음
-2. API 계약 상수는 `tests/fixtures/api_contract_data.py`에 배치
-3. 공통 요청 payload builder는 `tests/fixtures/payload_data.py`에 배치
-4. 운영 유사 데이터셋 스키마/프로필은 `tests/fixtures/scenario_seed_data.py`에 배치
-5. 추가 시드 시나리오가 필요하면 새 `SeedProfileSchema` 프로필을 추가하고, 임의 필드 우회 사용 금지
-
-머지 전 리뷰 게이트:
-1. docstring + Given/When/Then 형식 준수 확인
-2. API vs Integration 데이터 경계 유지 확인
-3. `uv run ruff check .`, `uv run ruff format . --check`, `uv run pytest` 실행
+- 실제 HTTP 성공 계약을 확인합니다. 보호/비공개 자원은 인증·역할·소유권 실패를,
+  제약이 있는 입력은 해당 검증 실패를 확인합니다.
+- 상태 없는 입력 없는 GET은 API 계층 검증으로 충분할 수 있습니다. 형식적인 빈 DB·seeded·
+  422 또는 같은 내용을 반복하는 서비스 테스트를 만들지 않습니다.
+- 실제 저장·조회·트랜잭션이 중요한 경우 integration을 작성합니다. 대표 저장 상태·rollback·
+  계정 격리 불변식은 유지하되 schema rejection마다 DB·가입·로그인을 준비하지 않습니다.
+- 기존 레코드에 의존하는 동작만 필요한 최소 SeedProfileSchema를 사용합니다.
+  seeded_primary_client는 결제 식별자 연결에 필요한 주 사용자 1명만 준비합니다.
+  종합 시나리오는 기존 primary+50명을 유지하고 seeded 로그인·중복 이메일 검증을 소유합니다.
+  인증/런타임 소스 변경은 이 종합 시나리오를 포함한 넓은 검증을 유지합니다.
+- 기능이 참여하는 경우에만 cross-domain 시나리오를 수정합니다. payload/seed fixture 경계를
+  유지하고 API 계약 테스트에 실제 자격 증명·제공자 호출·운영 데이터를 넣지 않습니다.
+- 커밋 전 루트 make verify-plan / make verify를 실행하고 선택 범위와 확대 이유를 기록합니다.
+  공유 인증/권한·ORM·마이그레이션·설정·불명확한 import·누락 커버리지는 백엔드 전체를 유지합니다.
+  테스트만 변경하면 실제 변경 테스트 파일을 선택합니다.
+- 진입점의 좁은 검증은 기존 from app.routers.v1 import 형식으로 새 모듈을 가져오고,
+  상수 prefix/tags의 include_router를 기존 등록 뒤에 추가한 경우만 인정합니다.
+  다른 startup/lifecycle/라우터 등록 변경은 넓게 검사합니다.
 
 ## 공통 계약 회귀 검사
 

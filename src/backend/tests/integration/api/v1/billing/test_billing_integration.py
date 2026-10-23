@@ -126,12 +126,12 @@ def test_provider_failure_retains_retry_identity(integration_client, provider):
 
 
 @pytest.mark.mocked_data
-def test_existing_account_can_add_billing_identity(seeded_integration_client, provider):
+def test_existing_account_can_add_billing_identity(seeded_primary_client, provider):
     """Scenario: existing seeded accounts can register without replacing auth identity."""
     from tests.fixtures.scenario_seed_data import DEFAULT_SEED_PROFILE
 
     # Given: an existing seeded account with its original authentication identity.
-    client = seeded_integration_client
+    client = seeded_primary_client
     primary = DEFAULT_SEED_PROFILE.primary_user
     response = client.post(
         "/api/v1/auth/login",

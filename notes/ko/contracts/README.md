@@ -14,12 +14,14 @@
 루트에서 다음 순서로 실행합니다.
 
 `make contract-export`는 부모의 제공자 계약을 갱신합니다. 검토된 계약을 B4React PR에서
-출처·생성 타입·호출부와 함께 도입하고 머지한 다음 부모 포인터를 갱신합니다.
+실제 프론트 소비자가 새 API를 사용할 때 출처·생성 타입·호출부와 함께 도입하고 병합한 뒤 부모 포인터를 갱신합니다.
+제공자가 새 path·method·component만 추가하고 기존 operation·component·전역 설정을 그대로
+보존하면 자식 기준 파일과 타입을 강제로 갱신하지 않아도 됩니다.
 [변경 순서](../frontend-submodule.md)를 참고하세요.
 `make frontend-api-generate`는 자식의 자체 계약만 사용합니다.
 
-`make check test build`로 검증합니다. `contract-check`는 백엔드 내보내기와
-프론트 계약의 의미상 일치를 검사하고 `frontend-api-check`는 생성 타입의 변경 누락을 검사합니다.
+`make verify-plan` / `make verify`로 검증합니다. `contract-check`는 백엔드 내보내기와
+고정된 프론트 계약에 대한 엄격한 추가 호환성을 검사하고 `frontend-api-check`는 생성 타입의 변경 누락을 검사합니다.
 이 검사는 다른 백엔드 구현의 런타임 호환성을 보장하지 않습니다.
 
 ## HTTP와 오류
