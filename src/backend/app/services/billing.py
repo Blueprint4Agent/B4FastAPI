@@ -378,15 +378,6 @@ class BillingService:
             has_subscription=True,
         )
 
-    @staticmethod
-    def _save_subscription(
-        row, snapshot: BillingSubscriptionResponse, subscription_id: str | None = None
-    ) -> BillingSubscriptionResponse:
-        row.stripe_subscription_id = subscription_id
-        row.subscription_snapshot = snapshot.model_dump(mode="json")
-        row.subscription_synced_at = datetime.now(UTC)
-        return snapshot
-
     async def sync_subscription(
         self, user_id: int, *, only_missing: bool = False
     ) -> BillingSubscriptionResponse:
@@ -410,7 +401,7 @@ class BillingService:
                         if subscriptions
                         else BillingSubscriptionResponse(plan="free", status="none")
                     )
-                return self._save_subscription(
+                return BillingCustomers.save_subscription_snapshot(
                     row, snapshot, subscriptions[0].id if len(subscriptions) == 1 else None
                 )
 
@@ -721,7 +712,7 @@ class BillingService:
                         },
                         options={"idempotency_key": prefix + ":upgrade"},
                     )
-                    return self._save_subscription(
+                    return BillingCustomers.save_subscription_snapshot(
                         row, await self._managed_response(client, updated), updated.id
                     )
                 if subscription.cancel_at_period_end:
@@ -767,7 +758,7 @@ class BillingService:
                     options={"idempotency_key": prefix + ":update"},
                 )
             updated = await client.v1.subscriptions.retrieve_async(subscription.id)
-            return self._save_subscription(
+            return BillingCustomers.save_subscription_snapshot(
                 row, await self._managed_response(client, updated), updated.id
             )
 

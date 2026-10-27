@@ -6,10 +6,8 @@ from typing import Annotated
 from fastapi import Depends, Request
 from fastapi.security import APIKeyHeader, OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy import or_, select
 
 from app.core.config.settings import SETTINGS
-from app.core.db.session import get_db
 from app.core.error import (
     APIKeyErrorCode,
     APIKeyException,
@@ -17,7 +15,7 @@ from app.core.error import (
     AuthException,
 )
 from app.core.object_storage import ObjectStorage
-from app.models.api_key import APIKey
+from app.models.api_key import APIKey, APIKeys
 from app.models.user import UserResponse, UserRole, Users
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/token", auto_error=False)
@@ -74,24 +72,10 @@ async def get_current_api_key(
         hashlib.sha256,
     ).hexdigest()
 
-    now = datetime.now(UTC)
-    async with get_db() as db:
-        result = await db.execute(
-            select(APIKey).where(
-                APIKey.key_hash == key_hash,
-                APIKey.revoked_at.is_(None),
-                or_(APIKey.expires_at.is_(None), APIKey.expires_at > now),
-            )
-        )
-        valid_key = result.scalar_one_or_none()
-        if valid_key is None:
-            raise APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID)
-
-        valid_key.last_used_at = now
-        valid_key.request_count += 1
-        await db.commit()
-        await db.refresh(valid_key)
-        return valid_key
+    valid_key = await APIKeys.record_valid_key_use(key_hash=key_hash, now=datetime.now(UTC))
+    if valid_key is None:
+        raise APIKeyException(code=APIKeyErrorCode.API_KEY_INVALID)
+    return valid_key
 
 
 async def get_current_user(

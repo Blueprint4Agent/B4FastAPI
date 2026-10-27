@@ -2,8 +2,6 @@ import hashlib
 import hmac
 import secrets
 
-from sqlalchemy.exc import IntegrityError
-
 from app.core.config.settings import SETTINGS
 from app.core.error import APIKeyErrorCode, APIKeyException
 from app.core.observability.logging import get_logger
@@ -34,21 +32,13 @@ class APIKeyService:
         raw_api_key = self._generate_api_key()
         key_hash = self._hash_api_key(raw_api_key)
         key_prefix = raw_api_key[:API_KEY_VISIBLE_PREFIX_LENGTH]
-        try:
-            created = await APIKeys.create_api_key(
-                user_id=user_id,
-                name=form.name.strip(),
-                key_prefix=key_prefix,
-                key_hash=key_hash,
-                expires_at=form.expires_at,
-            )
-        except IntegrityError as error:
-            message = str(error.orig).lower() if getattr(error, "orig", None) else ""
-            if "uq_api_keys_user_name" in message or "api_keys.user_id, api_keys.name" in message:
-                logger.debug("API key create rejected: duplicate name (user_id=%s).", user_id)
-                raise APIKeyException(code=APIKeyErrorCode.API_KEY_NAME_ALREADY_EXISTS) from error
-            logger.debug("API key create failed (user_id=%s).", user_id)
-            raise APIKeyException(code=APIKeyErrorCode.API_KEY_CREATE_FAILED) from error
+        created = await APIKeys.create_api_key(
+            user_id=user_id,
+            name=form.name.strip(),
+            key_prefix=key_prefix,
+            key_hash=key_hash,
+            expires_at=form.expires_at,
+        )
 
         await self._realtime.publish_user_notification(
             user_id=user_id,

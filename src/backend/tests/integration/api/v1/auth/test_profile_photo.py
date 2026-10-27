@@ -4,11 +4,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 from PIL import Image
-from sqlalchemy.exc import OperationalError
 
 from app.core.config.settings import SETTINGS
 from app.core.object_storage import StorageError, StorageErrorCode
-from app.models.profile_photo import ProfilePhotos
+from app.models.profile_photo import PhotoPersistenceError, ProfilePhotos
 from app.models.user import Users
 from tests.fixtures.payload_data import build_login_payload, build_signup_payload
 
@@ -105,7 +104,7 @@ def test_failed_replacement_preserves_old_reference_and_cleans_new_object(
         monkeypatch.setattr(
             ProfilePhotos,
             "replace",
-            AsyncMock(side_effect=OperationalError("test", {}, Exception())),
+            AsyncMock(side_effect=PhotoPersistenceError("Write failed")),
         )
     else:
         monkeypatch.setattr(ProfilePhotos, "replace", AsyncMock(return_value=False))
@@ -184,7 +183,7 @@ def test_ambiguous_commit_does_not_delete_current_image(integration_client, monk
 
     async def commit_then_fail(*args):
         await replace(*args)
-        raise OperationalError("test", {}, Exception())
+        raise PhotoPersistenceError("Commit acknowledgment lost")
 
     monkeypatch.setattr(ProfilePhotos, "replace", commit_then_fail)
     # When: the upload receives an ambiguous DB failure.

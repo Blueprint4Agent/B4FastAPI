@@ -7,7 +7,6 @@ from urllib.parse import urlencode, urljoin
 from urllib.request import Request as URLRequest, urlopen
 
 from fastapi import Depends, Request
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.cache.redis import RedisManager
 from app.core.config.settings import SETTINGS
@@ -123,16 +122,13 @@ class AuthService:
         role: UserRole | None,
         is_active: bool | None,
     ) -> AdminUserListResponse:
-        try:
-            return await Users.list_admin_users(
-                page=page,
-                page_size=page_size,
-                search=search.strip(),
-                role=role,
-                is_active=is_active,
-            )
-        except SQLAlchemyError as error:
-            raise AuthException(code=AuthErrorCode.ADMIN_USERS_FAILED) from error
+        return await Users.list_admin_users(
+            page=page,
+            page_size=page_size,
+            search=search.strip(),
+            role=role,
+            is_active=is_active,
+        )
 
     async def create_oauth_state(self, provider: OAuthProvider) -> str:
         state = create_refresh_token()
@@ -336,16 +332,12 @@ class AuthService:
     async def signup(self, form: SignupForm, preferred_language: str | None = None) -> UserResponse:
         self._ensure_login_enabled()
         logger.info("Signup attempt (email=%s).", mask_email(form.email))
-        try:
-            user = await Users.create_signup_user(
-                email=form.email,
-                name=form.name,
-                password_hash=hash_password(form.password),
-                is_verified=not SETTINGS.EMAIL_ENABLED,
-            )
-        except IntegrityError as error:
-            logger.debug("Signup failed due to integrity error (email=%s).", mask_email(form.email))
-            raise AuthException(code=AuthErrorCode.SIGNUP_FAILED) from error
+        user = await Users.create_signup_user(
+            email=form.email,
+            name=form.name,
+            password_hash=hash_password(form.password),
+            is_verified=not SETTINGS.EMAIL_ENABLED,
+        )
 
         if SETTINGS.EMAIL_ENABLED:
             language = self._resolve_email_language(preferred_language)
@@ -677,23 +669,13 @@ class AuthService:
             )
             return linked_user
 
-        try:
-            await Users.create_oauth_user(
-                email=profile.email,
-                name=profile.name,
-                provider=profile.provider.value,
-                identifier=profile.provider_user_id,
-                is_verified=profile.email_verified,
-            )
-        except IntegrityError as error:
-            logger.debug(
-                "OAuth signup failed due to integrity error (provider=%s, email=%s).",
-                profile.provider.value,
-                mask_email(profile.email),
-            )
-            raise AuthException(
-                code=AuthErrorCode.OAUTH_SIGNUP_FAILED,
-            ) from error
+        await Users.create_oauth_user(
+            email=profile.email,
+            name=profile.name,
+            provider=profile.provider.value,
+            identifier=profile.provider_user_id,
+            is_verified=profile.email_verified,
+        )
 
         created_user = await Users.get_auth_user_by_identity(
             provider=profile.provider.value,
