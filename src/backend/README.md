@@ -8,7 +8,9 @@ Current locale example (`ko`): `docs/ko/backend/README.md`, `docs/ko/backend/BAC
 
 ## 1) Core Rules
 
-- Layering pattern: `Router -> Service -> Util/DB/MSA`
+- Layering pattern: `Router -> Service -> Repository -> DB`
+- Relational sessions, CRUD, commits/rollbacks and SQLAlchemy error interpretation belong to repositories; services orchestrate repository results. Redis is outside this boundary.
+- Interface review distinguishes business boundary violations from enum/status/policy consistency. Pure router utilities and AuthService Request adapters are allowed; other services must not use private implementation.
 - Access environment variables through `SETTINGS` in `app/core/config/settings.py`
 - If schema/models change, Alembic migration updates are required
 - RBAC is enforced via dependencies in `app/deps.py` (for example admin-only guards)
@@ -30,12 +32,14 @@ flowchart LR
     R[Router app/routers/v1/*]
     S[Service app/services/*]
     U[Util app/utils/*]
+    P[Repository app/models/*]
     D[(Database)]
     X[External MSA/API]
 
     R --> S
     S --> U
-    S --> D
+    S --> P
+    P --> D
     S --> X
 ```
 

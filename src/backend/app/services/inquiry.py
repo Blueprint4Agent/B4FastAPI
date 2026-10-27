@@ -9,6 +9,7 @@ from app.models.inquiry import (
     InquiryReply,
     InquiryStatus,
 )
+from app.models.user import UserResponse, UserRole
 from app.services.inbox import InboxService
 
 
@@ -24,8 +25,8 @@ class InquiryService:
         return await INQUIRIES.list(user_id, admin, page, page_size, status)
 
     @observe_service("inquiries.detail")
-    async def detail(self, inquiry_id: int, user_id: int, admin: bool) -> InquiryDetail:
-        return await INQUIRIES.detail(inquiry_id, user_id, admin)
+    async def detail(self, inquiry_id: int, user: UserResponse) -> InquiryDetail:
+        return await INQUIRIES.detail(inquiry_id, user.id, user.role == UserRole.ADMIN)
 
     @observe_service("inquiries.create")
     async def create(self, user_id: int, form: InquiryCreate) -> InquiryDetail:
@@ -34,11 +35,10 @@ class InquiryService:
         return await INQUIRIES.detail(inquiry_id, user_id, False)
 
     @observe_service("inquiries.reply")
-    async def reply(
-        self, inquiry_id: int, user_id: int, admin: bool, form: InquiryReply
-    ) -> InquiryDetail:
-        await self._publish(await INQUIRIES.reply(inquiry_id, user_id, admin, form))
-        return await INQUIRIES.detail(inquiry_id, user_id, admin)
+    async def reply(self, inquiry_id: int, user: UserResponse, form: InquiryReply) -> InquiryDetail:
+        admin = user.role == UserRole.ADMIN
+        await self._publish(await INQUIRIES.reply(inquiry_id, user.id, admin, form))
+        return await INQUIRIES.detail(inquiry_id, user.id, admin)
 
     @observe_service("inquiries.status")
     async def status(self, inquiry_id: int, user_id: int, status: InquiryStatus) -> InquiryDetail:

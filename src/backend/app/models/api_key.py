@@ -1,11 +1,21 @@
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, UniqueConstraint, select
+from sqlalchemy import (
+    BigInteger,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    or_,
+    select,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db.session import Base, get_db
+from app.core.error import APIKeyErrorCode, APIKeyException
 
 
 class APIKey(Base):
@@ -64,6 +74,25 @@ class APIKeyStatusUpdateForm(BaseModel):
 
 
 class APIKeyRepository:
+    async def record_valid_key_use(self, *, key_hash: str, now: datetime) -> APIKey | None:
+        """Resolve a usable key and persist usage inside the repository session."""
+        async with get_db() as db:
+            result = await db.execute(
+                select(APIKey).where(
+                    APIKey.key_hash == key_hash,
+                    APIKey.revoked_at.is_(None),
+                    or_(APIKey.expires_at.is_(None), APIKey.expires_at > now),
+                )
+            )
+            valid_key = result.scalar_one_or_none()
+            if valid_key is None:
+                return None
+            valid_key.last_used_at = now
+            valid_key.request_count += 1
+            await db.commit()
+            await db.refresh(valid_key)
+            return valid_key
+
     async def create_api_key(
         self,
         *,
@@ -85,9 +114,16 @@ class APIKeyRepository:
             try:
                 await db.commit()
                 await db.refresh(api_key)
-            except IntegrityError:
+            except IntegrityError as error:
                 await db.rollback()
-                raise
+                message = str(error.orig).lower() if getattr(error, "orig", None) else ""
+                code = (
+                    APIKeyErrorCode.API_KEY_NAME_ALREADY_EXISTS
+                    if "uq_api_keys_user_name" in message
+                    or "api_keys.user_id, api_keys.name" in message
+                    else APIKeyErrorCode.API_KEY_CREATE_FAILED
+                )
+                raise APIKeyException(code=code) from error
             return APIKeyResponse.model_validate(api_key)
 
     async def list_api_keys(self, *, user_id: int) -> list[APIKeyResponse]:

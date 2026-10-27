@@ -8,7 +8,6 @@ from uuid import uuid4
 
 from fastapi import Depends
 from PIL import Image, ImageOps, UnidentifiedImageError
-from sqlalchemy.exc import SQLAlchemyError
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config.settings import SETTINGS
@@ -16,7 +15,7 @@ from app.core.error import AuthErrorCode, AuthException
 from app.core.object_storage import ObjectStorage, StorageError, StorageErrorCode
 from app.core.observability.logging import get_logger
 from app.deps import get_object_storage
-from app.models.profile_photo import ProfilePhotos
+from app.models.profile_photo import PhotoPersistenceError, ProfilePhotos
 from app.models.user import UserResponse, Users
 
 logger = get_logger(__name__)
@@ -87,7 +86,7 @@ class ProfilePhotoService:
         except AuthException as exc:
             if exc.code != AuthErrorCode.USER_NOT_FOUND.code:
                 raise
-        except SQLAlchemyError:
+        except PhotoPersistenceError:
             logger.warning(
                 "Profile photo compensation requires DB review (key=%s).", reference["key"]
             )
@@ -120,7 +119,7 @@ class ProfilePhotoService:
             changed = await ProfilePhotos.replace(
                 user_id, previous.url, f"{PHOTO_PATH}?version={version}", reference
             )
-        except SQLAlchemyError:
+        except PhotoPersistenceError:
             await self._compensate(user_id, reference)
             raise AuthException(code=AuthErrorCode.PROFILE_UPDATE_FAILED) from None
         if not changed:
@@ -136,7 +135,7 @@ class ProfilePhotoService:
         previous = await ProfilePhotos.get(user_id)
         try:
             changed = await ProfilePhotos.replace(user_id, previous.url, None, None)
-        except SQLAlchemyError:
+        except PhotoPersistenceError:
             raise AuthException(code=AuthErrorCode.PROFILE_UPDATE_FAILED) from None
         if not changed:
             raise AuthException(code=AuthErrorCode.PROFILE_PHOTO_CONFLICT)

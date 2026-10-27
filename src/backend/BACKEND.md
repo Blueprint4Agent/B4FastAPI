@@ -111,8 +111,8 @@ src/backend/
 
 - `app/services/`
 1. Domain business logic and orchestration layer
-2. Composes models/repositories, utils, DB, and external API calls into use-case outcomes
-3. Normalizes infra/library failures into domain exceptions
+2. Composes repositories, utils, Redis, and external APIs into use-case outcomes; relational CRUD goes through repositories only
+3. Handles domain/repository failures; SQLAlchemy/driver error interpretation belongs to repositories
 
 - `app/utils/`
 1. Reusable technical helpers shared across services
@@ -161,8 +161,8 @@ flowchart TD
     B --> C[Alembic Upgrade]
     C --> D[Database Schema]
     E[App Runtime app/core/db/session.py] --> D
-    F[Services app/services/*] --> E
-    F --> G[Models/Repositories app/models/*]
+    F[Services app/services/*] --> G[Models/Repositories app/models/*]
+    G --> E
 ```
 
 ## 0.2.1) Monolithic Static Serving Structure
@@ -184,13 +184,15 @@ flowchart LR
     R[Router app/routers/v1/*]
     S[Service app/services/*]
     U[Util app/utils/*]
+    P[Repository app/models/*]
     D[(Database)]
     X[External MSA/API]
     E[Domain Error app/core/error/*]
 
     R --> S
     S --> U
-    S --> D
+    S --> P
+    P --> D
     S --> X
     S --> E
     E --> R
@@ -203,6 +205,7 @@ sequenceDiagram
     participant R as Router
     participant S as Service
     participant U as Util
+    participant P as Repository
     participant DB as Database
     participant X as External MSA/API
     participant M as App Main Handler
@@ -210,7 +213,9 @@ sequenceDiagram
     C->>R: HTTP Request
     R->>S: Call service method
     S->>U: Use shared utility
-    S->>DB: Query/Write data
+    S->>P: Request persistence operation
+    P->>DB: Query/Write and commit/rollback
+    P-->>S: Result or translated persistence failure
     S->>X: Call external API (optional)
     alt Success
         S-->>R: Domain result DTO/model
@@ -221,6 +226,79 @@ sequenceDiagram
         M-->>C: HTTP error via app/main.py ServiceException handler
     end
 ```
+
+## Relational persistence boundary (required)
+
+- Services, routers and authentication dependencies must not acquire/accept DB sessions or execute relational
+  CRUD/transaction methods (`add`, `get`, `execute`, `scalar`, `scalars`, `delete`,
+  `flush`, `refresh`, `commit`, `rollback`, `begin`). Importing session factories,
+  SQL/query builders, SQLAlchemy exceptions, or database drivers into services is
+  prohibited for those operations, including through helpers or aliases.
+- Put SQL predicates, joins, ordering, paging, locks and ORM persistence assignments
+  in repositories under `app/models/`. Services pass business inputs and consume
+  results; do not move query code into a service-private helper to evade the rule.
+- Keep transactions inside the repository. A repository-owned locking context may
+  span a provider call when required for consistency, but must never expose its DB
+  session; snapshot assignments also belong to repository methods. Preserve atomic
+  deletion/outbox writes, compare-and-swap and ambiguous-commit compensation.
+- Repository error translation must preserve existing domain codes and causal
+  chains. A service may use a storage-independent repository error when it must
+  decide compensation; a failed commit is not proof of rollback.
+- Business policy/orchestration stays in services. Repositories may enforce
+  transactional invariants, ownership predicates and atomic multi-table operations;
+  they must not call services, send mail, publish realtime events or call providers.
+- Redis operations are outside this relational boundary. Infrastructure health
+  probes remain in core; admin engine metadata inspection is not relational CRUD.
+- Review these rules manually before implementation and completion. Existing
+  `backend-architecture-check` only checks its documented import boundaries; passing
+  it does not establish this policy. No new automated checks/tests enforce it.
+
+## Router/service interface review (required)
+
+Review responsibility violations separately from consistency conventions. A utility
+call or framework type alone is not evidence that another service is needed.
+
+### Required responsibility boundaries
+
+- Review all route entry points, including handlers in `app/main.py`. Business
+  workflows that combine user lookup, authentication/session issuance or provider
+  decisions belong in services; handlers own HTTP parsing and response rendering.
+- Routers may directly use pure technical/transport utilities: random session ID
+  generation, cookie helpers, language/header parsing, URL construction, logging
+  and error-response builders. Do not add forwarding services just to wrap these.
+  Core imports are reviewed by their responsibility, not prohibited by directory.
+- Authentication/role guards stay in `app/deps.py`. Feature-specific decisions such
+  as allowing an administrator to read/reply to another user's inquiry belong in
+  the feature service or a shared authorization dependency. Pass the authenticated
+  actor rather than deciding privileged access in the router. Fixed own/admin list
+  scopes identify separate route use cases and may remain explicit service inputs.
+- Cross-service reuse goes through public use-case methods or shared technical
+  utilities/adapters. Do not call another service's private methods/provider client.
+  Keep provider timeout/error mapping and current-state/ownership checks with the
+  operation, rather than exposing raw SDK clients as a substitute public interface.
+- HTTP-focused AuthService methods may accept Request to read IP, User-Agent and
+  cookies. This is an allowed adapter boundary, not a violation requiring DTOs or
+  another service. Split request values when reuse or concrete testing needs justify
+  it. The same reasoning permits Request for SSE disconnect handling.
+- Propagate domain exceptions to the global handler. Router catches are reserved for
+  explicit transport behavior such as OAuth redirects or cookie cleanup. Preserve
+  shared error models when statuses overlap. Startup/worker infrastructure failures
+  are not automatically HTTP domain failures. Relational persistence follows the
+  separate mandatory repository boundary above; Redis is outside that boundary.
+
+### Consistency conventions
+
+- Application error definitions use domain Exception/ErrorCode enums. Compare
+  ServiceException.code with the enum member's `.code`, not a duplicated error
+  string. Raw provider event/status strings remain provider data.
+- Use FastAPI status constants in route response declarations and HTTP responses.
+- Share named lifetime/cooldown constants when challenge issuance and response
+  metadata describe the same policy. Do not introduce new services/result DTOs just
+  to remove duplicate literals, or conflate independent policy values.
+- In reviews/worklogs, distinguish confirmed responsibility violations, consistency
+  cleanup and allowed existing design. Record a concrete reason for structural
+  changes; preference alone is not a defect. These are manual harness rules, with
+  no new automatic checker or test requirement introduced by this policy.
 
 ## 0.4) Realtime Event Project Pattern
 
@@ -269,7 +347,7 @@ New API behavior should follow this path:
 1. Request enters `app/routers/v1/*`.
 2. Auth/session/request context is resolved through `app/deps.py`.
 3. Router delegates business work to `app/services/*`.
-4. Service reads/writes through models, repositories, DB sessions, and shared utilities.
+4. Service requests relational reads/writes through repositories; repositories own DB sessions and transactions.
 5. Service returns a domain result or raises a domain exception.
 6. Router/global handlers map the result or error to the HTTP response.
 
@@ -329,13 +407,14 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 - Public functions (router handlers, public service methods, public util functions) must declare return types.
 - Private service methods should also declare types whenever practical.
 
-## 3) Mandatory Layering Pattern (Router -> Service -> Util/DB/MSA)
+## 3) Mandatory Layering Pattern (Router -> Service -> Repository -> DB)
 
 - Every request flow must follow this order:
 
 1. Router: HTTP transport layer only
 2. Service: business logic and orchestration
-3. Util/DB/MSA: execution dependencies called by services
+3. Repository: relational queries, mutations, transactions and database failure translation
+4. Utilities/Redis/external APIs: separate execution dependencies composed by services
 
 - Router rules:
 
@@ -346,7 +425,7 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 - Service rules:
 
 1. Single owner of domain business rules
-2. Compose DB/Redis/external API operations into final business outcomes
+2. Compose repository/Redis/external API operations into final business outcomes
 3. Break complexity into private methods (`_...`)
 
 - Util rules:
@@ -383,15 +462,15 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 
 - Service raise rules:
 
-1. Catch infra/library exceptions in the service layer
-2. Translate to domain exceptions (`...Exception(code=...)`) and raise
+1. Repositories catch SQLAlchemy/driver failures and translate database details into existing domain exceptions or an explicit repository error contract
+2. Services may handle repository errors for workflow/compensation and translate other provider failures into domain exceptions; never catch SQLAlchemy errors or inspect constraint names/error.orig here
 3. `app/main.py` converts `ServiceException` instances to HTTP JSON responses through the global exception handler
 
 ## 5) Exception Handling and Logging Pattern
 
 - Responsibility split:
 
-1. Services normalize detailed failure causes
+1. Repositories normalize database failure causes; services own business recovery and other provider failure mapping
 2. `app/main.py` performs shared domain-exception HTTP conversion and error logging
 3. Routers handle only endpoint-specific transport behavior
 
@@ -430,7 +509,7 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 ## 7) Database Migration Rules (Alembic)
 
 - Alembic is used for database schema and migration management only.
-- Alembic rules do not change or constrain the Router -> Service -> Util/DB/MSA application layering pattern.
+- Alembic rules do not change or constrain the Router -> Service -> Repository -> DB application layering pattern.
 - The current runtime bootstrap pattern (`create_all`) can be kept for local/dev initialization when needed.
 - When schema history/versioned migration management is required, use Alembic revisions as the authoritative DB change log.
 - If SQLAlchemy models/schema definitions are added/changed/removed, Alembic migration updates are mandatory.

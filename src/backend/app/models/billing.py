@@ -7,7 +7,7 @@ from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, select, text, update
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,6 +30,44 @@ class BillingCustomer(Base):
 
 
 class BillingCustomers:
+    @staticmethod
+    async def list_reconciliation_user_ids(
+        *, livemode: bool, cutoff: datetime, limit: int
+    ) -> list[int]:
+        async with get_db() as db:
+            return list(
+                (
+                    await db.scalars(
+                        select(BillingCustomer.user_id)
+                        .where(
+                            BillingCustomer.livemode == livemode,
+                            BillingCustomer.stripe_customer_id.is_not(None),
+                            or_(
+                                BillingCustomer.subscription_synced_at.is_(None),
+                                BillingCustomer.subscription_synced_at < cutoff,
+                            ),
+                        )
+                        .order_by(
+                            BillingCustomer.subscription_synced_at.asc().nulls_first(),
+                            BillingCustomer.user_id,
+                        )
+                        .limit(limit)
+                    )
+                ).all()
+            )
+
+    @staticmethod
+    def save_subscription_snapshot(
+        row: BillingCustomer,
+        snapshot: "BillingSubscriptionResponse",
+        subscription_id: str | None = None,
+    ) -> "BillingSubscriptionResponse":
+        """Update only a row yielded by locked(); its context owns the commit."""
+        row.stripe_subscription_id = subscription_id
+        row.subscription_snapshot = snapshot.model_dump(mode="json")
+        row.subscription_synced_at = datetime.now(UTC)
+        return snapshot
+
     @staticmethod
     @asynccontextmanager
     async def locked(user_id: int, livemode: bool) -> AsyncIterator[BillingCustomer | None]:

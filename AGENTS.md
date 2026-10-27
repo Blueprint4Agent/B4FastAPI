@@ -218,6 +218,28 @@ Only unchanged code/docs/config, tool/environment context and required build out
 permit reuse; worklog-only outcome edits still receive text and governance validation.
 CI/manual Actions and VERIFY_FULL=1 ignore receipts. See notes/local-hooks.md.
 
+## Backend relational persistence boundary
+
+Services orchestrate; repositories under `app/models/` own relational DB sessions,
+CRUD, queries, locks, transactions, ORM persistence assignments and SQLAlchemy/driver
+error translation. Routers, services and auth dependencies may not acquire/accept
+a DB session or call its CRUD/transaction methods, including indirectly through ad hoc helpers.
+Services consume repository results/domain exceptions or an explicit repository
+failure contract for compensation; never interpret DB constraint names/error.orig.
+Redis is excluded. Core infrastructure probes and admin engine metadata inspection
+are not business CRUD. Preserve transactional invariants and commit-uncertain cleanup.
+Read the detailed boundary in `src/backend/BACKEND.md` and manually review it at task
+start/completion; existing automated architecture checks do not enforce all of it.
+Also inventory router-to-service calls (including main.py request handlers), domain
+Exception/ErrorCode use and cross-service private access. Business orchestration and
+feature authorization belong in services/shared guards; private implementation must
+not become another service's interface. Pure technical/transport utilities may be
+called directly, and HTTP AuthService/SSE Request adapters are allowed. Do not add
+wrapper services or DTOs solely for those uses. Share identical policy constants
+and use error enums/HTTP status constants. Distinguish responsibility violations,
+consistency cleanup and allowed design in manual reviews; see BACKEND.md. This
+policy adds no automatic checker or tests.
+
 ## Frontend state and React performance
 
 Follow the pinned frontend [state/performance policy](src/frontend/notes/react-performance.md) for all frontend runtime work. State ownership review, React.memo at expensive stable-prop boundaries (or an explicit reason not to apply it), and observed evidence are the default workflow. Do not add Zustand/Redux or blanket memo wrappers without a concrete need. Keep independent optimizations in separate branches/worklogs/PRs. Frontend worklogs and enforcement belong in B4React; parent worklogs record integration checks and loop impact.

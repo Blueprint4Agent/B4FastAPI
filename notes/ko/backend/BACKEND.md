@@ -111,8 +111,8 @@ src/backend/
 
 - `app/services/`
 1. 도메인 비즈니스 로직 및 오케스트레이션 계층
-2. 모델/리포지토리, utils, DB, 외부 API 호출을 유스케이스 결과로 조합
-3. 인프라/라이브러리 실패를 도메인 예외로 정규화
+2. 리포지토리, utils, Redis, 외부 API를 유스케이스 결과로 조합하며 관계형 CRUD는 리포지토리만 통해 수행
+3. 도메인/리포지토리 실패를 처리하며 SQLAlchemy/드라이버 오류 해석은 리포지토리가 담당
 
 - `app/utils/`
 1. 서비스 간 공유 가능한 재사용 기술 헬퍼
@@ -161,8 +161,8 @@ flowchart TD
     B --> C[Alembic Upgrade]
     C --> D[Database Schema]
     E[App Runtime app/core/db/session.py] --> D
-    F[Services app/services/*] --> E
-    F --> G[Models/Repositories app/models/*]
+    F[Services app/services/*] --> G[Models/Repositories app/models/*]
+    G --> E
 ```
 
 ## 0.2.1) 모놀리식 정적 서빙 구조
@@ -184,13 +184,15 @@ flowchart LR
     R[Router app/routers/v1/*]
     S[Service app/services/*]
     U[Util app/utils/*]
+    P[Repository app/models/*]
     D[(Database)]
     X[External MSA/API]
     E[Domain Error app/core/error/*]
 
     R --> S
     S --> U
-    S --> D
+    S --> P
+    P --> D
     S --> X
     S --> E
     E --> R
@@ -203,6 +205,7 @@ sequenceDiagram
     participant R as Router
     participant S as Service
     participant U as Util
+    participant P as Repository
     participant DB as Database
     participant X as External MSA/API
     participant M as App Main Handler
@@ -210,7 +213,9 @@ sequenceDiagram
     C->>R: HTTP Request
     R->>S: Call service method
     S->>U: Use shared utility
-    S->>DB: Query/Write data
+    S->>P: Request persistence operation
+    P->>DB: Query/Write and commit/rollback
+    P-->>S: Result or translated persistence failure
     S->>X: Call external API (optional)
     alt Success
         S-->>R: Domain result DTO/model
@@ -221,6 +226,70 @@ sequenceDiagram
         M-->>C: HTTP error via app/main.py ServiceException handler
     end
 ```
+
+## 관계형 저장소 책임 경계 (필수)
+
+- 서비스/라우터/인증 의존성은 DB 세션을 획득하거나 전달받아 관계형 CRUD·트랜잭션 메서드
+  (`add`, `get`, `execute`, `scalar`, `scalars`, `delete`, `flush`, `refresh`,
+  `commit`, `rollback`, `begin`)를 실행하면 안 됩니다. 이를 위한 세션 팩토리,
+  SQL/쿼리 빌더, SQLAlchemy 예외, DB 드라이버의 서비스 import도 금지합니다.
+  별칭이나 헬퍼를 통한 우회도 같은 규칙을 적용합니다.
+- SQL 조건·조인·정렬·페이징·잠금·ORM 저장 속성 대입은 `app/models/`의
+  리포지토리가 담당합니다. 서비스는 업무 입력을 전달하고 결과를 사용하며,
+  쿼리를 서비스 private 메서드로 옮기는 것은 책임 분리가 아닙니다.
+- 트랜잭션은 리포지토리가 소유합니다. 일관성에 필요한 리포지토리 잠금 컨텍스트가
+  외부 연동 호출을 감쌀 수 있지만 DB 세션을 노출하면 안 됩니다. 스냅샷 저장도
+  리포지토리가 담당하며 원자적 삭제/outbox·CAS·커밋 결과 불명확 시 보상을 유지합니다.
+- DB 오류는 기존 도메인 코드와 원인 체인을 보존해 변환합니다. 서비스가 보상을
+  결정해야 하면 DB 구현과 무관한 리포지토리 오류를 사용합니다. 커밋 실패가
+  롤백 완료를 뜻하지는 않습니다.
+- 업무 정책·오케스트레이션은 서비스에 둡니다. 리포지토리는 트랜잭션 불변조건,
+  소유권 조건, 원자적 다중 테이블 작업을 처리할 수 있지만 서비스를 호출하거나
+  메일·실시간 이벤트·외부 연동을 실행하면 안 됩니다.
+- Redis는 이 관계형 경계에서 제외합니다. 인프라 헬스 프로브는 core에 유지하며
+  관리자용 엔진 메타데이터 확인은 관계형 CRUD에 해당하지 않습니다.
+- 구현 전과 완료 시 수동으로 이 경계를 리뷰합니다. 기존
+  `backend-architecture-check`는 문서화된 import 경계만 검사하므로 통과가 이 규칙을
+  보장하지 않습니다. 이번 변경에서는 새 자동 검사·테스트를 추가하지 않습니다.
+
+## Router/Service 인터페이스 리뷰 (필수)
+
+책임 경계 위반과 일관성 관례를 구분합니다. 유틸 호출이나 프레임워크 타입 사용만으로
+새 서비스가 필요하다고 판단하지 않습니다.
+
+### 필수 책임 경계
+
+- `app/main.py`를 포함한 모든 요청 진입점을 확인합니다. 사용자 조회·인증/세션 발급·
+  외부 연동 판단을 조합하는 업무 흐름은 서비스가, HTTP 파싱과 응답 구성은 핸들러가 담당합니다.
+- 라우터는 난수 세션 ID 생성, 쿠키, 언어/헤더 파싱, URL 구성, 로깅, 에러 응답 빌더처럼
+  순수 기술/전송 유틸을 직접 사용할 수 있습니다. 이를 감싸기 위한 전달 서비스는 만들지
+  않습니다. core import 여부는 디렉터리 이름이 아니라 수행하는 책임으로 판단합니다.
+- 인증/역할 가드는 `app/deps.py`가 담당합니다. 관리자가 타인의 문의를 조회/답변할 수
+  있는지 같은 기능별 접근 판단은 기능 서비스 또는 공통 권한 의존성이 담당합니다.
+  라우터에서 특권 접근 여부를 결정하지 말고 인증된 사용자를 전달합니다. 본인/관리자
+  목록처럼 서로 다른 라우트의 고정 조회 범위는 명시적인 서비스 입력으로 유지할 수 있습니다.
+- 다른 서비스의 기능은 공개 유스케이스 메서드 또는 공통 기술 유틸/어댑터로 재사용합니다.
+  다른 서비스의 private 메서드/provider client를 직접 호출하지 않습니다. provider의
+  timeout·오류 변환·현재 상태/소유권 확인을 해당 연산에 유지하며 SDK client 노출로 대신하지 않습니다.
+- HTTP 인증을 담당하는 AuthService는 IP·User-Agent·쿠키를 읽기 위해 Request를 받을 수
+  있습니다. 허용된 어댑터 경계이며 DTO나 별도 서비스를 강제할 위반이 아닙니다. 재사용이나
+  구체적인 테스트 필요가 생길 때 입력값을 분리합니다. SSE 연결 종료 감지의 Request도 허용합니다.
+- 도메인 예외는 전역 핸들러에 전파하며 라우터 catch는 OAuth redirect·쿠키 정리 등
+  명시적인 전송 처리에 한정합니다. 같은 status의 여러 에러 모델을 보존합니다. 시작/worker
+  인프라 실패를 무조건 HTTP 도메인 실패로 바꾸지 않습니다. 관계형 저장은 위의 별도 필수
+  리포지토리 경계를 따르며 Redis는 해당 경계에서 제외합니다.
+
+### 일관성 관례
+
+- 앱 오류 정의는 도메인 Exception/ErrorCode enum을 사용합니다. ServiceException.code는
+  중복 오류 문자열 대신 enum 멤버의 `.code`와 비교합니다. 외부 provider 이벤트/상태 문자열은 구분합니다.
+- 라우트 응답 선언과 HTTP 응답에는 FastAPI status 상수를 사용합니다.
+- 코드 발급과 응답 메타데이터가 같은 정책을 표현하면 만료/재요청 시간에 이름 있는
+  공유 상수를 사용합니다. 리터럴 중복을 없애기 위해 새 서비스/결과 DTO를 만들거나
+  의미가 다른 정책값을 하나로 합치지 않습니다.
+- 리뷰와 worklog는 확인된 책임 위반·일관성 정리·허용된 기존 설계를 구분합니다.
+  구조 변경에는 구체적인 이유를 기록하며 선호만으로 결함이라 판단하지 않습니다.
+  수동 하네스 규칙이며 이 정책을 위한 새 자동 검사나 테스트 요구는 추가하지 않습니다.
 
 ## 0.4) 실시간 이벤트 프로젝트 패턴
 
@@ -269,7 +338,7 @@ flowchart LR
 1. 요청은 `app/routers/v1/*`로 진입
 2. auth/session/request context는 `app/deps.py`를 통해 해석
 3. 라우터는 비즈니스 작업을 `app/services/*`에 위임
-4. 서비스는 model, repository, DB session, shared utility를 통해 읽기/쓰기 수행
+4. 서비스는 관계형 읽기/쓰기를 리포지토리에 요청하고 DB 세션과 트랜잭션은 리포지토리가 소유
 5. 서비스는 도메인 결과를 반환하거나 도메인 예외를 발생
 6. 라우터/전역 핸들러는 결과 또는 에러를 HTTP 응답으로 매핑
 
@@ -329,13 +398,14 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 - 공개 함수(router 핸들러, 공개 service 메서드, 공개 util 함수)는 반환 타입 선언 필수
 - private service 메서드도 가능하면 타입 선언 권장
 
-## 3) 필수 레이어링 패턴 (Router -> Service -> Util/DB/MSA)
+## 3) 필수 레이어링 패턴 (Router -> Service -> Repository -> DB)
 
 - 모든 요청 흐름은 다음 순서를 따라야 합니다.
 
 1. Router: HTTP 전송 계층만
 2. Service: 비즈니스 로직과 오케스트레이션
-3. Util/DB/MSA: 서비스가 호출하는 실행 의존성
+3. Repository: 관계형 쿼리·수정·트랜잭션·DB 오류 변환
+4. 유틸/Redis/외부 API: 서비스가 조합하는 별도 실행 의존성
 
 - Router 규칙:
 
@@ -346,7 +416,7 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 - Service 규칙:
 
 1. 도메인 비즈니스 규칙의 단일 소유자
-2. DB/Redis/외부 API 연산을 최종 비즈니스 결과로 조합
+2. 리포지토리/Redis/외부 API 연산을 최종 비즈니스 결과로 조합
 3. 복잡도는 private 메서드(`_...`)로 분해
 
 - Util 규칙:
@@ -383,15 +453,15 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 
 - Service raise 규칙:
 
-1. 인프라/라이브러리 예외는 서비스 계층에서 캐치
-2. 도메인 예외(`...Exception(code=...)`)로 변환 후 raise
+1. 리포지토리가 SQLAlchemy/드라이버 오류를 잡아 기존 도메인 예외 또는 명시적인 리포지토리 오류 계약으로 변환
+2. 서비스는 업무 흐름·보상 처리를 위해 리포지토리 오류를 처리하고 다른 외부 연동 실패를 도메인 예외로 변환할 수 있지만 SQLAlchemy 예외나 제약조건 이름/error.orig는 해석 금지
 3. `app/main.py`의 전역 예외 핸들러가 `ServiceException`을 HTTP JSON 응답으로 변환
 
 ## 5) 예외 처리 및 로깅 패턴
 
 - 책임 분리:
 
-1. 서비스는 상세 실패 원인을 정규화
+1. 리포지토리는 DB 실패 원인을 정규화하고 서비스는 업무 복구와 다른 외부 연동 실패 변환을 담당
 2. `app/main.py`가 공통 도메인 예외의 HTTP 변환 및 에러 로깅 수행
 3. 라우터는 엔드포인트별 전송 계층 동작만 처리
 
@@ -429,7 +499,7 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 ## 7) DB 마이그레이션 규칙 (Alembic)
 
 - Alembic은 DB 스키마/마이그레이션 관리에만 사용합니다.
-- Alembic 규칙은 Router -> Service -> Util/DB/MSA 레이어링 패턴을 변경하거나 제약하지 않습니다.
+- Alembic 규칙은 Router -> Service -> Repository -> DB 레이어링 패턴을 변경하거나 제약하지 않습니다.
 - 현재 런타임 부트스트랩 패턴(`create_all`)은 필요 시 로컬/개발 초기화 용도로 유지할 수 있습니다.
 - 스키마 이력/버전 마이그레이션 관리가 필요할 때는 Alembic revision을 DB 변경 로그의 기준으로 사용합니다.
 - SQLAlchemy 모델/스키마 추가/변경/삭제 시 Alembic 마이그레이션 업데이트는 필수입니다.

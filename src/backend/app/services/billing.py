@@ -42,6 +42,7 @@ from app.models.billing import (
     BillingSetupStatusResponse,
     BillingSubscriptionResponse,
 )
+from app.utils.billing import subscription_price_id
 
 logger = get_logger("app.service.billing")
 
@@ -88,6 +89,51 @@ class BillingService:
             publishable_key=SETTINGS.STRIPE_PUBLISHABLE_KEY.strip() or None,
         )
 
+    async def confirmed_notification_plan(
+        self,
+        *,
+        customer_id: str,
+        subscription_id: str,
+        livemode: bool,
+        expected_price_id: str,
+        reject_pending_update: bool = False,
+    ) -> str | None:
+        """Return a plan label only when current provider state confirms the event."""
+        async with self._provider() as client:
+            subscription = await client.v1.subscriptions.retrieve_async(subscription_id)
+        if (
+            subscription.customer != customer_id
+            or subscription.status != "active"
+            or subscription.livemode != livemode
+            or not expected_price_id
+            or subscription_price_id(subscription.to_dict()) != expected_price_id
+            or (reject_pending_update and getattr(subscription, "pending_update", None))
+        ):
+            return None
+        known = self._known_prices().get(expected_price_id)
+        return ("Pro" if known[0].startswith("pro_") else "Plus") if known else None
+
+    async def has_current_subscription(self, customer_id: str) -> bool:
+        """Prevent an obsolete cancellation event from advertising a Free plan."""
+        async with self._provider() as client:
+            return bool(await self._subscriptions(client, customer_id))
+
+    async def notification_language(self, *, customer_id: str, livemode: bool) -> str:
+        """Resolve the verified billing customer's supported notification locale."""
+        async with self._provider() as client:
+            recipient = await client.v1.customers.retrieve_async(customer_id)
+        if recipient.id != customer_id or recipient.livemode != livemode:
+            raise BillingException(BillingErrorCode.BILLING_WEBHOOK_INVALID)
+        locales = getattr(recipient, "preferred_locales", []) or []
+        return next(
+            (
+                locale.split("-")[0].lower()
+                for locale in locales
+                if isinstance(locale, str) and locale.split("-")[0].lower() in ("ko", "en")
+            ),
+            "en",
+        )
+
     async def check_connection(self) -> None:
         """Check API authentication without creating a billing resource."""
         async with self._provider() as client:
@@ -124,7 +170,7 @@ class BillingService:
                         "Check the Stripe API key permissions."
                     ) from None
         except BillingException as error:
-            if error.code.error == "BILLING_PLAN_UNAVAILABLE":
+            if error.code == BillingErrorCode.BILLING_PLAN_UNAVAILABLE.code:
                 raise RuntimeError(
                     "Stripe startup verification failed: configured billing resources do not match the required plan, currency, portal policy or mode."
                 ) from None
@@ -378,15 +424,6 @@ class BillingService:
             has_subscription=True,
         )
 
-    @staticmethod
-    def _save_subscription(
-        row, snapshot: BillingSubscriptionResponse, subscription_id: str | None = None
-    ) -> BillingSubscriptionResponse:
-        row.stripe_subscription_id = subscription_id
-        row.subscription_snapshot = snapshot.model_dump(mode="json")
-        row.subscription_synced_at = datetime.now(UTC)
-        return snapshot
-
     async def sync_subscription(
         self, user_id: int, *, only_missing: bool = False
     ) -> BillingSubscriptionResponse:
@@ -410,7 +447,7 @@ class BillingService:
                         if subscriptions
                         else BillingSubscriptionResponse(plan="free", status="none")
                     )
-                return self._save_subscription(
+                return BillingCustomers.save_subscription_snapshot(
                     row, snapshot, subscriptions[0].id if len(subscriptions) == 1 else None
                 )
 
@@ -611,7 +648,7 @@ class BillingService:
         try:
             return await self._change_subscription(user_id, form)
         except BillingException as exc:
-            if exc.code.error == "BILLING_CHANGE_CONFLICT":
+            if exc.code == BillingErrorCode.BILLING_CHANGE_CONFLICT.code:
                 # Refresh after the failed mutation releases its customer lock.
                 # The user can then explicitly reload the current version and retry.
                 await self.sync_subscription(user_id)
@@ -721,7 +758,7 @@ class BillingService:
                         },
                         options={"idempotency_key": prefix + ":upgrade"},
                     )
-                    return self._save_subscription(
+                    return BillingCustomers.save_subscription_snapshot(
                         row, await self._managed_response(client, updated), updated.id
                     )
                 if subscription.cancel_at_period_end:
@@ -767,7 +804,7 @@ class BillingService:
                     options={"idempotency_key": prefix + ":update"},
                 )
             updated = await client.v1.subscriptions.retrieve_async(subscription.id)
-            return self._save_subscription(
+            return BillingCustomers.save_subscription_snapshot(
                 row, await self._managed_response(client, updated), updated.id
             )
 
