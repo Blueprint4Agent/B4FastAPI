@@ -8,6 +8,7 @@
 
 - 레이어링 패턴: `Router -> Service -> Repository -> DB`
 - 관계형 DB 세션·CRUD·커밋/롤백·SQLAlchemy 오류 해석은 리포지토리가 담당하며 서비스는 결과를 조합합니다. Redis는 이 경계에서 제외합니다.
+- 인터페이스 리뷰는 업무 책임 위반과 enum/status/정책값 일관성을 구분합니다. 라우터의 순수 유틸과 AuthService의 Request는 허용하며 타 서비스 private 구현 의존은 금지합니다.
 - 환경 변수는 `app/core/config/settings.py`의 `SETTINGS`를 통해 접근
 - 스키마/모델이 바뀌면 Alembic 마이그레이션 업데이트 필수
 - RBAC는 `app/deps.py` 의존성(예: admin 전용 가드)으로 강제

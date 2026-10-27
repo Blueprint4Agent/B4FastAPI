@@ -255,29 +255,50 @@ sequenceDiagram
 
 ## Router/service interface review (required)
 
-- Inventory every route, its public service entry point, dependencies, declared
-  response/error models and any calls that bypass the service. Apply this review
-  to request handlers declared in `app/main.py` as well as `app/routers/`.
-- Routers may parse requests and render responses, including headers, cookies,
-  redirects, bounded body streaming and SSE wrapping. Core error response builders,
-  logging, transport settings and dependency wiring do not grant permission to
-  call DB, mail, queue, storage, token/session or realtime business operations.
-- Authentication/role guards stay in `app/deps.py`; their relational persistence
-  also goes through repositories. Feature-specific authorization decisions belong
-  in services, not route-level role comparisons or caller-supplied policy booleans.
-- Call other services through explicit public methods. Do not reach into another
-  service's private methods/provider clients. Prefer explicit request values and
-  result DTOs; existing HTTP Request adapters require a documented transport reason
-  rather than making Request a default domain-service dependency.
-- Domain failures use the domain Exception and ErrorCode enum. Compare code objects
-  with the enum's `.code`, never string literals for internal branching. Raw provider
-  event names are provider data, not application error enums. HTTP status constants
-  and response builders belong to transport contracts; preserve alternative models
-  when multiple domain errors share a status.
-- Propagate domain exceptions to the global handler. Router catches need an explicit
-  transport action (OAuth redirect or cookie cleanup) and must preserve the failure
-  contract. Startup/worker infrastructure failures are not automatically HTTP domain
-  failures. Keep these rules in manual review; no new automated checker is added.
+Review responsibility violations separately from consistency conventions. A utility
+call or framework type alone is not evidence that another service is needed.
+
+### Required responsibility boundaries
+
+- Review all route entry points, including handlers in `app/main.py`. Business
+  workflows that combine user lookup, authentication/session issuance or provider
+  decisions belong in services; handlers own HTTP parsing and response rendering.
+- Routers may directly use pure technical/transport utilities: random session ID
+  generation, cookie helpers, language/header parsing, URL construction, logging
+  and error-response builders. Do not add forwarding services just to wrap these.
+  Core imports are reviewed by their responsibility, not prohibited by directory.
+- Authentication/role guards stay in `app/deps.py`. Feature-specific decisions such
+  as allowing an administrator to read/reply to another user's inquiry belong in
+  the feature service or a shared authorization dependency. Pass the authenticated
+  actor rather than deciding privileged access in the router. Fixed own/admin list
+  scopes identify separate route use cases and may remain explicit service inputs.
+- Cross-service reuse goes through public use-case methods or shared technical
+  utilities/adapters. Do not call another service's private methods/provider client.
+  Keep provider timeout/error mapping and current-state/ownership checks with the
+  operation, rather than exposing raw SDK clients as a substitute public interface.
+- HTTP-focused AuthService methods may accept Request to read IP, User-Agent and
+  cookies. This is an allowed adapter boundary, not a violation requiring DTOs or
+  another service. Split request values when reuse or concrete testing needs justify
+  it. The same reasoning permits Request for SSE disconnect handling.
+- Propagate domain exceptions to the global handler. Router catches are reserved for
+  explicit transport behavior such as OAuth redirects or cookie cleanup. Preserve
+  shared error models when statuses overlap. Startup/worker infrastructure failures
+  are not automatically HTTP domain failures. Relational persistence follows the
+  separate mandatory repository boundary above; Redis is outside that boundary.
+
+### Consistency conventions
+
+- Application error definitions use domain Exception/ErrorCode enums. Compare
+  ServiceException.code with the enum member's `.code`, not a duplicated error
+  string. Raw provider event/status strings remain provider data.
+- Use FastAPI status constants in route response declarations and HTTP responses.
+- Share named lifetime/cooldown constants when challenge issuance and response
+  metadata describe the same policy. Do not introduce new services/result DTOs just
+  to remove duplicate literals, or conflate independent policy values.
+- In reviews/worklogs, distinguish confirmed responsibility violations, consistency
+  cleanup and allowed existing design. Record a concrete reason for structural
+  changes; preference alone is not a defect. These are manual harness rules, with
+  no new automatic checker or test requirement introduced by this policy.
 
 ## 0.4) Realtime Event Project Pattern
 

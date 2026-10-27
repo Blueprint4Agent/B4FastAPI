@@ -34,7 +34,7 @@ from app.models.user import (
     VerifyEmailResponse,
 )
 from app.routers.list_query import DEFAULT_PAGE_SIZE, PageQuery, PageSizeQuery, SearchQuery
-from app.services.auth import AuthService
+from app.services.auth import ACCOUNT_CODE_COOLDOWN_SECONDS, ACCOUNT_CODE_TTL_SECONDS, AuthService
 from app.services.profile_photo import ProfilePhotoService
 from app.utils.cookies import clear_refresh_cookies, set_refresh_cookies
 from app.utils.token import create_refresh_session_id
@@ -367,7 +367,9 @@ async def request_password_change_code(
     await service.request_password_change_code(
         current_user.id, request.headers.get("X-App-Language")
     )
-    return DeleteAccountCodeResponse(expires_in=600, retry_after=30)
+    return DeleteAccountCodeResponse(
+        expires_in=ACCOUNT_CODE_TTL_SECONDS, retry_after=ACCOUNT_CODE_COOLDOWN_SECONDS
+    )
 
 
 @router.post(
@@ -453,7 +455,9 @@ async def upload_profile_photo(
     response_class=Response,
     responses={
         **PHOTO_ERRORS,
-        200: {"content": {"image/webp": {"schema": {"type": "string", "format": "binary"}}}},
+        status.HTTP_200_OK: {
+            "content": {"image/webp": {"schema": {"type": "string", "format": "binary"}}}
+        },
     },
 )
 async def read_profile_photo(
@@ -497,7 +501,9 @@ async def request_deletion_code(
     await service.request_account_deletion_code(
         current_user.id, _resolve_preferred_language(request)
     )
-    return DeleteAccountCodeResponse(expires_in=600, retry_after=30)
+    return DeleteAccountCodeResponse(
+        expires_in=ACCOUNT_CODE_TTL_SECONDS, retry_after=ACCOUNT_CODE_COOLDOWN_SECONDS
+    )
 
 
 @router.delete(

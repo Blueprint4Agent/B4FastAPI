@@ -58,6 +58,9 @@ from app.utils.token import (
     verify_refresh_token,
 )
 
+ACCOUNT_CODE_TTL_SECONDS = 600
+ACCOUNT_CODE_COOLDOWN_SECONDS = 30
+
 logger = get_logger("app.service.auth")
 EMAIL_LANGUAGE_BY_PREFIX = {
     "en": "en",
@@ -267,8 +270,8 @@ class AuthService:
         try:
             code, retry_after = await issue_deletion_code(
                 user_id,
-                ttl=600,
-                cooldown=30,
+                ttl=ACCOUNT_CODE_TTL_SECONDS,
+                cooldown=ACCOUNT_CODE_COOLDOWN_SECONDS,
                 request_limit=5,
                 request_window=3600,
             )
@@ -825,8 +828,8 @@ class AuthService:
         try:
             code, retry_after = await issue_email_code(
                 user_id,
-                ttl=600,
-                cooldown=30,
+                ttl=ACCOUNT_CODE_TTL_SECONDS,
+                cooldown=ACCOUNT_CODE_COOLDOWN_SECONDS,
                 request_limit=5,
                 request_window=3600,
                 purpose="password_change",

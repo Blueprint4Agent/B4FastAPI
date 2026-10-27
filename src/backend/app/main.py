@@ -45,11 +45,11 @@ from app.core.observability.startup_display import (
 )
 from app.core.observability.tracing import setup_tracing
 from app.core.openapi import register_openapi_contracts
-from app.models.user import UserResponse, Users
+from app.models.user import UserResponse
 from app.routers.v1 import admin, api_key, auth, billing, billing_webhook, events, inbox, inquiry
 from app.services.admin import DEMO_SNAPSHOTS
 from app.services.billing import BillingService
-from app.utils.token import create_access_token
+from app.services.bootstrap import BootstrapService
 
 logger = get_logger("app.main")
 BOOTSTRAP_USER: UserResponse | None = None
@@ -81,7 +81,7 @@ def register_exception_handlers(app: FastAPI) -> None:
             return JSONResponse(status_code=_exc.status_code, content={"detail": _exc.detail})
         logger.exception("Unhandled server exception.")
         return JSONResponse(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "INTERNAL_ERROR", "message": "An unexpected error occurred."},
         )
 
@@ -153,8 +153,6 @@ async def application_lifespan(_app: FastAPI) -> AsyncIterator[None]:
             logger.info("Database initialization complete.")
             BOOTSTRAP_USER = None
             if not SETTINGS.LOGIN_ENABLED:
-                from app.services.bootstrap import BootstrapService
-
                 BOOTSTRAP_USER = await BootstrapService().initialize()
         logger.info("Application startup sequence complete.")
         yield
@@ -261,38 +259,15 @@ def create_app() -> FastAPI:
     async def health_ready():
         readiness = await get_readiness()
         if readiness.status != "ok":
-            return JSONResponse(status_code=503, content=readiness.model_dump())
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=readiness.model_dump()
+            )
         return readiness
 
     @app.get("/config", response_model=AppConfigResponse)
     async def config(response: Response):
         response.headers["Cache-Control"] = "no-store"
-        bootstrap_user = (
-            await Users.get_user_response_by_id(BOOTSTRAP_USER.id)
-            if not SETTINGS.LOGIN_ENABLED and BOOTSTRAP_USER
-            else None
-        )
-        bootstrap_token = (
-            create_access_token(subject=str(bootstrap_user.id), email=bootstrap_user.email)
-            if bootstrap_user
-            else None
-        )
-        return {
-            "api_base_path": "/api/v1",
-            "app_mode": SETTINGS.APP_MODE,
-            "app_layout": SETTINGS.APP_LAYOUT,
-            "demo_enabled": SETTINGS.DEMO_ENABLED,
-            "login_enabled": SETTINGS.LOGIN_ENABLED,
-            "frontend_base_path": SETTINGS.APP_BASE_PATH,
-            "email_enabled": SETTINGS.EMAIL_ENABLED,
-            "oauth_enabled": SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED,
-            "billing_enabled": SETTINGS.STRIPE_ENABLED,
-            "oauth_providers": SETTINGS.oauth_provider_list
-            if SETTINGS.LOGIN_ENABLED and SETTINGS.OAUTH_ENABLED
-            else [],
-            "bootstrap_user": bootstrap_user,
-            "bootstrap_access_token": bootstrap_token,
-        }
+        return await BootstrapService().client_config(BOOTSTRAP_USER.id if BOOTSTRAP_USER else None)
 
     setup_metrics(app)
     setup_tracing(app)
@@ -337,9 +312,13 @@ def create_app() -> FastAPI:
             # Preserve API error payload shape for domain 404 responses.
             if is_api_path:
                 detail = getattr(exc, "detail", "Not Found")
-                return JSONResponse(status_code=404, content={"detail": detail})
+                return JSONResponse(
+                    status_code=status.HTTP_404_NOT_FOUND, content={"detail": detail}
+                )
 
-            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+            return JSONResponse(
+                status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Not Found"}
+            )
 
     register_openapi_contracts(app)
     return app

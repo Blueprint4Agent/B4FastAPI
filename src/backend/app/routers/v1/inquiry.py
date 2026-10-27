@@ -12,7 +12,7 @@ from app.models.inquiry import (
     InquiryStatus,
     InquiryStatusForm,
 )
-from app.models.user import UserResponse, UserRole
+from app.models.user import UserResponse
 from app.routers.list_query import DEFAULT_PAGE_SIZE, PageQuery, PageSizeQuery
 from app.services.inquiry import InquiryService
 
@@ -69,7 +69,7 @@ async def detail(
     service: InquiryService = Depends(),
 ) -> InquiryDetail:
     response.headers["Cache-Control"] = "no-store"
-    return await service.detail(inquiry_id, user.id, user.role == UserRole.ADMIN)
+    return await service.detail(inquiry_id, user)
 
 
 @router.post("/{inquiry_id}/messages", response_model=InquiryDetail, responses=errors)
@@ -81,7 +81,7 @@ async def reply(
     service: InquiryService = Depends(),
 ) -> InquiryDetail:
     response.headers["Cache-Control"] = "no-store"
-    return await service.reply(inquiry_id, user.id, user.role == UserRole.ADMIN, form)
+    return await service.reply(inquiry_id, user, form)
 
 
 @router.patch(

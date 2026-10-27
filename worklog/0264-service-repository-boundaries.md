@@ -92,7 +92,12 @@ Redis implementation is excluded at the user's request.
   committed and refreshed. APIKeyRepository.record_valid_key_use now owns that
   operation; DI retains credential resolution and INVALID handling.
 
-## Remaining interface findings (reviewed, not changed in this persistence refactor)
+## Initial interface findings (superseded by worklog 0265)
+
+This list records the original review, not the current outstanding-task list.
+Worklog 0265 resolves config/inquiry/billing boundaries and enum/status/policy
+consistency. The session-ID utility and AuthService Request suggestions were
+withdrawn: they are allowed designs and do not require service/DTO wrappers.
 
 1. **Service bypass in main.py /config.** The handler reads Users directly and
    calls create_access_token while composing bootstrap/profile configuration.

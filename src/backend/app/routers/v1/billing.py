@@ -186,7 +186,9 @@ async def manage_billing_method(
     return await service.manage_method(current_user.id, method_id, form)
 
 
-@router.post("/card-setups", response_model=BillingCardSetupResponse, status_code=201)
+@router.post(
+    "/card-setups", response_model=BillingCardSetupResponse, status_code=status.HTTP_201_CREATED
+)
 async def create_card_setup(
     form: BillingSetupForm,
     current_user: UserResponse = Depends(get_current_user),
