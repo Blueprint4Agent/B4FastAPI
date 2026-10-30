@@ -67,7 +67,11 @@ pass the same behavioral scenarios; publishing this file alone is insufficient.
   Server refresh-session TTL is `REFRESH_TOKEN_EXPIRE_DAYS` in both cases.
 - `POST /auth/refresh` accepts optional JSON `refresh_token`, `session_id`, `user_id`.
   Non-empty token/SID fields take precedence over cookies. A missing user ID is
-  resolved from the stored SID. Browser clients can send `{}` with credentials.
+  resolved from the stored SID. Browser clients must first GET `/auth/csrf` with
+  credentials and `X-CSRF-Bootstrap: 1`, then send `{}` with `X-CSRF-Token`.
+  Cookie fallback requires a session-bound proof; fully explicit token/SID input
+  remains supported. Bootstrap and successful refresh responses are `no-store`.
+  See [CSRF protection](../notes/csrf.md) for lifecycle and rollout requirements.
 - Successful refresh issues an access token, retains the existing refresh token
   and SID, extends server TTL, and reissues cookies according to the stored
   remember-me setting. This is **not refresh-token rotation**.

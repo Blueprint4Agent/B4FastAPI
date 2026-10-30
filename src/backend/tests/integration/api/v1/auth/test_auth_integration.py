@@ -70,7 +70,12 @@ def test_cookie_refresh_preserves_refresh_token_and_logout_invalidates_session(
     token = login.json()["refresh_token"]
     sid = integration_client.cookies["template_refresh_sid"]
     # When: an empty browser refresh request uses cookies instead of explicit token fields.
-    refreshed = integration_client.post("/api/v1/auth/refresh", json={})
+    csrf = integration_client.get("/api/v1/auth/csrf", headers={"X-CSRF-Bootstrap": "1"})
+    assert csrf.status_code == 200
+    assert csrf.headers["cache-control"] == "no-store"
+    refreshed = integration_client.post(
+        "/api/v1/auth/refresh", json={}, headers={"X-CSRF-Token": csrf.json()["csrf_token"]}
+    )
     # Then: the existing refresh value/SID are retained, and logout invalidates them.
     assert refreshed.status_code == 200
     assert refreshed.json()["refresh_token"] == token

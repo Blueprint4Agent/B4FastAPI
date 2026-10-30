@@ -757,3 +757,5 @@ DI를 사용합니다. `OBJECT_STORAGE_PROVIDER=local|s3|r2|supabase`로 선택�
 로컬 자동 fallback은 없으며 [수명주기·실패 정책](../object-storage.md)을 따릅니다.
 
 생명주기 메일은 기존 MailQueueService와 암호화 outbox를 사용합니다. [발송·운영 복구](../lifecycle-mail.md)를 참고하세요. 앱 역할에 타인 메일 HTTP 접근을 부여하지 않습니다. Stripe가 원본이며 구독 조회는 서명 웹훅·Beat로 갱신한 DB 상태를 사용합니다. [93번 점검](../billing-audit-93.md)에 검증 근거를 기록했습니다.
+
+쿠키 기반 refresh의 세션 연계 CSRF 검증은 [CSRF 보호](../csrf.md)를 참고하세요.

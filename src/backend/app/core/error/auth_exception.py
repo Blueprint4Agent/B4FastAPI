@@ -11,6 +11,11 @@ from .error import (
 
 
 class AuthErrorCode(Enum):
+    CSRF_INVALID = ServiceErrorCode(
+        "CSRF_INVALID",
+        "Missing or invalid CSRF token.",
+        status.HTTP_403_FORBIDDEN,
+    )
     PASSWORD_CHANGE_CODE_INVALID = ServiceErrorCode(
         "PASSWORD_CHANGE_CODE_INVALID",
         "The password change code is invalid, expired or locked.",
