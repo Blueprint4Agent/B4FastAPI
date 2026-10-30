@@ -223,3 +223,5 @@ This is not general symbol-level Pydantic/ORM inference: other changes that mere
 response schemas may still conservatively broaden. No fake DB test is added to unlock scope.
 
 The Build workflow pins frontend browser verification to `ubuntu-24.04`. The pinned Playwright version does not support Ubuntu 26.04; do not move this job to `ubuntu-latest` until browser installation is verified on its current image. Backend and image-build jobs retain their existing runners.
+
+The frontend CI job also installs uv, Python 3.12 and frozen backend dependencies: full frontend verification includes parent project initialization/branding build checks that use the Python toolchain. Browser-only dependencies are insufficient.
