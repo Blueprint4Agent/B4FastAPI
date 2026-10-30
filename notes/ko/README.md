@@ -445,7 +445,7 @@ make frontend-desktop-dev
 - `make frontend-build`: 자체 `dist`만 생성합니다.
 - `make frontend-package`: 빌드 후 백엔드 정적 경로로 복사합니다.
 - `make build`: 백엔드 환경 준비와 통합 패키징입니다.
-- `make contract-check`: 백엔드 스냅샷 최신성과 프론트 계약 일치를 검사합니다.
+- `make contract-check`: 백엔드 스냅샷 최신성과 고정된 프론트 계약의 엄격한 추가 호환성을 검사합니다.
 - `make frontend-api-check`: 생성 타입의 변경 누락을 검사합니다.
 
 프론트 변경은 B4React PR에서 먼저 머지하고 부모 PR에서 커밋 포인터를 갱신합니다.
@@ -454,20 +454,9 @@ make frontend-desktop-dev
 
 ## 작업 절차와 PR 검사
 
-가이드와 작업 상태 확인 → 작업 브랜치 생성 → [워크로그 초안](../../.github/WORKLOG_TEMPLATE.md)
-작성 → 구현 → Make 검사 → 결과 기록·스테이징 → Git 규칙 검사 → 커밋·PR 순으로 진행합니다.
-워크로그에는 설계, 검증 계획, 관련 루프와 실제 검증 결과를 기록합니다.
-
-`make git-governance-check`는 COMMIT_TITLE을 전달하면 스테이징된 파일과
-COMMIT_BODY_FILE을 검사하고, 전달하지 않으면 HEAD 커밋을 검사합니다.
-PR_TITLE과 PR_BODY_FILE은 함께 전달합니다. 미추적 워크로그는 인정하지 않습니다.
-`make hooks-install`(또는 `make init`)으로 로컬 훅을 설치합니다. 커밋 시 실제 메시지와
-스테이징 워크로그를, 푸시 시 전체 브랜치 커밋과 변경 범위별 검사를 실행합니다.
-PR 생성/수정 후와 병합 직전에 `PR_NUMBER=<번호> make git-governance-pr-check`로 실제
-메타데이터를 검사합니다. 통합 merge commit은 워크로그 검사에서 제외합니다.
-main의 PR·대화 해결·삭제/강제 푸시 금지는 유지하고 필수 CI 상태는 제거합니다.
-GitHub Actions는 수동 실행만 유지하며 필수 승인 수는 0입니다.
-[로컬 훅](local-hooks.md) · [English](../local-hooks.md)를 참고하세요.
+[AGENTS.md](AGENTS.md)는 필수 정책과 저장소 커밋·PR·이슈 스킬 진입점을 정의합니다.
+GitHub 템플릿은 작성 항목을, Make·훅은 검증을 담당합니다. 설치·수동 Actions는
+[로컬 훅](local-hooks.md), 검사 선택은 [변경 범위별 검증](verification.md)을 참고하세요.
 
 ## 아키텍처 검사
 

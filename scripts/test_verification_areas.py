@@ -36,6 +36,8 @@ class AreaTests(unittest.TestCase):
         cases = [
             (True, "contracts/README.md", set()),
             (True, "AGENTS.md", {"governance"}),
+            (True, ".agents/skills/b4-commit/SKILL.md", {"governance"}),
+            (True, ".agents/skills/b4-pr/references/merge.md", {"governance"}),
             (True, "src/backend/TEST.md", {"governance"}),
             (True, "docker/docker-compose.yml", {"deployment"}),
             (True, "src/backend/app/services/auth.py", {"backend"}),
@@ -66,10 +68,18 @@ class AreaTests(unittest.TestCase):
                     self.assertNotIn(["make", "test-style-studio"], commands)
                     self.assertNotIn(["make", "test-discovery"], commands)
                     self.assertNotIn(["make", "project-config-check"], commands)
+                if expected & {"harness", "governance"}:
+                    self.assertIn(["make", "verification-harness-test"], commands)
                 if expected <= {"harness", "governance"}:
                     self.assertFalse(scope["node"])
                     self.assertFalse(scope["browser"])
                     self.assertFalse(any("build" in command for command in commands))
+
+    def test_executable_skill_files_keep_unknown_full_fallback(self):
+        root = self.fixture(True)
+        self.change(root, ".agents/skills/b4-commit/scripts/helper.py")
+        scope = v.plan(root)
+        self.assertEqual(set(scope["areas"]), PARENT_AREAS)
 
     def test_locale_key_addition_broadens_app_without_tool_browsers(self):
         root = self.fixture()

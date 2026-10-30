@@ -48,7 +48,11 @@ HARNESS = {
 def owned_areas(path, parent):
     """Return explicit ownership, or None when shared/unknown impact needs full."""
     name = path.rsplit("/", 1)[-1]
-    if path in GUIDES or name == "AGENTS.md":
+    if (
+        path in GUIDES
+        or name == "AGENTS.md"
+        or (path.startswith(".agents/skills/") and path.endswith(".md"))
+    ):
         return {"governance"}
     if path.endswith(".md"):
         return (

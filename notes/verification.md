@@ -13,7 +13,7 @@ Plans compose the union of all changed areas, including pinned and dirty child c
 | Changed area                                                             | Selected checks                                                                                                                                   |
 | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ordinary Markdown documentation (excluding governance guides)            | UTF-8, whitespace and JSON checks; no runtime dependencies                                                                                        |
-| AGENTS/domain/test guides, worklog template, Git hooks                   | Governance/harness fixtures plus text validation                                                                                                  |
+| AGENTS/domain/test guides, repository skill Markdown, worklog template, Git hooks                   | Governance/harness fixtures plus text validation                                                                                                  |
 | Existing locale string values with identical shape/placeholders/markup   | Text/JSON only                                                                                                                                    |
 | Locale key/shape changes                                                 | Broad frontend application checks, unit/UI and production-route tests                                                                             |
 | Backend application/tests/migrations/dependencies                        | Independent domain lint/architecture/tests/contracts; shared security/data changes retain complete backend suite                                  |
@@ -28,8 +28,9 @@ Plans compose the union of all changed areas, including pinned and dirty child c
 
 The application risk levels remain `none/docs/copy/behavior/ui/full` for existing
 consumers. `full` depth means broad application coverage; `VERIFY_FULL=1` means
-**all areas**. Root and nested AGENTS guides are governance, other Markdown is
-text only. A missing comparison revision expands to all areas. Invalid/deleted
+**all areas**. Root and nested AGENTS guides and `.agents/skills/**/*.md` are governance;
+other ordinary Markdown is text only. Executable/config skill files retain the
+unknown-path fallback until their impact is explicitly registered. A missing comparison revision expands to all areas. Invalid/deleted
 locale data expands application checks; malformed JSON also fails lightweight validation.
 Shared CSS retains broad app checks; shared app.css changes additionally select style studio and discovery because both
 consume its tokens/styles. Domain-owned CSS uses actual runtime consumers and existing coverage, as described below.
@@ -102,73 +103,10 @@ checks as separate check/test/ci rituals. See [local hooks](local-hooks.md).
 
 ## Historical measurements
 
-The measurements below describe the 2026-10-07 implementation and revision range,
-not current universal timing guarantees. For this ownership/parallel change, use
-the observed results and scope recorded in the matching worklog.
-
-## Measured results — 2026-10-07
-
-The existing billing/admin UI change was used as the benchmark: B4React
-`ca3f83f..57a67d5`, B4FastAPI `06e55ba..7c4922e`. Timings are single local
-wall-clock samples from `/usr/bin/time -p`, not a guarantee for every change.
-
-| Scenario                                  |                                              Before |       After |
-| ----------------------------------------- | --------------------------------------------------: | ----------: |
-| First UI verification                     |                                            121.01 s | **30.72 s** |
-| Identical UI verification repeated        | Expensive checks were repeated in hooks/integration |  **1.08 s** |
-| Parent integration of the same UI change  |                                            122.36 s |  **1.65 s** |
-| Unit/component/integration cases selected |                                                 140 |      **39** |
-| Browser cases selected                    |                                                 164 |      **32** |
-
-The final first run spent 9.3 s on static policy/types/changed-file formatting,
-2.2 s on related unit/integration tests, 13.2 s on browser scenarios and 4.9 s
-on the build, plus runner overhead: approximately **75% less wall time**.
-Parent integration still checked contracts and packaged the verified build.
-The earlier domain-only iteration took 101.16 s; the final 30.72 s additionally
-uses render ownership, affected checks and isolated parallel browser scheduling.
-
-The original child login shell used Python 3.9 while the parent used Python 3.14.
-Follow-up commands use one root shell via `make -C` / `git -C`; this environment
-standardization is part of the workflow improvement, so these are workflow
-measurements rather than an isolated microbenchmark of the selector alone.
-Real toolchain changes still invalidate receipts. No live payment or email was sent.
-
-Backend-only verification has not been separately benchmarked here: the backend
-stage measured approximately 44 s, so roughly 45 s for backend-only and roughly
-75 s for this UI change plus backend work are **estimates**, not measured totals.
-Protected/shared/unknown changes keep broader verification (about 200 s in the
-full harness run). Cache reuse is conditional on unchanged inputs and outputs.
-
-Commands used for the final UI measurements:
-
-```sh
-VERIFY_BASE=ca3f83f VERIFY_HEAD=57a67d5 make -C src/frontend verify
-# Repeat the same command to measure receipt reuse.
-VERIFY_BASE=06e55ba VERIFY_HEAD=7c4922e make verify
-```
-
-Raw local logs: `/tmp/b4-verify-baseline-first.log`,
-`/tmp/b4-verify-baseline-integration.log`, `/tmp/b4-verify-refined-first.log`,
-`/tmp/b4-verify-refined-repeat.log`, `/tmp/b4-verify-refined-integration.log`.
-The benchmark intentionally evaluates the already-merged UI revision range.
-The verification-tool changes themselves are separately checked at full branch scope.
-
-### Before/after by change scenario
-
-| Scenario                                    | Before                                          | After                                                  |                          Previous time |      New time | Evidence                                                     |
-| ------------------------------------------- | ----------------------------------------------- | ------------------------------------------------------ | -------------------------------------: | ------------: | ------------------------------------------------------------ |
-| Registered billing/admin rendering edit     | All unit/browser cases                          | Affected components/render scenarios and related tests |                               121.01 s |       30.72 s | Measured UI revision range                                   |
-| Unchanged repeated verification             | Hooks/integration could repeat expensive checks | Reuse matching successful receipts                     | No separate identical-command baseline |        1.08 s | New behavior measured                                        |
-| Parent integration of that UI edit          | Repeat child checks/build                       | Reuse child proof; retain contracts/packaging          |                               122.36 s |        1.65 s | Measured                                                     |
-| Backend only                                | Backend suite                                   | Backend suite retained                                 |                             About 45 s |    About 45 s | Estimate from roughly 44 s backend stage                     |
-| That UI edit plus backend changes           | Broad UI plus backend                           | Affected UI plus backend                               |                            About 165 s |    About 75 s | Sum-of-stages estimate                                       |
-| Verification scripts, auth or shared config | Broad/full checks                               | Broad/full checks retained                             |                          Roughly 200 s | Roughly 200 s | Full-run reference, not a controlled before/after comparison |
-
-The 30 s UI figure applies to this registered render-only case, not arbitrary shared CSS,
-global state or dependency changes. Backend tests are not blindly selected by changed filenames.
-The 45 s/75 s values are estimates rather than separately measured end-to-end totals. Reuse
-requires matching source/configuration/toolchain/selected suites, valid age and build outputs;
-it never carries old successful proof across a changed implementation.
+The dated 2026-10-07 benchmark, revision ranges, raw-log references and limitations
+are preserved in [worklog 0211](../worklog/0211-scoped-verification-reuse.md).
+Those single-run measurements are not current timing guarantees; record new task
+scope and observed results in its own worklog.
 
 ## Backend test environment
 

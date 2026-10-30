@@ -21,7 +21,8 @@ After the B4React PR merges:
 git -C src/frontend fetch origin
 # Replace the placeholder with the reviewed, merged commit:
 git -C src/frontend checkout <reviewed-commit-sha>
-make check test build
+make verify-plan
+make verify
 git add src/frontend
 ```
 
@@ -31,16 +32,20 @@ the parent pointer change and initializing submodules again. CI never follows `-
 ## Contract update order
 
 1. Change FastAPI declarations and run `make contract-export` in the provider branch.
-2. In a B4React branch, adopt the reviewed snapshot into `contracts/openapi.json`,
-   update `contracts/source.json` to its immutable provider source commit, generate
-   types, and adapt consumers. Run the child Make checks, tests, and build.
-3. Merge B4React first; pin that commit in the provider PR. Run `make check test build`.
+2. Check compatibility with the pinned consumer using `make contract-check`.
+   Unused additions of paths/methods/components may remain provider-only; existing
+   operations/components and global fields must remain exact. Existing schema field
+   additions are not automatically compatible. See [contract policy](../contracts/README.md).
+3. When the frontend adopts an API or existing contracts change, use a B4React branch
+   to update its snapshot, immutable provider provenance and generated types/callers.
+   Run the child's `make verify-plan` then `make verify`.
+4. Merge the child PR first, then update the parent pin and run the parent scoped
+   verification. Use VERIFY_BASE for the full branch; integration still owns contracts
+   and packaging even when valid child receipts are reused.
 
-The parent semantic JSON equality gate intentionally requires an exact baseline, including
-metadata. Additive provider schema changes also require explicit adoption in B4React.
-Different backend revisions can use different frontend pins. Schema equality does not
-replace authentication, error, cookie, redirect, readiness, and SSE behavior tests.
-For Spring Boot, implement the same contract and own its own dist packaging adapter.
+Schema compatibility does not replace authentication, error, cookie, redirect,
+readiness or SSE behavior review. Other providers own their contract implementation
+and dist packaging adapter.
 
 ## Build ownership
 

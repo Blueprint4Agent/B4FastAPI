@@ -456,7 +456,7 @@ also initialize the committed pin.
 - `make frontend-build`: produce only `src/frontend/dist`.
 - `make frontend-package`: build and copy dist into backend static assets.
 - `make build`: backend environment plus integrated frontend packaging.
-- `make contract-check`: verify backend export and equality with B4React's local snapshot.
+- `make contract-check`: verify backend export freshness and strict additive compatibility with B4React's pinned snapshot.
 - `make frontend-api-check`: verify generated types without changing child files.
 
 Frontend changes are reviewed and merged in B4React first. Update this repository's
@@ -466,20 +466,10 @@ are owned by B4React at `src/frontend/notes/ko/`; the old paths are entry links.
 
 ## Task workflow and PR checks
 
-Read guides/status → create task branch → draft the [worklog](.github/WORKLOG_TEMPLATE.md)
-→ implement → run Make checks → record results and stage files → validate governance
-→ commit and open a PR. Record design, verification plan, loop alignment and actual outcomes.
-
-With COMMIT_TITLE, `make git-governance-check` validates the staged snapshot and
-COMMIT_BODY_FILE; without it, the command checks HEAD. Supply PR_TITLE and
-PR_BODY_FILE together for planned PR validation. Untracked worklogs do not count.
-Install local hooks with `make hooks-install` (included in `make init`). Commit messages and
-staged worklogs are checked on commit; every outgoing authored commit and change-scoped
-verification are checked on push. Actual PR metadata must be checked after edits and before
-merge using `PR_NUMBER=<number> make git-governance-pr-check`. Integration merges are excluded.
-Main requires PRs and resolved conversations and blocks deletion/force pushes. GitHub CI is
-manual-only with no required status checks; zero required approvals remain.
-See [local hooks](notes/local-hooks.md) · [한국어](notes/ko/local-hooks.md).
+[AGENTS.md](AGENTS.md) defines required policy and routes to repository commit, PR
+and issue skills. GitHub templates define output fields; Make/hooks enforce checks.
+See [local hooks](notes/local-hooks.md) for installation and manual Actions, and
+[change-scoped verification](notes/verification.md) for check selection.
 
 ## Architecture checks
 

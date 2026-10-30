@@ -372,15 +372,10 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 - 기본 백엔드 패키지/런타임 워크플로는 `uv`를 사용합니다.
 - `pyproject.toml`과 lockfile 변경은 같은 변경셋에서 동기화되어야 합니다.
 - 파이썬 스타일의 단일 기준은 Ruff입니다.
-- 커밋 전 필수:
-
-1. `ruff check . --fix`
-2. `ruff format .`
-
-- CI/로컬 검증 필수:
-
-1. `ruff check .`
-2. `ruff format . --check`
+- 자동 수정·포맷팅이 필요하면 `make backend-format`을 사용하고 diff를 확인해 무관한
+  변경을 보존합니다. 이미 통과하는 코드에 수정 명령을 반드시 실행할 필요는 없습니다.
+- 커밋 전 루트 `make verify-plan` / `make verify`가 필요한 린트·포맷 검사·아키텍처·
+  테스트·계약을 선택합니다. `notes/verification.md`를 따르며 개별 명령으로 계획을 축소하지 않습니다.
 
 - 라인 길이 및 포맷팅 동작은 `src/backend/pyproject.toml`의 Ruff 설정을 따릅니다.
 - `black`/`isort` 섹션이 있더라도 Ruff 명령을 기본 워크플로로 사용합니다.
@@ -400,7 +395,8 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 
 ## 3) 필수 레이어링 패턴 (Router -> Service -> Repository -> DB)
 
-- 모든 요청 흐름은 다음 순서를 따라야 합니다.
+- 비즈니스 요청 흐름은 다음 순서를 따릅니다. 순수 기술/전송 엔드포인트와 허용된
+  어댑터는 위 라우터/서비스 경계 규칙을 따르며 전달만 하는 서비스를 추가하지 않습니다.
 
 1. Router: HTTP 전송 계층만
 2. Service: 비즈니스 로직과 오케스트레이션
@@ -483,18 +479,10 @@ queued task가 retry와 실패 동작을 더 명확하게 만들 수 있다면 �
 
 ## 6) 커밋 전 필수 체크
 
-- 백엔드 관련 커밋은 아래 체크를 모두 통과해야 합니다.
-
-1. `ruff check . --fix`
-2. `ruff format .`
-3. 수정 범위에 대한 최소 관련 테스트 실행 (테스트가 존재하는 경우)
-4. OpenAPI 계약 변경 시 프론트 타입 생성 연동 흐름 검증
-5. 의존성/툴링 변경 시 `pyproject.toml`과 lockfile이 `uv` 워크플로 기준으로 동기화되었는지 검증
-
-- 테스트 아키텍처/네이밍/하네스 규칙은 `src/backend/TEST.md`를 따릅니다.
-- 새 백엔드 도메인/라우터 추가 시 `src/backend/TEST.md`의 온보딩 체크리스트(`## 11) New Domain Test Onboarding Rules (Required)`)를 따릅니다.
-
-- 위 조건을 만족하지 않으면 커밋하지 않습니다.
+범위별 Make 검증과 커밋 규칙은 루트 AGENTS.md와 `notes/verification.md`를 따릅니다.
+수동으로 고른 최소 테스트로 계획을 대체하지 않습니다. 계약 변경 시 OpenAPI 호환성을,
+의존성 변경 시 pyproject.toml/uv.lock 동기화를 확인합니다. 테스트 구조와 새 도메인
+온보딩은 `src/backend/TEST.md`를 따르며 선택 검사와 생략 이유를 기록합니다.
 
 ## 7) DB 마이그레이션 규칙 (Alembic)
 

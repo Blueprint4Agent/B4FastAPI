@@ -2,16 +2,6 @@
 
 Describe the change in one or two sentences.
 
-## Title / Branch Rules
-
-- PR title uses `[type] Concise title`, for example `[feat] Add API key pagination`.
-- Branch uses `<type>/<short-kebab-title>`, for example `feat/api-key-pagination`.
-- Commit title uses Conventional Commits, for example `feat(frontend): add API key pagination`.
-- Commit body includes `Changes:`, `Affected Files:`, and `Verification:`.
-- Apply labels that match the type and affected area when available.
-- Merge with a merge commit by default. For auto-merge, use `gh pr merge <number> --auto --merge`.
-- Do not use squash or rebase unless the user explicitly requests that method.
-
 ## Scope
 
 - Backend:
@@ -26,10 +16,10 @@ Why is this change needed?
 
 ## Verification
 
-- [ ] Backend tests passed
-- [ ] Frontend tests passed
-- [ ] Build passed
-- [ ] Manual verification completed
+- Selected scope (`make verify-plan`):
+- Checks run and observed results:
+- Omitted checks and task-specific reasons:
+- Manual/browser evidence, when applicable:
 
 ## Documentation
 
