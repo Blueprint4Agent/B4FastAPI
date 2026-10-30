@@ -120,7 +120,7 @@ jobs:
 
     frontend:
         name: Frontend checks
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04
         needs: [resolve-ref]
         env:
             VERIFY_BASE: HEAD
