@@ -1,6 +1,6 @@
 from urllib.parse import urlencode, urljoin
 
-from fastapi import APIRouter, Body, Depends, Query, Request, Response, status
+from fastapi import APIRouter, Body, Depends, Header, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -13,6 +13,7 @@ from app.models.oauth import OAuthProvider, OAuthProvidersResponse
 from app.models.user import (
     AdminUserListResponse,
     ChangePasswordForm,
+    CsrfTokenResponse,
     DeleteAccountCodeResponse,
     DeleteAccountForm,
     ForgotPasswordForm,
@@ -563,12 +564,33 @@ async def logout(
     return {"message": "Successfully logged out."}
 
 
+@router.get(
+    "/csrf",
+    response_model=CsrfTokenResponse,
+    responses=auth_error_responses(
+        AuthErrorCode.LOGIN_DISABLED, AuthErrorCode.INVALID_TOKEN, AuthErrorCode.CSRF_INVALID
+    ),
+    description="Returns the current refresh session's CSRF token. Requires valid refresh "
+    "cookies and X-CSRF-Bootstrap: 1. Does not renew the session. Never cache this response.",
+)
+async def csrf_token(
+    request: Request,
+    response: Response,
+    x_csrf_bootstrap: str | None = Header(default=None),
+    service: AuthService = Depends(AuthService),
+) -> CsrfTokenResponse:
+    token = await service.bootstrap_refresh_csrf(request)
+    response.headers["Cache-Control"] = "no-store"
+    return CsrfTokenResponse(csrf_token=token)
+
+
 @router.post(
     "/refresh",
     response_model=RefreshResponse,
     description="Refreshes the access token and extends the existing refresh session TTL. "
     "The refresh token value is retained. Non-empty JSON fields take precedence over cookies; "
-    "user_id can be resolved from the session. Browser clients may send an empty JSON object.",
+    "user_id can be resolved from the session. Cookie-based requests require X-CSRF-Token "
+    "from GET /auth/csrf. Explicit refresh_token and session_id bypass cookie authentication.",
     openapi_extra={
         "parameters": [
             {
@@ -589,6 +611,7 @@ async def logout(
         status.HTTP_200_OK: {"headers": REFRESH_COOKIE_HEADERS},
         **auth_error_responses(
             AuthErrorCode.LOGIN_DISABLED,
+            AuthErrorCode.CSRF_INVALID,
             AuthErrorCode.INVALID_TOKEN,
             AuthErrorCode.USER_NOT_FOUND,
         ),
@@ -600,6 +623,7 @@ async def refresh_token(
     refresh_token: str | None = Body(default=None, embed=True),
     user_id: int | None = Body(default=None, embed=True),
     session_id: str | None = Body(default=None, embed=True),
+    x_csrf_token: str | None = Header(default=None),
     service: AuthService = Depends(AuthService),
 ) -> RefreshResponse:
     try:
@@ -613,6 +637,7 @@ async def refresh_token(
         clear_refresh_cookies(response)
         raise
 
+    response.headers["Cache-Control"] = "no-store"
     set_refresh_cookies(
         response=response,
         request=request,

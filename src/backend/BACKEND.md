@@ -868,3 +868,5 @@ Billing ownership, replay/recovery and mail boundaries are recorded in the [issu
 Lifecycle mail uses the existing MailQueueService wake-up and encrypted outbox. See [delivery and operator recovery](../../notes/lifecycle-mail.md); no cross-account mail HTTP role is granted.
 
 Personal profile fields and email-code password changes follow [account/profile](../../notes/account-profile.md). Apply migration 0016 before rollout; code verification reuses deletion challenge mechanics with separate purpose keys.
+
+Cookie refresh uses session-bound CSRF proofs; see [CSRF protection](../../notes/csrf.md).

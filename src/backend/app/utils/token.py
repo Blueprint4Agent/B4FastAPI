@@ -1,3 +1,4 @@
+import hmac
 import json
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -61,8 +62,32 @@ async def store_refresh_token(
         ttl,
         session_payload,
     )
+    await redis.expire(_refresh_csrf_key(session_id), ttl)
     await redis.sadd(_refresh_user_sessions_key(user_id), session_id)
     await redis.expire(_refresh_user_sessions_key(user_id), ttl)
+
+
+def _refresh_csrf_key(session_id: str) -> str:
+    return f"refresh_csrf:{session_id}"
+
+
+async def get_or_create_refresh_csrf(session_id: str) -> str | None:
+    """Lazily bootstrap existing sessions without extending their lifetime."""
+    redis = await RedisManager.get_client()
+    ttl = await redis.ttl(_refresh_session_key(session_id))
+    if ttl <= 0:
+        return None
+    key = _refresh_csrf_key(session_id)
+    await redis.set(key, secrets.token_urlsafe(32), ex=ttl, nx=True)
+    return await redis.get(key)
+
+
+async def verify_refresh_csrf(session_id: str, token: str | None) -> bool:
+    if not token or not token.isascii() or len(token) > 128:
+        return False
+    redis = await RedisManager.get_client()
+    expected = await redis.get(_refresh_csrf_key(session_id))
+    return bool(expected and hmac.compare_digest(expected, token))
 
 
 async def get_refresh_session(session_id: str) -> tuple[int, bool] | None:
@@ -183,7 +208,11 @@ async def delete_refresh_token(user_id: int) -> None:
     redis = await RedisManager.get_client()
     session_ids = await redis.smembers(_refresh_user_sessions_key(user_id))
     if session_ids:
-        session_keys = [_refresh_session_key(session_id) for session_id in session_ids]
+        session_keys = [
+            key
+            for session_id in session_ids
+            for key in (_refresh_session_key(session_id), _refresh_csrf_key(session_id))
+        ]
         await redis.delete(*session_keys)
     await redis.delete(_refresh_user_sessions_key(user_id))
 

@@ -56,7 +56,10 @@
   두 경우 모두 REFRESH_TOKEN_EXPIRE_DAYS입니다.
 - refresh는 선택적인 JSON refresh_token, session_id, user_id를 받습니다.
   비어 있지 않은 토큰/SID 필드는 쿠키보다 우선하며 user_id 생략 시 세션에서
-  조회합니다. 브라우저는 credentials와 함께 `{}`를 보낼 수 있습니다.
+  조회합니다. 브라우저는 먼저 쿠키와 `X-CSRF-Bootstrap: 1`로 `/auth/csrf`를
+  조회한 뒤 `X-CSRF-Token`과 `{}`로 갱신합니다. 쿠키를 하나라도 사용하면 세션에
+  연결된 토큰이 필요하며 토큰/SID를 모두 JSON으로 전달하는 방식은 유지합니다.
+  조회·갱신 성공 응답은 `no-store`입니다. [CSRF 보호](../csrf.md)를 참고하세요.
 - refresh 성공은 access token 발급과 기존 refresh 세션 TTL 연장입니다.
   **refresh token 값과 SID는 유지되므로 토큰 회전이 아닙니다.**
 - logout은 해당 사용자의 모든 refresh 세션을 무효화하고 두 쿠키를 만료시킵니다.

@@ -51,10 +51,12 @@ from app.utils.token import (
     create_refresh_token,
     delete_account_tokens,
     delete_refresh_token,
+    get_or_create_refresh_csrf,
     get_refresh_session,
     store_email_verification_token,
     store_password_reset_token,
     store_refresh_token,
+    verify_refresh_csrf,
     verify_refresh_token,
 )
 
@@ -454,6 +456,24 @@ class AuthService:
             token_type="bearer",
         )
 
+    async def bootstrap_refresh_csrf(self, request: Request) -> str:
+        self._ensure_login_enabled()
+        # A custom header forces cross-origin browser fetches through CORS preflight.
+        if request.headers.get("x-csrf-bootstrap") != "1":
+            raise AuthException(code=AuthErrorCode.CSRF_INVALID)
+        token, session_id = get_refresh_cookie_value(request)
+        session = await get_refresh_session(session_id) if session_id else None
+        if (
+            not token
+            or not session
+            or not await verify_refresh_token(session[0], session_id, token)
+        ):
+            raise AuthException(code=AuthErrorCode.INVALID_TOKEN)
+        csrf_token = await get_or_create_refresh_csrf(session_id)
+        if csrf_token is None:
+            raise AuthException(code=AuthErrorCode.INVALID_TOKEN)
+        return csrf_token
+
     async def refresh_with_request_context(
         self,
         *,
@@ -464,10 +484,20 @@ class AuthService:
     ) -> tuple[RefreshResponse, str, bool]:
         self._ensure_login_enabled()
         cookie_token, cookie_session_id = get_refresh_cookie_value(request)
+        # Exempt only fully explicit credentials. Partial body input must not bypass
+        # CSRF when either credential falls back to an ambient cookie.
+        uses_cookies = (not refresh_token and bool(cookie_token)) or (
+            not session_id and bool(cookie_session_id)
+        )
         refresh_token_value = refresh_token or cookie_token
         session_id_value = session_id or cookie_session_id
         user_id_value = user_id
         remember_me = False
+
+        if uses_cookies and not await verify_refresh_csrf(
+            session_id_value or "", request.headers.get("x-csrf-token")
+        ):
+            raise AuthException(code=AuthErrorCode.CSRF_INVALID)
 
         if session_id_value:
             session = await get_refresh_session(session_id_value)
