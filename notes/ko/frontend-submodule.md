@@ -21,7 +21,8 @@ B4React PR로 머지합니다. 커밋 전환 전에 로컬 수정사항을 보�
 git -C src/frontend fetch origin
 # 실제 검토된 커밋 SHA로 치환
 git -C src/frontend checkout <reviewed-commit-sha>
-make check test build
+make verify-plan
+make verify
 git add src/frontend
 ```
 
@@ -31,14 +32,17 @@ git add src/frontend
 ## 계약 변경 순서
 
 1. 제공자 브랜치에서 FastAPI 선언을 수정하고 `make contract-export`를 실행합니다.
-2. B4React 브랜치에 검토한 스냅샷을 도입하고 `contracts/source.json`에 제공자 소스 커밋을 기록합니다.
-   타입 생성·호출부 변경 후 자식 Make 검사·테스트·빌드를 실행합니다.
-3. B4React를 먼저 머지한 뒤 부모 PR에 해당 커밋을 고정하고 `make check test build`를 실행합니다.
+2. `make contract-check`로 고정 소비자와의 호환성을 확인합니다. 소비자가 사용하지 않는
+   경로·메서드·컴포넌트 추가는 제공자만 변경할 수 있습니다. 기존 operation/component와
+   전역 필드는 정확히 유지해야 하며 기존 스키마 필드 추가도 자동 허용하지 않습니다.
+   [계약 정책](../../contracts/README.md)을 따릅니다.
+3. 프런트가 API를 도입하거나 기존 계약이 변경되면 B4React 브랜치에서 스냅샷·불변 제공자
+   출처·생성 타입·호출부를 갱신하고 자식 `make verify-plan`, `make verify`를 실행합니다.
+4. 자식 PR을 먼저 병합하고 부모 pin을 갱신한 뒤 부모 범위별 검증을 실행합니다.
+   전체 브랜치는 VERIFY_BASE를 사용합니다. 유효한 자식 결과를 재사용해도 부모 계약·패키징은 유지합니다.
 
-부모의 JSON 의미상 동등성 검사는 메타데이터를 포함한 정확한 기준 일치를 요구합니다.
-추가 필드 변경도 명시적인 프론트 계약 도입이 필요합니다. 백엔드별로 다른 프론트 버전을 선택할 수 있습니다.
-스키마 비교는 인증·에러·쿠키·리다이렉트·readiness·SSE 동작 테스트를 대체하지 않습니다.
-Spring Boot도 같은 계약과 자체 dist 패키징 어댑터를 구현해야 합니다.
+스키마 호환성은 인증·오류·쿠키·리다이렉트·readiness·SSE 동작 검토를 대체하지 않습니다.
+다른 제공자는 계약 구현과 자체 dist 패키징 어댑터를 소유합니다.
 
 ## 빌드 책임
 

@@ -2,16 +2,6 @@
 
 변경 내용을 한두 문장으로 설명해주세요.
 
-## 제목 / 브랜치 규칙
-
-- PR 제목은 `[type] Concise title` 형식을 사용합니다. 예: `[feat] Add API key pagination`
-- 브랜치는 `<type>/<short-kebab-title>` 형식을 사용합니다. 예: `feat/api-key-pagination`
-- 커밋 제목은 Conventional Commits 형식을 사용합니다. 예: `feat(frontend): add API key pagination`
-- 커밋 본문에는 `Changes:`, `Affected Files:`, `Verification:`을 포함합니다.
-- 가능하면 변경 타입과 영향 영역에 맞는 라벨을 적용합니다.
-- 기본 병합 방식은 merge commit입니다. 자동 병합은 `gh pr merge <number> --auto --merge`를 사용합니다.
-- 사용자가 명시적으로 요청하지 않은 경우 squash 또는 rebase 병합을 사용하지 않습니다.
-
 ## 범위
 
 - Backend:
@@ -26,10 +16,10 @@
 
 ## 검증
 
-- [ ] Backend 테스트 통과
-- [ ] Frontend 테스트 통과
-- [ ] Build 통과
-- [ ] 수동 검증 완료
+- 선택 범위 (`make verify-plan`):
+- 실행한 검사와 실제 결과:
+- 생략한 검사와 이번 작업의 이유:
+- 해당하는 경우 수동/브라우저 검증 근거:
 
 ## 문서
 

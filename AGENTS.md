@@ -1,12 +1,51 @@
 # Agent Guide
 
-Read this file first, then move to the domain guide for your task.
+[한국어](notes/ko/AGENTS.md)
 
-## Required Read Order
+## Read order and task routing
 
-1. `AGENTS.md`
-2. Backend task: `src/backend/BACKEND.md`
-3. Frontend task: `src/frontend/FRONTEND.md`
+Read this guide first, then `src/backend/BACKEND.md` for backend work or the
+initialized B4React `AGENTS.md` and `FRONTEND.md` for frontend work. Read the domain
+TEST guide when changing tests. Preserve unrelated working tree/submodule edits.
+
+Operational procedures live in repository skills; read the matching file even if
+this client does not discover skills automatically:
+
+| Task | Procedure |
+| --- | --- |
+| Prepare or create a commit | [b4-commit](.agents/skills/b4-commit/SKILL.md) |
+| Publish/update a PR or perform a requested merge | [b4-pr](.agents/skills/b4-pr/SKILL.md) |
+| Create/update a GitHub issue | [b4-issue](.agents/skills/b4-issue/SKILL.md) |
+
+Use only the requested scope; a commit-only request does not authorize an issue or
+merge. For implementation tasks, finish with a commit, push and ready PR unless the
+user limits publication. Review-only requests do not require publishing changes.
+
+## Required workflow invariants
+
+- Before implementation, create a named `<type>/<kebab-description>` task branch and
+  copy [.github/WORKLOG_TEMPLATE.md](.github/WORKLOG_TEMPLATE.md) to the next
+  `worklog/NNNN-description.md`. Fill the plan, design and loop impact first.
+- Every authored commit must add/update a complete worklog whose Commit Title
+  exactly matches it. Integration merge commits are exempt. Git validates recorded
+  evidence, not when the plan was written or whether the design is correct.
+- Run root `make verify-plan` then `make verify`; use `VERIFY_BASE=<base-sha>` for
+  the whole branch. The [verification policy](notes/verification.md) owns scope,
+  escalation and receipt rules. Do not downgrade uncertain changes or repeat valid
+  unchanged checks. Record actual results and task-specific omissions in the worklog
+  and final response; previous skip requests are not permanent exemptions.
+- Install versioned hooks with `make hooks-install` once per clone (also in `make init`).
+  Do not bypass hooks. Existing custom hooksPath requires explicit reconciliation.
+  See [local hooks](notes/local-hooks.md) for hook behavior and manual Actions.
+- Use Conventional Commit titles and nonempty Changes, Affected Files and Verification
+  body sections for every authored commit. Validate staged metadata through Make.
+- Use the existing GitHub templates. PRs are ready by default; draft requires an
+  explicit request or a blocker. Keep related follow-up work in the same task PR.
+- Default to merge commits. Squash/rebase requires an explicit user request. Check
+  actual PR metadata after creation/edits and immediately before a requested merge.
+  Do not disable PR/history protection or bypass repository admin permissions.
+- Synchronize changed behavior/structure/rules with related docs, including
+  `notes/ko/`; keep localized entry links in README synchronized.
 
 ## Project Initialization Trigger
 
@@ -23,229 +62,32 @@ trigger checks. Before applying or declaring completion, follow the mandatory
 [surface and rollback audit](PROJECT_ONBOARDING_AUDIT.md), including UI/console/document
 brand remnants, language behavior and evidence for every applicable surface.
 
-## Documentation Sync
+## B4React integration
 
-If implementation changes behavior, structure, or rules, update related docs in the same work cycle.
+`src/frontend` pins a separate repository. Initialize missing submodules with
+`git submodule update --init --recursive` after preserving local edits. Frontend
+changes need a named child branch and PR; merge there before updating the parent
+pin. Parent worklogs own integration, contracts and packaging; child worklogs own
+frontend changes. Never follow `--remote` in CI or automatically overwrite child
+contracts from the provider. Follow [integration and contract order](notes/frontend-submodule.md).
 
-Localized documentation is maintained under `notes/<locale>/...`.
-Keep localized paths synchronized with `README.md`.
+## Domain review obligations
 
-## Loop Check Policy
+Review applicable loops before implementation and completion: backend request,
+domain event and background task; frontend API state, realtime refresh, desktop
+recovery and UI composition. Record non-applicable/skipped loops and reasons.
+Explicit loop-engineering requests require reading the domain guide first.
 
-When a developer explicitly requests loop engineering or asks whether a backend/frontend loop is needed, check the relevant domain guide before implementing.
+Backend services orchestrate; repositories own relational sessions, queries,
+transactions, ORM writes and driver errors. Manually review the persistence and
+router/service interface sections of `src/backend/BACKEND.md`, including main.py
+handlers, domain errors and cross-service private access. Passing import checks
+alone does not establish compliance; distinguish violations, consistency and allowed
+technical/transport adapters. Redis is outside the relational boundary.
 
-Before committing, treat loop alignment as a default verification step:
-
-1. Backend changes: confirm the request lifecycle, domain event, and background task loops are either followed or not applicable.
-2. Frontend changes: confirm the API state, realtime refresh, desktop connectivity recovery, and UI composition loops are either followed or not applicable.
-3. If a loop is intentionally skipped, record the reason in the final response and worklog when the change is committed.
-
-## Pre-Commit Verification
-
-Before finalizing a commit, run validation through the root `Makefile` hooks.
-
-1. Run `make verify-plan`, then `make verify`. The shared classifier selects the minimum safe checks from actual changes. Set `VERIFY_BASE=<base-sha>` for all branch changes; the default HEAD includes staged, unstaged and untracked files.
-2. Docs and structurally unchanged locale copy use dependency-free text/JSON checks. Runtime, UI, protected/unknown files select progressively broader checks. Use `VERIFY_FULL=1 make verify` to escalate; never manually downgrade an uncertain change.
-3. Do not repeat checks already passed for the same relevant content in the child or through a delegated Make target. Re-run when subsequent changes invalidate that evidence. Parent integration targets still validate packaging/contracts locally.
-4. Record the selected scope and omitted checks/reason in the worklog and a short final summary. Required Git governance, ready PRs and merge protection remain mandatory.
-5. Follow [change-scoped verification](notes/verification.md). Keep related follow-up edits in one task PR until implementation is settled; update the parent gitlink once the child is merged. Read log summaries first, investigate failures selectively, and use a single CI watcher instead of repeated status probes.
-
-## Worklog Policy (Required)
-
-1. Every commit must include a matching worklog entry file under `worklog/`.
-2. Worklog filename format: `<number>-<short-kebab-title>.md`.
-3. Worklog must record at least:
-   - commit title
-   - changed file scope
-   - reason
-   - impact
-4. Do not finalize a commit without updating/adding its worklog entry.
-
-## Git Governance
-
-Use the repository harness when preparing branches, commits, or pull requests:
-
-```sh
-make git-governance-check
-```
-
-The harness validates the current branch, commit title, and matching worklog. Use `scripts/validate-git-governance.sh --commit-title "..." --pr-title "..." --pr-body-file <file>` to validate planned metadata before committing or opening a PR.
-
-### Branch Naming
-
-Branch names must use an industry-standard change type and kebab-case description:
-
-```text
-<type>/<short-kebab-title>
-```
-
-Allowed types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `ci`, `build`, `perf`, `style`, `revert`, `hotfix`.
-
-Examples:
-
-- `feat/api-key-pagination`
-- `fix/oauth-callback-state`
-- `docs/frontend-rules`
-- `chore/commit-pr-governance`
-
-### Commit Titles
-
-Commit titles must follow Conventional Commits:
-
-```text
-<type>(optional-scope): <imperative summary>
-```
-
-Examples:
-
-- `feat(frontend): add API key pagination`
-- `fix(auth): preserve oauth callback state`
-- `docs: define PR governance rules`
-
-Commit bodies are required for non-trivial commits and must include:
-
-```text
-Changes:
-- What changed.
-
-Affected Files:
-- Key files or directories changed.
-
-Verification:
-- How the change was tested or reproduced.
-```
-
-Use `COMMIT_BODY_FILE=<file> make git-governance-check` or `scripts/validate-git-governance.sh --commit-body-file <file>` to validate planned commit body sections before committing.
-
-### Pull Request Titles and Descriptions
-
-Create PRs as ready for review by default. Use draft PRs only when the user explicitly requests a draft or when a blocker must be resolved before review.
-
-PR titles must use a visible type tag:
-
-```text
-[type] Concise PR title
-```
-
-Examples:
-
-- `[feat] Add API key pagination`
-- `[fix] Preserve OAuth callback state`
-- `[docs] Define commit and PR governance`
-
-PR descriptions must include:
-
-- Summary
-- Scope
-- Reason
-- Verification
-- Documentation
-- Risk / Impact
-
-When labels are available, apply labels that match the type and affected area, such as `feat`, `fix`, `docs`, `frontend`, `backend`, `infra`, or `tests`.
-
-### Merge Method
-
-Use a merge commit for pull requests by default, including automatic merges:
-
-```sh
-gh pr merge <number> --auto --merge
-```
-
-Do not use squash merge or rebase merge unless the user explicitly requests that method. Validate the planned method through `make git-governance-check`; the default `MERGE_METHOD=merge` rejects other methods unless the explicit-request override `ALLOW_NON_MERGE_METHOD=true` is supplied.
-
-Before enabling auto-merge, confirm the requested method in the resulting `autoMergeRequest`. A merge method cannot be changed after the pull request has merged; if the wrong method is registered, disable auto-merge before required checks complete and register it again with `--merge`.
-
-## B4React Submodule
-
-`src/frontend` is a pinned B4React Git submodule. Initialize with
-`git submodule update --init --recursive` before reading its guides. Frontend source
-changes belong in a named B4React branch and PR; merge there before updating the
-parent gitlink. Parent commits own packaging, integration, and contract validation.
-Do not run `git submodule update --remote` in CI or automatically regenerate child
-contracts from parent files.
-
-## Task Start and Completion Order
-
-1. Read the applicable guides and inspect working tree/submodule status; preserve unrelated edits.
-2. Create a named task branch from the current target branch before implementation.
-3. Copy `.github/WORKLOG_TEMPLATE.md` to the next `worklog/NNNN-description.md`.
-   Fill in the intended commit title, reason, scope, design, verification plan and loop impact
-   before editing implementation. Record actual outcomes in Verification before committing.
-4. Implement and synchronize related documentation. Update the plan if scope changes.
-5. Run the applicable root Make checks. Record skipped checks and reasons for this task;
-   an earlier test-skip request must not silently become a permanent exemption.
-6. Stage the intended files including the completed worklog, then run
-   `COMMIT_TITLE='type(scope): summary' COMMIT_BODY_FILE=/tmp/commit.txt make git-governance-check`.
-   Planned validation reads the Git index, not untracked or unstaged content. Run it again after staging changes.
-7. Commit, push and create a ready PR. Validate PR_TITLE and PR_BODY_FILE together.
-8. Confirm local hook checks and actual PR metadata validation before merge; use merge commits and verify MERGE if auto-merge is registered.
-
-The worklog template requires Design, Verification Plan, Loop Alignment and Verification
-in addition to the existing four sections. Each authored commit must add/modify a worklog
-whose Commit Title exactly matches that commit. Merge commits used to integrate branch
-history are excluded from per-commit checks; changes must be authored in ordinary commits.
-Start-time planning is a human/agent obligation: Git cannot prove when a plan was written.
-Local governance enforces committed evidence, nonempty sections and metadata, not design correctness.
-
-## Local Governance and Manual GitHub Workflows
-
-Install versioned hooks once per clone with `make hooks-install` (also part of `make init`).
-The parent installs hooks in its initialized frontend submodule too. Existing custom
-core.hooksPath settings are preserved and require explicit reconciliation.
-
-`commit-msg` checks the actual message and staged matching worklog. Integration merge
-commits are excluded. `pre-push` requires a clean working tree/submodule and the exact
-checked-out HEAD, fetches remote main, checks every authored commit since its merge base,
-and runs `make verify-plan` then `make verify` against that full branch range. A failed
-check blocks the push. Do not bypass hooks to complete ordinary tasks.
-
-After creating or editing PR metadata run `PR_NUMBER=<number> make git-governance-pr-check`.
-This reads the actual GitHub title/body and verifies the complete commit range locally.
-Planned PR validation with PR_TITLE/PR_BODY_FILE remains available. Rerun the actual PR
-check immediately before merge; metadata edited on GitHub cannot trigger a local hook.
-
-GitHub workflows are workflow_dispatch-only, including image/desktop builds; no automatic
-PR, push, schedule, tag or release runs. Main still requires a PR, resolved conversations,
-and protects deletion/non-fast-forward updates, with zero required approvals. Required
-status checks are removed from `.github/main-ruleset.json` and the live ruleset. Use merge
-commits by default. Local hooks are bypassable and are not a server-side CI guarantee.
-Do not disable PR or history protection. Apply ruleset changes only with repository admin
-permission; never bypass unavailable permissions.
-
-Successful Make command receipts are local and content-bound for at most 24 hours.
-Only unchanged code/docs/config, tool/environment context and required build outputs
-permit reuse; worklog-only outcome edits still receive text and governance validation.
-CI/manual Actions and VERIFY_FULL=1 ignore receipts. See notes/local-hooks.md.
-
-## Backend relational persistence boundary
-
-Services orchestrate; repositories under `app/models/` own relational DB sessions,
-CRUD, queries, locks, transactions, ORM persistence assignments and SQLAlchemy/driver
-error translation. Routers, services and auth dependencies may not acquire/accept
-a DB session or call its CRUD/transaction methods, including indirectly through ad hoc helpers.
-Services consume repository results/domain exceptions or an explicit repository
-failure contract for compensation; never interpret DB constraint names/error.orig.
-Redis is excluded. Core infrastructure probes and admin engine metadata inspection
-are not business CRUD. Preserve transactional invariants and commit-uncertain cleanup.
-Read the detailed boundary in `src/backend/BACKEND.md` and manually review it at task
-start/completion; existing automated architecture checks do not enforce all of it.
-Also inventory router-to-service calls (including main.py request handlers), domain
-Exception/ErrorCode use and cross-service private access. Business orchestration and
-feature authorization belong in services/shared guards; private implementation must
-not become another service's interface. Pure technical/transport utilities may be
-called directly, and HTTP AuthService/SSE Request adapters are allowed. Do not add
-wrapper services or DTOs solely for those uses. Share identical policy constants
-and use error enums/HTTP status constants. Distinguish responsibility violations,
-consistency cleanup and allowed design in manual reviews; see BACKEND.md. This
-policy adds no automatic checker or tests.
-
-## Frontend state and React performance
-
-Follow the pinned frontend [state/performance policy](src/frontend/notes/react-performance.md) for all frontend runtime work. State ownership review, React.memo at expensive stable-prop boundaries (or an explicit reason not to apply it), and observed evidence are the default workflow. Do not add Zustand/Redux or blanket memo wrappers without a concrete need. Keep independent optimizations in separate branches/worklogs/PRs. Frontend worklogs and enforcement belong in B4React; parent worklogs record integration checks and loop impact.
-
-`make frontend-react-performance-check` delegates static/policy fixtures to the pinned child; it is also included transitively in `make check`. `make frontend-test` covers render/config regressions; `make frontend-test-routes` builds and checks production chunk loading/recovery. Run browser UI checks for layout changes. Parent local verification also runs production route tests, preserving the child harness when integrating a new gitlink.
-
-## Page Family Consistency
-
-For frontend UI changes, follow the pinned [page-family policy](src/frontend/notes/page-families.md). Identify an existing peer before implementation and reuse its shell, spacing, surfaces, typography, actions and responsive rules. A reference screenshot does not override the host family. Record the child Page Family worklog review and actual peer comparisons before committing; shared-control checks alone do not establish page consistency. Keep exceptions scoped and documented.
+For frontend runtime changes, follow the child [state/performance policy](src/frontend/notes/react-performance.md)
+and record ownership, justified memoization and observed evidence. Avoid blanket
+memo wrappers or new state libraries without need; independent optimizations stay
+in separate task PRs. For UI changes, follow the child [page-family policy](src/frontend/notes/page-families.md):
+choose a peer before editing, reuse its composition, compare real rendering and
+record scoped exceptions. Reference screenshots do not override the host family.

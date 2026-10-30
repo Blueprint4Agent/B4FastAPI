@@ -381,15 +381,12 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 - Use `uv` as the default backend package/runtime workflow.
 - Keep `pyproject.toml` and lockfile changes consistent in the same change set.
 - Ruff is the single source of truth for Python style.
-- Required before commit:
-
-1. `ruff check . --fix`
-2. `ruff format .`
-
-- Required for CI/local verification:
-
-1. `ruff check .`
-2. `ruff format . --check`
+- Use `make backend-format` when automatic lint fixes/formatting are needed; review
+  its diff and preserve unrelated edits. A formatting mutation is not a mandatory
+  step when code already passes.
+- Before commit, root `make verify-plan` / `make verify` select the required lint,
+  format-check, architecture, tests and contracts. Follow `notes/verification.md`;
+  explicit standalone commands do not replace or narrow the selected plan.
 
 - Line length and formatting behavior must follow `src/backend/pyproject.toml` Ruff settings.
 - Even if `black`/`isort` sections exist, use Ruff commands as the primary workflow.
@@ -409,7 +406,8 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 
 ## 3) Mandatory Layering Pattern (Router -> Service -> Repository -> DB)
 
-- Every request flow must follow this order:
+- Business request flows follow this order. Pure technical/transport endpoints and
+  allowed adapters follow the Router/service interface review above without wrapper services:
 
 1. Router: HTTP transport layer only
 2. Service: business logic and orchestration
@@ -492,19 +490,11 @@ Avoid hiding long-running external calls inside request handlers when a queued t
 
 ## 6) Mandatory Pre-Commit Checks
 
-- For backend-related commits, all checks below must pass:
-
-1. `ruff check . --fix`
-2. `ruff format .`
-3. Run minimum relevant tests for modified scope (if tests exist)
-4. If OpenAPI contract changes, verify downstream frontend type generation flow
-5. If dependencies/tooling changed, verify `pyproject.toml` and lockfile are synchronized under `uv` workflow
-
-- For test architecture, naming, and harness rules, follow `src/backend/TEST.md`.
-- When adding a new backend domain/router, follow the onboarding checklist in
-  `src/backend/TEST.md` (`## 11) New Domain Test Onboarding Rules (Required)`).
-
-- Do not commit when these checks are not satisfied.
+Follow root AGENTS.md and `notes/verification.md` for scoped Make validation and
+commit governance. Do not substitute manually chosen minimum tests for the plan.
+Review OpenAPI compatibility when contracts change and keep pyproject.toml/uv.lock
+synchronized when dependencies change. Test architecture and new-domain onboarding
+are defined in `src/backend/TEST.md`. Record selected checks and justified omissions.
 
 ## 7) Database Migration Rules (Alembic)
 
@@ -652,8 +642,8 @@ loggers. Existing error ownership, masking and LOG_LEVEL policies still apply.
 ## Automated Layer Boundaries
 
 `make backend-architecture-check` parses application Python imports without loading
-runtime settings or connecting to services. It runs in root `make check` and the
-required Backend checks CI job.
+runtime settings or connecting to services. Root `make check` and change-scoped
+backend verification run it; GitHub Actions are manual-only, not required status gates.
 
 - Routers cannot import app.core.db, SQLAlchemy, SQLite/PostgreSQL drivers or databases.
 - From app.models, routers may import only statically identified Pydantic schemas
